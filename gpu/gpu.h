@@ -4,18 +4,37 @@
 #include "gpu/blocks/rasterizer.h"
 
 SC_MODULE(Gpu) {
-    sc_in_clk inpPaClock;
-    sc_in_clk inpRsClock;
-
-    PrimitiveAssembler primitiveAssembler;
-    Rasterizer rasterizer;
-
-    sc_signal<bool> rasterizerIsEnabled;
-    sc_signal<bool> rasterizerIsDone;
-    sc_signal<sc_uint<32>> rasterizerVertices[6];
-
-    sc_signal<sc_uint<16>> rasterizeFramebufferWidth;
-    sc_signal<sc_uint<16>> rasterizeFramebufferHeight;
-
     Gpu(sc_module_name name, uint8_t * pixels);
+
+    // Blocks of the GPU
+    PrimitiveAssembler primitiveAssembler; // abbreviation: PA
+    Rasterizer rasterizer;                 // abbreviation: RS
+
+    // This structure represents wirings of individual blocks visible to the
+    // user. Ideally user should set all of the fields to desired values.
+    struct {
+        struct {
+            sc_in_clk inpClock;
+        } PA;
+
+        struct {
+            sc_in_clk inpClock;
+            sc_signal<sc_uint<16>> framebufferWidth;
+            sc_signal<sc_uint<16>> framebufferHeight;
+        } RS;
+    } blocks;
+
+private:
+    // This structure represents internal wirings between individual blocks
+    // The user should not care about them, they are a GPU's implementation
+    // detail.
+    struct {
+
+        struct {
+            sc_signal<bool> isEnabled;
+            sc_signal<bool> isDone;
+            sc_signal<sc_uint<32>> vertices[6];
+        } PA_RS;
+
+    } internalSignals;
 };

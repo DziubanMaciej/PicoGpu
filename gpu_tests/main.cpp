@@ -9,8 +9,10 @@ extern "C" int sc_main(int argc, char *argv[]) {
 
     Gpu gpu{"Gpu", pixels.get()};
     sc_clock clock("clk", 2, SC_NS, 1, 0, SC_NS, false);
-    gpu.inpPaClock(clock);
-    gpu.inpRsClock(clock);
+    gpu.blocks.PA.inpClock(clock);
+    gpu.blocks.RS.inpClock(clock);
+    gpu.blocks.RS.framebufferWidth.write(100);
+    gpu.blocks.RS.framebufferHeight.write(100);
     // sc_start();
     sc_start({120000, SC_NS});
 
