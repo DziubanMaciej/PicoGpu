@@ -3,8 +3,7 @@
 #include <memory>
 #include <third_party/stb_image_write.h>
 
-extern "C" int sc_main(int argc, char *argv[]) {
-
+int sc_main(int argc, char *argv[]) {
     auto pixels = std::make_unique<uint8_t[]>(100 * 100 * 4);
 
     Gpu gpu{"Gpu", pixels.get()};
@@ -13,7 +12,6 @@ extern "C" int sc_main(int argc, char *argv[]) {
     gpu.blocks.RS.inpClock(clock);
     gpu.blocks.RS.framebufferWidth.write(100);
     gpu.blocks.RS.framebufferHeight.write(100);
-    // sc_start();
     sc_start({120000, SC_NS});
 
     stbi_write_png("result.png", 100, 100, 4, pixels.get(), 100 * 4);
