@@ -86,9 +86,9 @@ int sc_main(int argc, char *argv[]) {
 
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     Memory<64> mem{"mem"};
-    std::unique_ptr<MemoryController<1, MemoryDataType>> memController = {};
+    std::unique_ptr<MemoryController<1>> memController = {};
     if (useMemoryController) {
-        memController = std::make_unique<MemoryController<1, MemoryDataType>>("memController");
+        memController = std::make_unique<MemoryController<1>>("memController");
     }
     UserBlitter blitter("blitter");
     Tester tester("tester", blitter);

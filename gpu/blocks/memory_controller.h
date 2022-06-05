@@ -2,9 +2,10 @@
 
 #include "systemc.h"
 
+#include "gpu/types.h"
 #include "gpu/util/log.h"
 
-template <unsigned int clientsCount, typename MemoryDataType>
+template <unsigned int clientsCount>
 SC_MODULE(MemoryController) {
     static_assert(clientsCount > 0);
 

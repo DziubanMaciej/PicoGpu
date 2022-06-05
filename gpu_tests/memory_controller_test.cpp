@@ -195,7 +195,7 @@ int sc_main(int argc, char *argv[]) {
     sc_clock clock("my_clock", 1, SC_NS, 0.5, 0, SC_NS, true);
 
     Memory<32> mem("mem");
-    MemoryController<2, MemoryDataType> memController("memController");
+    MemoryController<2> memController("memController");
 
     // Bind mem with memController
     sc_signal<bool> memInpEnable;
