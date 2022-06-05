@@ -21,7 +21,7 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.OM.inpClock(clock);
-    gpu.blocks.OM.inpFramebufferAddress = 0x30;
+    gpu.blocks.OM.inpFramebufferAddress = 0x50;
 
     // Upload vertex data to the memory
     uint32_t vertices[] = {
@@ -54,7 +54,7 @@ int sc_main(int argc, char *argv[]) {
 
     // Blit results to a normal user buffer and output it to a file
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
-    gpu.userBlitter.blitFromMemory(0x30, pixels.get(), 100 * 100);
+    gpu.userBlitter.blitFromMemory(0x50, pixels.get(), 100 * 100);
     while (gpu.userBlitter.hasPendingOperation()) {
         sc_start({1, SC_NS});
     }
