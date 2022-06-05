@@ -2,8 +2,9 @@
 
 #include "systemc.h"
 
+constexpr inline size_t memoryDataTypeByteSize = 4;
 using MemoryAddressType = sc_uint<32>;
-using MemoryDataType = sc_uint<32>;
+using MemoryDataType = sc_uint<memoryDataTypeByteSize * 8>;
 
 template <unsigned int Size = 1>
 SC_MODULE(Memory) {
@@ -37,7 +38,7 @@ void Memory<Size>::work() {
             continue;
         }
 
-        const auto addr = inpAddress.read().to_int();
+        const auto addr = inpAddress.read().to_int() / memoryDataTypeByteSize;
         if (inpWrite.read()) {
             rawMemory[addr].write(inpData.read());
         } else {
