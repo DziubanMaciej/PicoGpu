@@ -2,26 +2,16 @@
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/blocks/user_blitter.h"
 #include "gpu/util/vcd_trace.h"
+#include "gpu_tests/test_utils.h"
 
 #include <systemc.h>
-
-// TODO refactor these macros and put them in a shared file
-#define ASSERT_EQ(a, b)                                                                               \
-    wait(SC_ZERO_TIME);                                                                               \
-    {                                                                                                 \
-        if ((a) != (b)) {                                                                             \
-            success = false;                                                                          \
-            scLog() << "ASSERT_EQ(" #a ", " #b ") at " << __FILE__ << ":" << __LINE__ << " failed\n"; \
-        }                                                                                             \
-    }
-#define SUMMARY_RESULT(NAME)                                            \
-    scLog() << NAME << " " << ((success) ? "SUCCEEDED\n" : "FAILED\n"); \
-    success = true;
 
 SC_MODULE(Tester) {
     sc_in_clk inpClock;
 
     SC_HAS_PROCESS(Tester);
+
+    TESTER("Test", 1);
 
     UserBlitter &blitter;
 
@@ -78,6 +68,7 @@ SC_MODULE(Tester) {
         ASSERT_EQ(data2[1], readData[3]);
         ASSERT_EQ(data2[2], readData[4]);
         ASSERT_EQ(data2[3], readData[5]);
+        SUMMARY_RESULT("Data validation");
     }
 };
 
@@ -171,5 +162,5 @@ int sc_main(int argc, char *argv[]) {
     ADD_TRACE(memControllerOutData);
 
     sc_start({100, SC_NS});
-    return 0;
+    return tester.verify();
 }

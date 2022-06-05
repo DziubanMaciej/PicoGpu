@@ -1,21 +1,9 @@
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/util/vcd_trace.h"
+#include "gpu_tests/test_utils.h"
 
 #include <systemc.h>
-
-// TODO refactor these macros and put them in a shared file
-#define ASSERT_EQ(a, b)                                                                               \
-    wait(SC_ZERO_TIME);                                                                               \
-    {                                                                                                 \
-        if ((a) != (b)) {                                                                             \
-            success = false;                                                                          \
-            scLog() << "ASSERT_EQ(" #a ", " #b ") at " << __FILE__ << ":" << __LINE__ << " failed\n"; \
-        }                                                                                             \
-    }
-#define SUMMARY_RESULT(NAME)                                            \
-    scLog() << NAME << " " << ((success) ? "SUCCEEDED\n" : "FAILED\n"); \
-    success = true;
 
 SC_MODULE(Client0) {
     sc_in_clk inpClk;
@@ -25,6 +13,8 @@ SC_MODULE(Client0) {
     sc_out<MemoryDataType> outData;
     sc_in<MemoryDataType> inpData;
     sc_in<bool> inpCompleted;
+
+    TESTER("Client0", 3);
 
     SC_CTOR(Client0) {
         SC_THREAD(main);
@@ -104,6 +94,8 @@ SC_MODULE(Client1) {
     sc_out<MemoryDataType> outData;
     sc_in<MemoryDataType> inpData;
     sc_in<bool> inpCompleted;
+
+    TESTER("Client1", 3);
 
     SC_CTOR(Client1) {
         SC_THREAD(main);
@@ -282,5 +274,5 @@ int sc_main(int argc, char *argv[]) {
 
     sc_start({65, SC_NS});
 
-    return 0;
+    return client0.verify() || client1.verify();
 }

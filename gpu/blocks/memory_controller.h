@@ -3,7 +3,6 @@
 #include "systemc.h"
 
 #include "gpu/types.h"
-#include "gpu/util/log.h" // TODO remove this, move to some test helper header
 
 template <unsigned int clientsCount>
 SC_MODULE(MemoryController) {
