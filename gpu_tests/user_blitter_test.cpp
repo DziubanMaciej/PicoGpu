@@ -43,7 +43,7 @@ SC_MODULE(Tester) {
             wait(1);
             cycles++;
         }
-        printf("Written %d dwords in %d cycles\n", 3, cycles);
+        Log() << "Written " << 3 << " dwords in " << cycles << " cycles";
 
         blitter.blitToMemory(0x0C, data2, 4); // Write data2 to locations 0x0C, 0x10, 0x14
         cycles = 0;
@@ -51,7 +51,7 @@ SC_MODULE(Tester) {
             wait(1);
             cycles++;
         }
-        printf("Written %d dwords in %d cycles\n", 4, cycles);
+        Log() << "Written " << 4 << " dwords in " << cycles << " cycles";
 
         uint32_t readData[6] = {};
         blitter.blitFromMemory(0x04, readData, 6); // Read from locations 0x04 to 0x14
@@ -60,7 +60,7 @@ SC_MODULE(Tester) {
             wait(1);
             cycles++;
         }
-        printf("Read %d dwords in %d cycles\n", 6, cycles);
+        Log() << "Written " << 6 << " dwords in " << cycles << " cycles";
 
         ASSERT_EQ(data1[0], readData[0]);
         ASSERT_EQ(data1[1], readData[1]);
