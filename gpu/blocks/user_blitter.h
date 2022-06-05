@@ -17,8 +17,8 @@ SC_MODULE(UserBlitter) {
         SC_CTHREAD(main, inpClock.pos());
     }
 
-    void blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords);
-    void blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords);
+    void blitToMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords);
+    void blitFromMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords);
 
     void main();
     bool hasPendingOperation() const { return pendingOperation.isValid; }

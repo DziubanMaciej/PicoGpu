@@ -15,7 +15,7 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
     userBlitter.outAddress(internalSignals.BLT_MEMCTL.address);
     userBlitter.outData(internalSignals.BLT_MEMCTL.dataForWrite);
     userBlitter.inpData(internalSignals.MEMCTL.dataForRead);
-    userBlitter.inpCompleted(internalSignals.BLT_MEMCTL.enable);
+    userBlitter.inpCompleted(internalSignals.BLT_MEMCTL.completed);
 
     // Initialize memory controller
     memoryController.inpClock(blocks.MEMCTL.inpClock);
@@ -54,7 +54,7 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
     primitiveAssembler.memory.outEnable(internalSignals.MEMCTL_PA.enable);
     primitiveAssembler.memory.outAddress(internalSignals.MEMCTL_PA.address);
     primitiveAssembler.memory.inpData(internalSignals.MEMCTL.dataForRead);
-    primitiveAssembler.memory.inpCompleted(internalSignals.MEMCTL_PA.enable);
+    primitiveAssembler.memory.inpCompleted(internalSignals.MEMCTL_PA.completed);
     primitiveAssembler.nextBlock.inpIsDone(internalSignals.PA_RS.isDone);
     primitiveAssembler.nextBlock.outEnable(internalSignals.PA_RS.isEnabled);
     for (int i = 0; i < 6; i++) {

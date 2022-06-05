@@ -14,7 +14,7 @@ SC_MODULE(Gpu) {
     // Blocks of the GPU
     UserBlitter userBlitter;               // abbreviation: BLT
     MemoryController<2> memoryController;  // abbreviation: MEMCTL
-    Memory<10> memory;                     // abbreviation: MEM
+    Memory<64> memory;                     // abbreviation: MEM
     PrimitiveAssembler primitiveAssembler; // abbreviation: PA
     Rasterizer rasterizer;                 // abbreviation: RS
 
@@ -84,8 +84,8 @@ private:
         } MEMCTL_PA;
 
         struct {
-            sc_signal<bool> isEnabled{"MEMCTL_PA_isEnabled"};
-            sc_signal<bool> isDone{"MEMCTL_PA_isDone"};
+            sc_signal<bool> isEnabled{"PA_RS_isEnabled"};
+            sc_signal<bool> isDone{"PA_RS_isDone"};
             sc_signal<sc_uint<32>> vertices[6];
         } PA_RS;
 

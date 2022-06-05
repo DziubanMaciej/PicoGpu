@@ -10,14 +10,14 @@ int sc_main(int argc, char *argv[]) {
     VcdTrace trace{TEST_NAME};
     Gpu gpu{"Gpu", pixels.get()};
     gpu.addSignalsToVcdTrace(trace, true, true, true);
-    sc_clock clock("clk", 2, SC_NS, 1, 0, SC_NS, false);
+    sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     gpu.blocks.BLT.inpClock(clock);
     gpu.blocks.MEMCTL.inpClock(clock);
     gpu.blocks.MEM.inpClock(clock);
     gpu.blocks.PA.inpClock(clock);
     gpu.blocks.PA.inpEnable = false;
     gpu.blocks.PA.inpVerticesAddress = 0x08;
-    gpu.blocks.PA.inpVerticesCount = 3;
+    gpu.blocks.PA.inpVerticesCount = 6;
     gpu.blocks.RS.inpClock(clock);
     gpu.blocks.RS.framebufferWidth.write(100);
     gpu.blocks.RS.framebufferHeight.write(100);
@@ -30,10 +30,17 @@ int sc_main(int argc, char *argv[]) {
         20,
         20,
         10,
+
+        10 + 30,
+        10,
+        10 + 30,
+        20,
+        20 + 30,
+        10,
     };
     gpu.userBlitter.blitToMemory(0x08, vertices, sizeof(vertices) / sizeof(vertices[0]));
     while (gpu.userBlitter.hasPendingOperation()) {
-        sc_start({2, SC_NS});
+        sc_start({1, SC_NS});
     }
 
     // Enable primitive assembler

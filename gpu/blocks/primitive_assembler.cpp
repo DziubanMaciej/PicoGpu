@@ -17,11 +17,16 @@ void PrimitiveAssembler::assemble() {
         uint32_t readVertices[3][componentsPerVertex] = {};
 
         for (int triangleIndex = 0; triangleIndex < trianglesCount; triangleIndex++) {
+            if (triangleIndex != 0) {
+                wait();
+            }
+            nextBlock.outEnable = 0;
+
             // Read all vertices of the triangle to local memory
             for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++) {
                 for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
                     memory.outEnable = 1;
-                    memory.outAddress = verticesAddress + componentsPerVertex * vertexIndex;
+                    memory.outAddress = verticesAddress + sizeof(uint32_t) * (triangleIndex * 3 * componentsPerVertex + componentsPerVertex * vertexIndex + componentIndex);
                     wait(1);
                     memory.outEnable = 0;
 
