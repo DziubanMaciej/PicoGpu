@@ -2,6 +2,7 @@
 
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
+#include "gpu/blocks/output_merger.h"
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/blocks/rasterizer.h"
 #include "gpu/blocks/user_blitter.h"
@@ -9,14 +10,15 @@
 class VcdTrace;
 
 SC_MODULE(Gpu) {
-    Gpu(sc_module_name name, uint8_t * pixels);
+    Gpu(sc_module_name name);
 
     // Blocks of the GPU
     UserBlitter userBlitter;               // abbreviation: BLT
-    MemoryController<2> memoryController;  // abbreviation: MEMCTL
-    Memory<64> memory;                     // abbreviation: MEM
+    MemoryController<3> memoryController;  // abbreviation: MEMCTL
+    Memory<12000> memory;                  // abbreviation: MEM
     PrimitiveAssembler primitiveAssembler; // abbreviation: PA
     Rasterizer rasterizer;                 // abbreviation: RS
+    OutputMerger outputMerger;             // abbreviation: OM
 
     // This structure represents wirings of individual blocks visible to the
     // user. Ideally user should set all of the fields to desired values.
@@ -42,9 +44,18 @@ SC_MODULE(Gpu) {
 
         struct {
             sc_in_clk inpClock{"RS_inpClock"};
-            sc_signal<sc_uint<16>> framebufferWidth{"RS_framebufferWidth"};
-            sc_signal<sc_uint<16>> framebufferHeight{"RS_framebufferHeight"};
+
         } RS;
+
+        struct {
+            sc_signal<sc_uint<16>> framebufferWidth{"RS_OM_framebufferWidth"};
+            sc_signal<sc_uint<16>> framebufferHeight{"RS_OM_framebufferHeight"};
+        } RS_OM;
+
+        struct {
+            sc_in_clk inpClock{"OM_inpClock"};
+            sc_signal<MemoryAddressType> inpFramebufferAddress{"OM_inpFramebufferAddress"};
+        } OM;
     } blocks;
 
     void addSignalsToVcdTrace(VcdTrace & trace, bool allClocksTheSame, bool publicPorts, bool internalPorts);
@@ -77,17 +88,31 @@ private:
 
         struct {
             sc_signal<bool> enable{"MEMCTL_PA_enable"};
-            sc_signal<bool> write{"MEMCTL_PA_write"}; // unused, always 0
+            sc_signal<bool> write{"MEMCTL_PA_write", 0}; // unused, always 0
             sc_signal<MemoryAddressType> address{"MEMCTL_PA_address"};
-            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_PA_dataForWrite"}; // unused, always 0
+            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_PA_dataForWrite", 0}; // unused, always 0
             sc_signal<bool> completed{"MEMCTL_PA_completed"};
         } MEMCTL_PA;
+
+        struct {
+            sc_signal<bool> enable{"MEMCTL_OM_enable"};
+            sc_signal<bool> write{"MEMCTL_OM_write", 1}; // unused, always 1
+            sc_signal<MemoryAddressType> address{"MEMCTL_OM_address"};
+            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_OM_dataForWrite"};
+            sc_signal<bool> completed{"MEMCTL_OM_completed"};
+        } MEMCTL_OM;
 
         struct {
             sc_signal<bool> isEnabled{"PA_RS_isEnabled"};
             sc_signal<bool> isDone{"PA_RS_isDone"};
             sc_signal<sc_uint<32>> vertices[6];
         } PA_RS;
+
+        struct {
+            sc_signal<bool> enable{"RS_OM_enable"};
+            sc_fifo<sc_uint<32>> pixels{"RS_OM_pixels"};
+            sc_signal<bool> isDone{"RS_OM_isDone"};
+        } RS_OM;
 
     } internalSignals;
 };

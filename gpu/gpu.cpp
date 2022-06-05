@@ -1,12 +1,13 @@
 #include "gpu/gpu.h"
 #include "gpu/util/vcd_trace.h"
 
-Gpu::Gpu(sc_module_name name, uint8_t *pixels)
+Gpu::Gpu(sc_module_name name)
     : userBlitter("UserBlitter"),
       memoryController("MemoryController"),
       memory("Memory"),
       primitiveAssembler("PrimitiveAssembler"),
-      rasterizer("Rasterizer", pixels) {
+      rasterizer("Rasterizer"),
+      outputMerger("OutputMerger") {
 
     // Initialize blitter
     userBlitter.inpClock(blocks.BLT.inpClock);
@@ -29,6 +30,11 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
     memoryController.clients[1].inpAddress(internalSignals.MEMCTL_PA.address);
     memoryController.clients[1].inpData(internalSignals.MEMCTL_PA.dataForWrite);
     memoryController.clients[1].outCompleted(internalSignals.MEMCTL_PA.completed);
+    memoryController.clients[2].inpEnable(internalSignals.MEMCTL_OM.enable);
+    memoryController.clients[2].inpWrite(internalSignals.MEMCTL_OM.write);
+    memoryController.clients[2].inpAddress(internalSignals.MEMCTL_OM.address);
+    memoryController.clients[2].inpData(internalSignals.MEMCTL_OM.dataForWrite);
+    memoryController.clients[2].outCompleted(internalSignals.MEMCTL_OM.completed);
     memoryController.outData(internalSignals.MEMCTL.dataForRead);
     memoryController.memory.outEnable(internalSignals.MEMCTL_MEM.enable);
     memoryController.memory.outWrite(internalSignals.MEMCTL_MEM.write);
@@ -63,13 +69,29 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
 
     // Initialize rasterizer
     rasterizer.inpClock(blocks.RS.inpClock);
-    rasterizer.outIsDone(internalSignals.PA_RS.isDone);
-    rasterizer.inpEnable(internalSignals.PA_RS.isEnabled);
+    rasterizer.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
+    rasterizer.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
     for (int i = 0; i < 6; i++) {
-        rasterizer.inpTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
+        rasterizer.previousBlock.inpTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
     }
-    rasterizer.inpFramebufferWidth(blocks.RS.framebufferWidth);
-    rasterizer.inpFramebufferHeight(blocks.RS.framebufferHeight);
+    rasterizer.previousBlock.inpEnable(internalSignals.PA_RS.isEnabled);
+    rasterizer.previousBlock.outIsDone(internalSignals.PA_RS.isDone);
+    rasterizer.nextBlock.outEnable(internalSignals.RS_OM.enable);
+    rasterizer.nextBlock.outPixels(internalSignals.RS_OM.pixels);
+    rasterizer.nextBlock.inpIsDone(internalSignals.RS_OM.isDone);
+
+    // Initialize output merger
+    outputMerger.inpClock(blocks.OM.inpClock);
+    outputMerger.previousBlock.inpEnable(internalSignals.RS_OM.enable);
+    outputMerger.previousBlock.inpPixels(internalSignals.RS_OM.pixels);
+    outputMerger.previousBlock.outIsDone(internalSignals.RS_OM.isDone);
+    outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);
+    outputMerger.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
+    outputMerger.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
+    outputMerger.memory.outEnable(internalSignals.MEMCTL_OM.enable);
+    outputMerger.memory.outAddress(internalSignals.MEMCTL_OM.address);
+    outputMerger.memory.outData(internalSignals.MEMCTL_OM.dataForWrite);
+    outputMerger.memory.inpCompleted(internalSignals.MEMCTL_OM.completed);
 }
 
 void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publicPorts, bool internalPorts) {
@@ -94,8 +116,14 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publ
         if (!allClocksTheSame) {
             trace.trace(blocks.RS.inpClock);
         }
-        trace.trace(blocks.RS.framebufferWidth);
-        trace.trace(blocks.RS.framebufferHeight);
+
+        trace.trace(blocks.RS_OM.framebufferWidth);
+        trace.trace(blocks.RS_OM.framebufferHeight);
+
+        if (!allClocksTheSame) {
+            trace.trace(blocks.OM.inpClock);
+        }
+        trace.trace(blocks.OM.inpFramebufferAddress);
     }
 
     if (internalPorts) {
@@ -120,10 +148,20 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publ
         trace.trace(internalSignals.MEMCTL_PA.dataForWrite);
         trace.trace(internalSignals.MEMCTL_PA.completed);
 
+        trace.trace(internalSignals.MEMCTL_OM.enable);
+        trace.trace(internalSignals.MEMCTL_OM.write);
+        trace.trace(internalSignals.MEMCTL_OM.address);
+        trace.trace(internalSignals.MEMCTL_OM.dataForWrite);
+        trace.trace(internalSignals.MEMCTL_OM.completed);
+
         trace.trace(internalSignals.PA_RS.isEnabled);
         trace.trace(internalSignals.PA_RS.isDone);
         for (int i = 0; i < 6; i++) {
             trace.trace(internalSignals.PA_RS.vertices[i]);
         }
+
+        trace.trace(internalSignals.RS_OM.enable);
+        // trace.trace(internalSignals.RS_OM.pixels); // TODO is it possible to work?
+        trace.trace(internalSignals.RS_OM.isDone);
     }
 }
