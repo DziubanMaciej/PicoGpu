@@ -26,8 +26,10 @@ void Rasterizer::rasterize() {
 
                 // Rasterize a pixel
                 const size_t offset = currentPixel.y * width + currentPixel.x;
-                const uint32_t value = isPointInTriangle(currentPixel, v1, v2, v3) ? 0xffff00ff : 0xeeeeeeff;
-                reinterpret_cast<uint32_t *>(this->output)[offset] = value;
+                const bool hit = isPointInTriangle(currentPixel, v1, v2, v3);
+                if (hit) {
+                    reinterpret_cast<uint32_t *>(this->output)[offset] = 0xffff00ff;
+                }
             }
         }
     }
