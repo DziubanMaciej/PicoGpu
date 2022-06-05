@@ -1,7 +1,8 @@
 #include "gpu/blocks/user_blitter.h"
+#include "gpu/util/error.h"
 
 void UserBlitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    // TODO add check for isValid
+    FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
 
     pendingOperation.isValid = true;
     pendingOperation.toMemory = true;
@@ -11,7 +12,7 @@ void UserBlitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, s
 }
 
 void UserBlitter::blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    // TODO add check for isValid
+    FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
 
     pendingOperation.isValid = true;
     pendingOperation.toMemory = false;

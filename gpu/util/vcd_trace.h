@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gpu/util/error.h"
+
 #include <systemc.h>
 
 class VcdTrace {
@@ -7,7 +9,7 @@ public:
     VcdTrace(const char *name, bool requireSuccess = true) {
         traceFile = sc_create_vcd_trace_file(name);
         if (requireSuccess && !traceFile) {
-            throw 1; // todo use a nice macro
+            FATAL_ERROR("Failed to open trace file");
         }
     }
 
@@ -19,17 +21,13 @@ public:
 
     template <typename ObjectT>
     void trace(ObjectT &&object, const std::string &name) {
-        if (!traceFile) {
-            throw 1; // todo use a nice macro
-        }
+        FATAL_ERROR_IF(!traceFile, "Invalid trace file");
         sc_trace(traceFile, std::forward<ObjectT>(object), name);
     }
 
     template <typename ObjectT>
     void trace(ObjectT &&object) {
-        if (!traceFile) {
-            throw 1; // todo use a nice macro
-        }
+        FATAL_ERROR_IF(!traceFile, "Invalid trace file");
         sc_trace(traceFile, std::forward<ObjectT>(object), object.name());
     }
 
