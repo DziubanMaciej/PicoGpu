@@ -25,6 +25,14 @@ public:
         sc_trace(traceFile, std::forward<ObjectT>(object), name);
     }
 
+    template <typename ObjectT>
+    void trace(ObjectT &&object) {
+        if (!traceFile) {
+            throw 1; // todo use a nice macro
+        }
+        sc_trace(traceFile, std::forward<ObjectT>(object), object.name());
+    }
+
 private:
     sc_trace_file *traceFile;
 };

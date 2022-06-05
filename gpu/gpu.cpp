@@ -1,4 +1,5 @@
 #include "gpu/gpu.h"
+#include "gpu/util/vcd_trace.h"
 
 Gpu::Gpu(sc_module_name name, uint8_t *pixels)
     : userBlitter("UserBlitter"),
@@ -69,4 +70,60 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
     }
     rasterizer.inpFramebufferWidth(blocks.RS.framebufferWidth);
     rasterizer.inpFramebufferHeight(blocks.RS.framebufferHeight);
+}
+
+void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publicPorts, bool internalPorts) {
+    if (publicPorts) {
+        trace.trace(blocks.BLT.inpClock);
+
+        if (!allClocksTheSame) {
+            trace.trace(blocks.MEMCTL.inpClock);
+        }
+
+        if (!allClocksTheSame) {
+            trace.trace(blocks.MEM.inpClock);
+        }
+
+        if (!allClocksTheSame) {
+            trace.trace(blocks.PA.inpClock);
+        }
+        trace.trace(blocks.PA.inpEnable);
+        trace.trace(blocks.PA.inpVerticesAddress);
+        trace.trace(blocks.PA.inpVerticesCount);
+
+        if (!allClocksTheSame) {
+            trace.trace(blocks.RS.inpClock);
+        }
+        trace.trace(blocks.RS.framebufferWidth);
+        trace.trace(blocks.RS.framebufferHeight);
+    }
+
+    if (internalPorts) {
+        trace.trace(internalSignals.BLT_MEMCTL.enable);
+        trace.trace(internalSignals.BLT_MEMCTL.write);
+        trace.trace(internalSignals.BLT_MEMCTL.address);
+        trace.trace(internalSignals.BLT_MEMCTL.dataForWrite);
+        trace.trace(internalSignals.BLT_MEMCTL.completed);
+
+        trace.trace(internalSignals.MEMCTL.dataForRead);
+
+        trace.trace(internalSignals.MEMCTL_MEM.enable);
+        trace.trace(internalSignals.MEMCTL_MEM.write);
+        trace.trace(internalSignals.MEMCTL_MEM.address);
+        trace.trace(internalSignals.MEMCTL_MEM.dataForRead);
+        trace.trace(internalSignals.MEMCTL_MEM.dataForWrite);
+        trace.trace(internalSignals.MEMCTL_MEM.completed);
+
+        trace.trace(internalSignals.MEMCTL_PA.enable);
+        trace.trace(internalSignals.MEMCTL_PA.write);
+        trace.trace(internalSignals.MEMCTL_PA.address);
+        trace.trace(internalSignals.MEMCTL_PA.dataForWrite);
+        trace.trace(internalSignals.MEMCTL_PA.completed);
+
+        trace.trace(internalSignals.PA_RS.isEnabled);
+        trace.trace(internalSignals.PA_RS.isDone);
+        for (int i = 0; i < 6; i++) {
+            trace.trace(internalSignals.PA_RS.vertices[i]);
+        }
+    }
 }

@@ -33,7 +33,7 @@ SC_MODULE(MemoryController) {
 
     // Latched values from clients
     struct ClientLatchedSignals {
-        sc_signal<bool, SC_MANY_WRITERS> enable;
+        sc_signal<bool, SC_UNCHECKED_WRITERS> enable;
         sc_signal<bool> write;
         sc_signal<MemoryAddressType> address;
         sc_signal<MemoryDataType> data;

@@ -1,4 +1,5 @@
 #include "gpu/gpu.h"
+#include "gpu/util/vcd_trace.h"
 
 #include <memory>
 #include <third_party/stb_image_write.h>
@@ -6,7 +7,9 @@
 int sc_main(int argc, char *argv[]) {
     auto pixels = std::make_unique<uint8_t[]>(100 * 100 * 4);
 
+    VcdTrace trace{TEST_NAME};
     Gpu gpu{"Gpu", pixels.get()};
+    gpu.addSignalsToVcdTrace(trace, true, true, true);
     sc_clock clock("clk", 2, SC_NS, 1, 0, SC_NS, false);
     gpu.blocks.BLT.inpClock(clock);
     gpu.blocks.MEMCTL.inpClock(clock);
