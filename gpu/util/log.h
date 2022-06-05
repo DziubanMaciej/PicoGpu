@@ -3,7 +3,7 @@
 #include <iostream>
 #include <systemc>
 
-std::ostream &scLog() {
+inline std::ostream &scLog() {
     static sc_time lastTime{};
     sc_time currentTime = sc_time_stamp();
     if (currentTime != lastTime) {
