@@ -23,6 +23,11 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
     memoryController.clients[0].inpAddress(internalSignals.BLT_MEMCTL.address);
     memoryController.clients[0].inpData(internalSignals.BLT_MEMCTL.dataForWrite);
     memoryController.clients[0].outCompleted(internalSignals.BLT_MEMCTL.completed);
+    memoryController.clients[1].inpEnable(internalSignals.MEMCTL_PA.enable);
+    memoryController.clients[1].inpWrite(internalSignals.MEMCTL_PA.write);
+    memoryController.clients[1].inpAddress(internalSignals.MEMCTL_PA.address);
+    memoryController.clients[1].inpData(internalSignals.MEMCTL_PA.dataForWrite);
+    memoryController.clients[1].outCompleted(internalSignals.MEMCTL_PA.completed);
     memoryController.outData(internalSignals.MEMCTL.dataForRead);
     memoryController.memory.outEnable(internalSignals.MEMCTL_MEM.enable);
     memoryController.memory.outWrite(internalSignals.MEMCTL_MEM.write);
@@ -42,10 +47,17 @@ Gpu::Gpu(sc_module_name name, uint8_t *pixels)
 
     // Initialize primitive assembler
     primitiveAssembler.inpClock(blocks.PA.inpClock);
-    primitiveAssembler.inpIsNextBlockDone(internalSignals.PA_RS.isDone);
-    primitiveAssembler.outEnableNextBlock(internalSignals.PA_RS.isEnabled);
+    primitiveAssembler.inpEnable(blocks.PA.inpEnable);
+    primitiveAssembler.inpVerticesAddress(blocks.PA.inpVerticesAddress);
+    primitiveAssembler.inpVerticesCount(blocks.PA.inpVerticesCount);
+    primitiveAssembler.memory.outEnable(internalSignals.MEMCTL_PA.enable);
+    primitiveAssembler.memory.outAddress(internalSignals.MEMCTL_PA.address);
+    primitiveAssembler.memory.inpData(internalSignals.MEMCTL.dataForRead);
+    primitiveAssembler.memory.inpCompleted(internalSignals.MEMCTL_PA.enable);
+    primitiveAssembler.nextBlock.inpIsDone(internalSignals.PA_RS.isDone);
+    primitiveAssembler.nextBlock.outEnable(internalSignals.PA_RS.isEnabled);
     for (int i = 0; i < 6; i++) {
-        primitiveAssembler.outTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
+        primitiveAssembler.nextBlock.outTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
     }
 
     // Initialize rasterizer

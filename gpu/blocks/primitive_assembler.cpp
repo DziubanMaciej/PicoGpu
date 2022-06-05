@@ -1,23 +1,49 @@
 #include "gpu/blocks/primitive_assembler.h"
 
 void PrimitiveAssembler::assemble() {
-    worked = false;
     while (1) {
         wait();
-        if (worked) {
+
+        nextBlock.outEnable = 0;
+
+        if (!inpEnable) {
             continue;
         }
 
-        outTriangleVertices[0].write(10);
-        outTriangleVertices[1].write(10);
-        outTriangleVertices[2].write(20);
-        outTriangleVertices[3].write(10);
-        outTriangleVertices[4].write(10);
-        outTriangleVertices[5].write(20);
-        outEnableNextBlock.write(1);
-        do {
-            wait();
-        } while (!inpIsNextBlockDone.read());
-        outEnableNextBlock.write(0);
+        const auto verticesAddress = inpVerticesAddress.read().to_int();
+        const auto trianglesCount = inpVerticesCount.read().to_int() / 3;
+        const auto componentsPerVertex = 2; // only x and y
+
+        uint32_t readVertices[3][componentsPerVertex] = {};
+
+        for (int triangleIndex = 0; triangleIndex < trianglesCount; triangleIndex++) {
+            // Read all vertices of the triangle to local memory
+            for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++) {
+                for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
+                    memory.outEnable = 1;
+                    memory.outAddress = verticesAddress + componentsPerVertex * vertexIndex;
+                    wait(1);
+                    memory.outEnable = 0;
+
+                    while (!memory.inpCompleted) {
+                        wait(1);
+                    }
+
+                    memory.outAddress = 0;
+                    readVertices[vertexIndex][componentIndex] = memory.inpData.read();
+                }
+            }
+
+            // Output the triangle to the nexr block
+            while (!nextBlock.inpIsDone) {
+                wait(1);
+            }
+            for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++) {
+                for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
+                    nextBlock.outTriangleVertices[vertexIndex * componentsPerVertex + componentIndex] = readVertices[vertexIndex][componentIndex];
+                }
+            }
+            nextBlock.outEnable = 1;
+        }
     }
 }

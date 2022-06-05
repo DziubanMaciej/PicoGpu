@@ -1,6 +1,6 @@
 #pragma once
 
-#include <systemc>
+#include <systemc.h>
 
 constexpr inline size_t memoryDataTypeByteSize = 4;
 using MemoryAddressType = sc_uint<32>;

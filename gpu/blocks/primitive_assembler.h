@@ -1,13 +1,25 @@
-#include "systemc.h"
+#include "gpu/types.h"
+
+#include <systemc.h>
 
 SC_MODULE(PrimitiveAssembler) {
     sc_in_clk inpClock;
-    sc_in<bool> inpIsNextBlockDone;
-    sc_out<bool> outEnableNextBlock;
-    sc_out<sc_uint<32>> outTriangleVertices[6];
+    sc_in<bool> inpEnable;
+    sc_in<MemoryAddressType> inpVerticesAddress;
+    sc_in<sc_uint<8>> inpVerticesCount;
 
-    // TODO: currently we hardcode to input only one triangle
-    bool worked = false;
+    struct {
+        sc_out<bool> outEnable;
+        sc_out<MemoryAddressType> outAddress;
+        sc_in<MemoryDataType> inpData;
+        sc_in<bool> inpCompleted;
+    } memory;
+
+    struct {
+        sc_in<bool> inpIsDone;
+        sc_out<bool> outEnable;
+        sc_out<sc_uint<32>> outTriangleVertices[6];
+    } nextBlock;
 
     SC_CTOR(PrimitiveAssembler) {
         SC_CTHREAD(assemble, inpClock.pos());

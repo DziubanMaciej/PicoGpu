@@ -11,7 +11,7 @@ SC_MODULE(Gpu) {
 
     // Blocks of the GPU
     UserBlitter userBlitter;               // abbreviation: BLT
-    MemoryController<1> memoryController;  // abbreviation: MEMCTL
+    MemoryController<2> memoryController;  // abbreviation: MEMCTL
     Memory<10> memory;                     // abbreviation: MEM
     PrimitiveAssembler primitiveAssembler; // abbreviation: PA
     Rasterizer rasterizer;                 // abbreviation: RS
@@ -33,6 +33,9 @@ SC_MODULE(Gpu) {
 
         struct {
             sc_in_clk inpClock;
+            sc_signal<bool> inpEnable;
+            sc_signal<MemoryAddressType> inpVerticesAddress;
+            sc_signal<sc_uint<8>> inpVerticesCount;
         } PA;
 
         struct {
@@ -48,29 +51,37 @@ private:
     // detail.
     struct {
         struct {
-            sc_signal<bool> enable;
-            sc_signal<bool> write;
-            sc_signal<MemoryAddressType> address;
-            sc_signal<MemoryDataType> dataForWrite;
-            sc_signal<bool> completed;
+            sc_signal<bool> enable{"BLT_MEMCTL_enable"};
+            sc_signal<bool> write{"BLT_MEMCTL_write"};
+            sc_signal<MemoryAddressType> address{"BLT_MEMCTL_address"};
+            sc_signal<MemoryDataType> dataForWrite{"BLT_MEMCTL_dataForWrite"};
+            sc_signal<bool> completed{"BLT_MEMCTL_completed"};
         } BLT_MEMCTL;
 
         struct {
-            sc_signal<MemoryDataType> dataForRead;
+            sc_signal<MemoryDataType> dataForRead{"MEMCTL_dataForRead"};
         } MEMCTL;
 
         struct {
-            sc_signal<bool> enable;
-            sc_signal<bool> write;
-            sc_signal<MemoryAddressType> address;
-            sc_signal<MemoryDataType> dataForWrite;
-            sc_signal<MemoryDataType> dataForRead;
-            sc_signal<bool> completed;
+            sc_signal<bool> enable{"MEMCTL_MEM_enable"};
+            sc_signal<bool> write{"MEMCTL_MEM_write"};
+            sc_signal<MemoryAddressType> address{"MEMCTL_MEM_address"};
+            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_MEM_dataForWrite"};
+            sc_signal<MemoryDataType> dataForRead{"MEMCTL_MEM_dataForRead"};
+            sc_signal<bool> completed{"MEMCTL_MEM_completed"};
         } MEMCTL_MEM;
 
         struct {
-            sc_signal<bool> isEnabled;
-            sc_signal<bool> isDone;
+            sc_signal<bool> enable{"MEMCTL_PA_enable"};
+            sc_signal<bool> write{"MEMCTL_PA_write"};
+            sc_signal<MemoryAddressType> address{"MEMCTL_PA_address"};
+            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_PA_dataForWrite"};
+            sc_signal<bool> completed{"MEMCTL_PA_completed"};
+        } MEMCTL_PA;
+
+        struct {
+            sc_signal<bool> isEnabled{"MEMCTL_PA_isEnabled"};
+            sc_signal<bool> isDone{"MEMCTL_PA_isDone"};
             sc_signal<sc_uint<32>> vertices[6];
         } PA_RS;
 
