@@ -29,8 +29,8 @@ void Rasterizer::rasterize() {
         const auto v2 = Point{(float)previousBlock.inpTriangleVertices[2].read(), (float)previousBlock.inpTriangleVertices[3].read()};
         const auto v3 = Point{(float)previousBlock.inpTriangleVertices[4].read(), (float)previousBlock.inpTriangleVertices[5].read()};
         Point currentPixel{};
-        for (currentPixel.x = 0; currentPixel.x < width; currentPixel.x++) {
-            for (currentPixel.y = 0; currentPixel.y < height; currentPixel.y++) {
+        for (currentPixel.y = 0; currentPixel.y < height; currentPixel.y++) {
+            for (currentPixel.x = 0; currentPixel.x < width; currentPixel.x++) {
                 // Ensure 1px/clk
                 wait();
 
