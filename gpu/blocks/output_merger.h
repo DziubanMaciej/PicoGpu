@@ -12,8 +12,8 @@ SC_MODULE(OutputMerger) {
     } previousBlock;
     struct {
         sc_in<MemoryAddressType> inpAddress;
-        sc_in<sc_uint<16>> inpWidth;
-        sc_in<sc_uint<16>> inpHeight;
+        sc_in<VertexPositionType> inpWidth;
+        sc_in<VertexPositionType> inpHeight;
     } framebuffer;
     struct {
         sc_out<bool> outEnable;

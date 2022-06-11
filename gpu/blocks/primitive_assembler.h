@@ -18,7 +18,7 @@ SC_MODULE(PrimitiveAssembler) {
     struct {
         sc_in<bool> inpIsDone;
         sc_out<bool> outEnable;
-        sc_out<sc_uint<32>> outTriangleVertices[6];
+        sc_out<VertexPositionType> outTriangleVertices[6];
     } nextBlock;
 
     SC_CTOR(PrimitiveAssembler) {
