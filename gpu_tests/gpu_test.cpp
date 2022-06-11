@@ -4,63 +4,69 @@
 #include <memory>
 #include <third_party/stb_image_write.h>
 
+struct AddressAllocator {
+    AddressAllocator(size_t memorySize) : memorySize(memorySize) {}
+
+    size_t allocate(size_t size) {
+        FATAL_ERROR_IF(currentOffset + size > memorySize, "Too small memory");
+        FATAL_ERROR_IF(size % 4 != 0, "Size must be a multiple of 4");
+        const size_t result = currentOffset;
+        currentOffset += size;
+        return result;
+    }
+
+private:
+    size_t currentOffset = 0;
+    size_t memorySize;
+};
+
 int sc_main(int argc, char *argv[]) {
-    VcdTrace trace{TEST_NAME};
+    // Prepare addresses
+    AddressAllocator addressAllocator{Gpu::memorySize * 4};
+    MemoryAddressType vertexBufferAddress = addressAllocator.allocate(18 * 4);
+    MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4);
+    MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4);
+
+    // Initialize GPU
     Gpu gpu{"Gpu"};
-    gpu.addSignalsToVcdTrace(trace, true, true, true);
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     gpu.blocks.BLT.inpClock(clock);
     gpu.blocks.MEMCTL.inpClock(clock);
     gpu.blocks.MEM.inpClock(clock);
     gpu.blocks.PA.inpClock(clock);
     gpu.blocks.PA.inpEnable = false;
-    gpu.blocks.PA.inpVerticesAddress = 0x08;
+    gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 9;
     gpu.blocks.RS.inpClock(clock);
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.OM.inpClock(clock);
-    gpu.blocks.OM.inpFramebufferAddress = 0x50;
+    gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;
     gpu.blocks.OM.inpDepthEnable = 1;
-    gpu.blocks.OM.inpDepthBufferAddress = 0x09c90;
+    gpu.blocks.OM.inpDepthBufferAddress = depthBufferAddress;
 
-    // Our memory layout:
-    // vertexBuffer - 0x00008 - 0x00050 (18 dwords)
-    // frambuffer   - 0x00050 - 0x09c90 (10000 dwords)
-    // depth buffer - 0x09c90 - 0x138d0 (10000 dwords)
+    // Create vcd trace
+    VcdTrace trace{TEST_NAME};
+    gpu.addSignalsToVcdTrace(trace, true, true, true);
 
     // Upload vertex data to the memory
-    uint32_t vertices[] = {
-        10,
-        10,
-        200,
-        10,
-        20,
-        200,
-        20,
-        10,
-        200,
-
-        10 + 30,
-        10,
-        200,
-        10 + 30,
-        20,
-        200,
-        20 + 30,
-        10,
-        200,
-
-        5,
-        15,
-        100,
-        80,
-        15,
-        100,
-        40,
-        40,
+    struct Vertex {
+        uint32_t x, y, z;
     };
-    gpu.userBlitter.blitToMemory(0x08, vertices, sizeof(vertices) / sizeof(vertices[0]));
+    Vertex vertices[] = {
+        Vertex{10, 10, 200},
+        Vertex{10, 20, 200},
+        Vertex{20, 10, 200},
+
+        Vertex{40, 10, 200},
+        Vertex{40, 20, 200},
+        Vertex{50, 10, 200},
+
+        Vertex{10, 15, 200},
+        Vertex{80, 15, 200},
+        Vertex{40, 40, 200},
+    };
+    gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
     while (gpu.userBlitter.hasPendingOperation()) {
         sc_start({1, SC_NS});
     }
@@ -75,7 +81,7 @@ int sc_main(int argc, char *argv[]) {
 
     // Blit results to a normal user buffer and output it to a file
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
-    gpu.userBlitter.blitFromMemory(0x50, pixels.get(), 100 * 100);
+    gpu.userBlitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
     while (gpu.userBlitter.hasPendingOperation()) {
         sc_start({1, SC_NS});
     }

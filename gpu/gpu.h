@@ -12,12 +12,13 @@
 class VcdTrace;
 
 SC_MODULE(Gpu) {
+    constexpr static inline size_t memorySize = 21000;
     Gpu(sc_module_name name);
 
     // Blocks of the GPU
     UserBlitter userBlitter;               // abbreviation: BLT
     MemoryController<3> memoryController;  // abbreviation: MEMCTL
-    Memory<12000> memory;                  // abbreviation: MEM
+    Memory<memorySize> memory;             // abbreviation: MEM
     PrimitiveAssembler primitiveAssembler; // abbreviation: PA
     Rasterizer rasterizer;                 // abbreviation: RS
     OutputMerger outputMerger;             // abbreviation: OM
