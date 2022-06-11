@@ -19,6 +19,7 @@ SC_MODULE(UserBlitter) {
 
     void blitToMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords);
     void blitFromMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords);
+    void fillMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords);
 
     void main();
     bool hasPendingOperation() const { return pendingOperation.isValid; }
@@ -26,6 +27,7 @@ SC_MODULE(UserBlitter) {
 private:
     struct BlitOperation {
         bool isValid = false;
+        bool isFill = false;
         bool toMemory = false;
         uint32_t *userPtr = nullptr;
         MemoryAddressType memoryPtr = 0;

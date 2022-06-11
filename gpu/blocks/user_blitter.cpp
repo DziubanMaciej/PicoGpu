@@ -5,6 +5,7 @@ void UserBlitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, s
     FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
 
     pendingOperation.isValid = true;
+    pendingOperation.isFill = false;
     pendingOperation.toMemory = true;
     pendingOperation.memoryPtr = memoryPtr;
     pendingOperation.userPtr = userPtr;
@@ -15,7 +16,19 @@ void UserBlitter::blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr,
     FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
 
     pendingOperation.isValid = true;
+    pendingOperation.isFill = false;
     pendingOperation.toMemory = false;
+    pendingOperation.memoryPtr = memoryPtr;
+    pendingOperation.userPtr = userPtr;
+    pendingOperation.sizeInDwords = sizeInDwords;
+}
+
+void UserBlitter::fillMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
+    FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
+
+    pendingOperation.isValid = true;
+    pendingOperation.isFill = true;
+    pendingOperation.toMemory = true;
     pendingOperation.memoryPtr = memoryPtr;
     pendingOperation.userPtr = userPtr;
     pendingOperation.sizeInDwords = sizeInDwords;
@@ -33,8 +46,10 @@ void UserBlitter::main() {
             outEnable = 1;
             outWrite = pendingOperation.toMemory;
             outAddress = pendingOperation.memoryPtr + 4 * dwordIndex;
+
             if (pendingOperation.toMemory) {
-                outData = pendingOperation.userPtr[dwordIndex];
+                const size_t userPtrIndex = pendingOperation.isFill ? 0 : dwordIndex;
+                outData = pendingOperation.userPtr[userPtrIndex];
             }
 
             wait(1);

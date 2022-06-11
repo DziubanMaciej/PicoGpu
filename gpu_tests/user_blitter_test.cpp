@@ -11,7 +11,7 @@ SC_MODULE(Tester) {
 
     SC_HAS_PROCESS(Tester);
 
-    TESTER("Test", 1);
+    TESTER("Test", 2);
 
     UserBlitter &blitter;
 
@@ -45,7 +45,7 @@ SC_MODULE(Tester) {
         }
         Log() << "Written " << 3 << " dwords in " << cycles << " cycles";
 
-        blitter.blitToMemory(0x0C, data2, 4); // Write data2 to locations 0x0C, 0x10, 0x14
+        blitter.blitToMemory(0x0C, data2, 4); // Write data2 to locations 0x0C, 0x10, 0x14, 0x18
         cycles = 0;
         while (blitter.hasPendingOperation()) {
             wait(1);
@@ -54,7 +54,7 @@ SC_MODULE(Tester) {
         Log() << "Written " << 4 << " dwords in " << cycles << " cycles";
 
         uint32_t readData[6] = {};
-        blitter.blitFromMemory(0x04, readData, 6); // Read from locations 0x04 to 0x14
+        blitter.blitFromMemory(0x04, readData, 6); // Read from locations 0x04 to 0x18
         cycles = 0;
         while (blitter.hasPendingOperation()) {
             wait(1);
@@ -68,7 +68,36 @@ SC_MODULE(Tester) {
         ASSERT_EQ(data2[1], readData[3]);
         ASSERT_EQ(data2[2], readData[4]);
         ASSERT_EQ(data2[3], readData[5]);
-        SUMMARY_RESULT("Data validation");
+        SUMMARY_RESULT("Data validation after memory blit");
+
+        // Fill locations from 0x08 to 0x14
+        uint32_t dataForFill = 0x112112;
+        blitter.fillMemory(0x08, &dataForFill, 4);
+        waitForBlitter("Filled 4 dwords");
+
+        // Read from locations 0x04 to 0x18
+        {
+            uint32_t readData[6] = {};
+            blitter.blitFromMemory(0x04, readData, 6);
+            waitForBlitter("Read 6 dwords");
+
+            ASSERT_EQ(data1[0], readData[0]);
+            ASSERT_EQ(dataForFill, readData[1]);
+            ASSERT_EQ(dataForFill, readData[2]);
+            ASSERT_EQ(dataForFill, readData[3]);
+            ASSERT_EQ(dataForFill, readData[4]);
+            ASSERT_EQ(data2[3], readData[5]);
+            SUMMARY_RESULT("Data validation after memory fill");
+        }
+    }
+
+    void waitForBlitter(const char *message) {
+        int cycles = 0;
+        while (blitter.hasPendingOperation()) {
+            wait(1);
+            cycles++;
+        }
+        Log() << message << " in " << cycles << " cycles";
     }
 };
 
