@@ -12,7 +12,7 @@ void PrimitiveAssembler::assemble() {
 
         const auto verticesAddress = inpVerticesAddress.read().to_int();
         const auto trianglesCount = inpVerticesCount.read().to_int() / 3;
-        const auto componentsPerVertex = 2; // only x and y
+        const auto componentsPerVertex = 3; // x, y, z
 
         uint32_t readVertices[3][componentsPerVertex] = {};
 

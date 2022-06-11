@@ -105,7 +105,7 @@ private:
         struct {
             sc_signal<bool> isEnabled{"PA_RS_isEnabled"};
             sc_signal<bool> isDone{"PA_RS_isDone"};
-            sc_signal<VertexPositionType> vertices[6];
+            sc_signal<VertexPositionType> vertices[9];
         } PA_RS;
 
         struct {

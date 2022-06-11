@@ -9,7 +9,7 @@ SC_MODULE(Rasterizer) {
         sc_in<VertexPositionType> inpHeight;
     } framebuffer;
     struct {
-        sc_in<VertexPositionType> inpTriangleVertices[6];
+        sc_in<VertexPositionType> inpTriangleVertices[9];
         sc_in<bool> inpEnable;
         sc_out<bool> outIsDone;
     } previousBlock;

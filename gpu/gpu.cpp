@@ -63,7 +63,7 @@ Gpu::Gpu(sc_module_name name)
     primitiveAssembler.memory.inpCompleted(internalSignals.MEMCTL_PA.completed);
     primitiveAssembler.nextBlock.inpIsDone(internalSignals.PA_RS.isDone);
     primitiveAssembler.nextBlock.outEnable(internalSignals.PA_RS.isEnabled);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 9; i++) {
         primitiveAssembler.nextBlock.outTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
     }
 
@@ -71,7 +71,7 @@ Gpu::Gpu(sc_module_name name)
     rasterizer.inpClock(blocks.RS.inpClock);
     rasterizer.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
     rasterizer.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 9; i++) {
         rasterizer.previousBlock.inpTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
     }
     rasterizer.previousBlock.inpEnable(internalSignals.PA_RS.isEnabled);
@@ -156,7 +156,7 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publ
 
         trace.trace(internalSignals.PA_RS.isEnabled);
         trace.trace(internalSignals.PA_RS.isDone);
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 9; i++) {
             trace.trace(internalSignals.PA_RS.vertices[i]);
         }
 
