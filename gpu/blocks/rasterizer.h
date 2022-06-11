@@ -1,5 +1,6 @@
-#include "systemc.h"
 #include "gpu/fragment.h"
+
+#include <systemc.h>
 
 SC_MODULE(Rasterizer) {
     sc_in_clk inpClock;

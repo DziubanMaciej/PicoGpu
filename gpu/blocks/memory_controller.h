@@ -1,8 +1,8 @@
 #pragma once
 
-#include "systemc.h"
-
 #include "gpu/types.h"
+
+#include <systemc.h>
 
 template <unsigned int clientsCount>
 SC_MODULE(MemoryController) {

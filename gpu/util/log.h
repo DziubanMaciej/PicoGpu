@@ -3,7 +3,7 @@
 #include <iostream>
 #include <mutex>
 #include <sstream>
-#include <systemc>
+#include <systemc.h>
 
 class LogBase {
 protected:

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "systemc.h"
-
 #include "gpu/types.h"
+
+#include <systemc.h>
 
 template <unsigned int Size = 1>
 SC_MODULE(Memory) {

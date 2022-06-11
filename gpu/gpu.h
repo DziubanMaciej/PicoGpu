@@ -1,11 +1,11 @@
-#include "systemc.h"
-
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/blocks/output_merger.h"
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/blocks/rasterizer.h"
 #include "gpu/blocks/user_blitter.h"
+
+#include <systemc.h>
 
 class VcdTrace;
 
