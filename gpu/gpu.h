@@ -1,3 +1,5 @@
+#pragma once
+
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/blocks/output_merger.h"

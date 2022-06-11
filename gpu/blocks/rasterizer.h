@@ -1,3 +1,5 @@
+#pragma once
+
 #include "gpu/fragment.h"
 
 #include <systemc.h>

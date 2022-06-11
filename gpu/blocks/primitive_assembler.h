@@ -1,3 +1,5 @@
+#pragma once
+
 #include "gpu/types.h"
 
 #include <systemc.h>

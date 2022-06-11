@@ -1,3 +1,5 @@
+#pragma once
+
 #include <systemc.h>
 
 struct Handshake {
