@@ -7,11 +7,13 @@
 struct AddressAllocator {
     AddressAllocator(size_t memorySize) : memorySize(memorySize) {}
 
-    size_t allocate(size_t size) {
+    size_t allocate(size_t size, const char *purpose) {
         FATAL_ERROR_IF(currentOffset + size > memorySize, "Too small memory");
         FATAL_ERROR_IF(size % 4 != 0, "Size must be a multiple of 4");
         const size_t result = currentOffset;
         currentOffset += size;
+
+        printf("  %14s: 0x%08x - 0x%08x\n", purpose, result, currentOffset);
         return result;
     }
 
@@ -23,9 +25,9 @@ private:
 int sc_main(int argc, char *argv[]) {
     // Prepare addresses
     AddressAllocator addressAllocator{Gpu::memorySize * 4};
-    MemoryAddressType vertexBufferAddress = addressAllocator.allocate(18 * 4);
-    MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4);
-    MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4);
+    MemoryAddressType vertexBufferAddress = addressAllocator.allocate(27 * 4, "vertexBuffer");
+    MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4, "frameBuffer");
+    MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4, "depthBuffer");
 
     // Initialize GPU
     Gpu gpu{"Gpu"};
@@ -67,6 +69,13 @@ int sc_main(int argc, char *argv[]) {
         Vertex{40, 40, 200},
     };
     gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
+    while (gpu.userBlitter.hasPendingOperation()) {
+        sc_start({1, SC_NS});
+    }
+
+    // Clear framebuffer
+    uint32_t clearColor = 0xffcccccc;
+    gpu.userBlitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
     while (gpu.userBlitter.hasPendingOperation()) {
         sc_start({1, SC_NS});
     }
