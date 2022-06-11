@@ -1,3 +1,4 @@
+#include "gpu/fragment.h"
 #include "gpu/types.h"
 
 #include <systemc.h>
@@ -5,9 +6,9 @@
 SC_MODULE(OutputMerger) {
     sc_in_clk inpClock;
     struct {
-        sc_in<bool> inpEnable;
-        sc_fifo_in<sc_uint<32>> inpPixels;
-        sc_out<bool> outIsDone;
+        sc_out<bool> outIsReceiving;
+        sc_in<bool> inpIsSending;
+        sc_in<ShadedFragment> inpFragment;
     } previousBlock;
     struct {
         sc_in<MemoryAddressType> inpAddress;

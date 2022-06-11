@@ -109,9 +109,9 @@ private:
         } PA_RS;
 
         struct {
-            sc_signal<bool> enable{"RS_OM_enable"};
-            sc_fifo<sc_uint<32>> pixels{"RS_OM_pixels"};
-            sc_signal<bool> isDone{"RS_OM_isDone"};
+            sc_signal<bool> isReceiving{"RS_OM_isReceiving"};
+            sc_signal<bool> isSending{"RS_OM_isSending"};
+            sc_signal<ShadedFragment> fragment{"RS_OM_fragment"};
         } RS_OM;
 
     } internalSignals;

@@ -76,15 +76,15 @@ Gpu::Gpu(sc_module_name name)
     }
     rasterizer.previousBlock.inpEnable(internalSignals.PA_RS.isEnabled);
     rasterizer.previousBlock.outIsDone(internalSignals.PA_RS.isDone);
-    rasterizer.nextBlock.outEnable(internalSignals.RS_OM.enable);
-    rasterizer.nextBlock.outPixels(internalSignals.RS_OM.pixels);
-    rasterizer.nextBlock.inpIsDone(internalSignals.RS_OM.isDone);
+    rasterizer.nextBlock.inpIsReceiving(internalSignals.RS_OM.isReceiving);
+    rasterizer.nextBlock.outIsSending(internalSignals.RS_OM.isSending);
+    rasterizer.nextBlock.outFragment(internalSignals.RS_OM.fragment);
 
     // Initialize output merger
     outputMerger.inpClock(blocks.OM.inpClock);
-    outputMerger.previousBlock.inpEnable(internalSignals.RS_OM.enable);
-    outputMerger.previousBlock.inpPixels(internalSignals.RS_OM.pixels);
-    outputMerger.previousBlock.outIsDone(internalSignals.RS_OM.isDone);
+    outputMerger.previousBlock.outIsReceiving(internalSignals.RS_OM.isReceiving);
+    outputMerger.previousBlock.inpIsSending(internalSignals.RS_OM.isSending);
+    outputMerger.previousBlock.inpFragment(internalSignals.RS_OM.fragment);
     outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);
     outputMerger.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
     outputMerger.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
@@ -160,8 +160,8 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publ
             trace.trace(internalSignals.PA_RS.vertices[i]);
         }
 
-        trace.trace(internalSignals.RS_OM.enable);
-        // trace.trace(internalSignals.RS_OM.pixels); // TODO is it possible to work?
-        trace.trace(internalSignals.RS_OM.isDone);
+        trace.trace(internalSignals.RS_OM.isReceiving);
+        trace.trace(internalSignals.RS_OM.isSending);
+        trace.trace(internalSignals.RS_OM.fragment);
     }
 }

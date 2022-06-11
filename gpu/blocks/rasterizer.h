@@ -1,4 +1,5 @@
 #include "systemc.h"
+#include "gpu/fragment.h"
 
 SC_MODULE(Rasterizer) {
     sc_in_clk inpClock;
@@ -12,9 +13,9 @@ SC_MODULE(Rasterizer) {
         sc_out<bool> outIsDone;
     } previousBlock;
     struct {
-        sc_out<bool> outEnable;
-        sc_fifo_out<sc_uint<32>> outPixels;
-        sc_in<bool> inpIsDone;
+        sc_in<bool> inpIsReceiving;
+        sc_out<bool> outIsSending;
+        sc_out<ShadedFragment> outFragment;
     } nextBlock;
 
     SC_CTOR(Rasterizer) {

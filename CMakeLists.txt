@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 project(PicoGpu)
 find_package(SystemCLanguage CONFIG REQUIRED)
 include(CMakeMacros.cmake)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Define GPU library
 append_sources(GPU_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu" OFF)
