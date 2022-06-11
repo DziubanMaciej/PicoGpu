@@ -8,7 +8,7 @@ void OutputMerger::main() {
         // Perform depth test
         // TODO this can only handle 32-bit depth buffer
         if (depth.inpEnable) {
-            const MemoryDataType depthAddress = framebuffer.inpAddress.read() + (fragment.y * framebuffer.inpWidth.read() + fragment.x) * depthTypeByteSize;
+            const MemoryDataType depthAddress = depth.inpAddress.read() + (fragment.y * framebuffer.inpWidth.read() + fragment.x) * depthTypeByteSize;
 
             // Read current depth
             memory.outEnable = 1;
