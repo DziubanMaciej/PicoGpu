@@ -20,7 +20,7 @@ void Rasterizer::rasterize() {
         const auto v2 = Point{(float)previousBlock.inpTriangleVertices[2].read(), (float)previousBlock.inpTriangleVertices[3].read()};
         const auto v3 = Point{(float)previousBlock.inpTriangleVertices[4].read(), (float)previousBlock.inpTriangleVertices[5].read()};
         ShadedFragment currentFragment{};
-        currentFragment.color = 0xff0000ff;
+        currentFragment.color = randomizeColor();
         for (currentFragment.y = 0; currentFragment.y < height; currentFragment.y++) {
             for (currentFragment.x = 0; currentFragment.x < width; currentFragment.x++) {
                 const bool hit = isPointInTriangle(Point{(float)currentFragment.x, (float)currentFragment.y}, v1, v2, v3); // TODO use this properly
@@ -30,4 +30,12 @@ void Rasterizer::rasterize() {
             }
         }
     }
+}
+
+FragmentColorType Rasterizer::randomizeColor() {
+    const uint8_t r = (uint8_t)rand();
+    const uint8_t g = (uint8_t)rand();
+    const uint8_t b = (uint8_t)rand();
+    const uint8_t a = 255;
+    return (a << 24) | (b << 16) | (g << 8) | r;
 }

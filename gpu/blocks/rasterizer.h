@@ -23,4 +23,7 @@ SC_MODULE(Rasterizer) {
     }
 
     void rasterize();
+
+private:
+    FragmentColorType randomizeColor();
 };
