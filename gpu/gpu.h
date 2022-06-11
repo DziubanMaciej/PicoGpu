@@ -55,6 +55,8 @@ SC_MODULE(Gpu) {
         struct {
             sc_in_clk inpClock{"OM_inpClock"};
             sc_signal<MemoryAddressType> inpFramebufferAddress{"OM_inpFramebufferAddress"};
+            sc_signal<bool> inpDepthEnable{"OM_inpDepthEnable"};
+            sc_signal<MemoryAddressType> inpDepthBufferAddress{"OM_inpDepthBufferAddress"};
         } OM;
     } blocks;
 
@@ -96,7 +98,7 @@ private:
 
         struct {
             sc_signal<bool> enable{"MEMCTL_OM_enable"};
-            sc_signal<bool> write{"MEMCTL_OM_write", 1}; // unused, always 1
+            sc_signal<bool> write{"MEMCTL_OM_write"};
             sc_signal<MemoryAddressType> address{"MEMCTL_OM_address"};
             sc_signal<MemoryDataType> dataForWrite{"MEMCTL_OM_dataForWrite"};
             sc_signal<bool> completed{"MEMCTL_OM_completed"};

@@ -16,9 +16,15 @@ SC_MODULE(OutputMerger) {
         sc_in<VertexPositionType> inpHeight;
     } framebuffer;
     struct {
+        sc_in<bool> inpEnable;
+        sc_in<MemoryAddressType> inpAddress;
+    } depth;
+    struct {
         sc_out<bool> outEnable;
+        sc_out<bool> outWrite;
         sc_out<MemoryAddressType> outAddress;
         sc_out<MemoryDataType> outData;
+        sc_in<MemoryDataType> inpData;
         sc_in<bool> inpCompleted;
     } memory;
 

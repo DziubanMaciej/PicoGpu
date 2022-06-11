@@ -86,11 +86,15 @@ Gpu::Gpu(sc_module_name name)
     outputMerger.previousBlock.inpIsSending(internalSignals.RS_OM.isSending);
     outputMerger.previousBlock.inpFragment(internalSignals.RS_OM.fragment);
     outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);
+    outputMerger.depth.inpEnable(blocks.OM.inpDepthEnable);
+    outputMerger.depth.inpAddress(blocks.OM.inpDepthBufferAddress);
     outputMerger.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
     outputMerger.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
     outputMerger.memory.outEnable(internalSignals.MEMCTL_OM.enable);
+    outputMerger.memory.outWrite(internalSignals.MEMCTL_OM.write);
     outputMerger.memory.outAddress(internalSignals.MEMCTL_OM.address);
     outputMerger.memory.outData(internalSignals.MEMCTL_OM.dataForWrite);
+    outputMerger.memory.inpData(internalSignals.MEMCTL.dataForRead);
     outputMerger.memory.inpCompleted(internalSignals.MEMCTL_OM.completed);
 }
 
@@ -124,6 +128,8 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publ
             trace.trace(blocks.OM.inpClock);
         }
         trace.trace(blocks.OM.inpFramebufferAddress);
+        trace.trace(blocks.OM.inpDepthEnable);
+        trace.trace(blocks.OM.inpDepthBufferAddress);
     }
 
     if (internalPorts) {

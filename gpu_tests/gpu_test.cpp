@@ -5,7 +5,6 @@
 #include <third_party/stb_image_write.h>
 
 int sc_main(int argc, char *argv[]) {
-
     VcdTrace trace{TEST_NAME};
     Gpu gpu{"Gpu"};
     gpu.addSignalsToVcdTrace(trace, true, true, true);
@@ -22,6 +21,13 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.OM.inpClock(clock);
     gpu.blocks.OM.inpFramebufferAddress = 0x50;
+    gpu.blocks.OM.inpDepthEnable = 1;
+    gpu.blocks.OM.inpDepthBufferAddress = 0x09c90;
+
+    // Our memory layout:
+    // vertexBuffer - 0x00008 - 0x00050 (18 dwords)
+    // frambuffer   - 0x00050 - 0x09c90 (10000 dwords)
+    // depth buffer - 0x09c90 - 0x138d0 (10000 dwords)
 
     // Upload vertex data to the memory
     uint32_t vertices[] = {
