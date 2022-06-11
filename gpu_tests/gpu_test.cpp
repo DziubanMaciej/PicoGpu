@@ -16,7 +16,7 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.PA.inpClock(clock);
     gpu.blocks.PA.inpEnable = false;
     gpu.blocks.PA.inpVerticesAddress = 0x08;
-    gpu.blocks.PA.inpVerticesCount = 6;
+    gpu.blocks.PA.inpVerticesCount = 9;
     gpu.blocks.RS.inpClock(clock);
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
@@ -38,6 +38,13 @@ int sc_main(int argc, char *argv[]) {
         20,
         20 + 30,
         10,
+
+        5,
+        15,
+        80,
+        15,
+        40,
+        40,
     };
     gpu.userBlitter.blitToMemory(0x08, vertices, sizeof(vertices) / sizeof(vertices[0]));
     while (gpu.userBlitter.hasPendingOperation()) {
