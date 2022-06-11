@@ -2,6 +2,7 @@
 This project as an implementation of a simplified GPU using [SystemC](https://systemc.org/) environment. The GPU has its own memory allowing multiple clients to utilize it. The rendering process is broken down into multiple hardware blocks performing specialized tasks and optionally using the memory. Device is not programmable yet, it only allows some configuration.
 
 # Architecture
+![Architecture diagram](img/architecture.png)
 
 
 # Features
