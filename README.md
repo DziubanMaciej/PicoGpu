@@ -44,4 +44,10 @@ mkdir -p build
 cd build
 cmake ..
 make -j$(nproc)
+ctest
+```
+
+Run *GpuTest* (tests the entire GPU instead of individual blocks)
+```
+./run_gpu.sh
 ```
