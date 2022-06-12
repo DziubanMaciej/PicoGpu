@@ -190,6 +190,6 @@ int sc_main(int argc, char *argv[]) {
     ADD_TRACE(memControllerOutCompleted);
     ADD_TRACE(memControllerOutData);
 
-    sc_start({100, SC_NS});
+    sc_start({200, SC_NS});
     return tester.verify();
 }
