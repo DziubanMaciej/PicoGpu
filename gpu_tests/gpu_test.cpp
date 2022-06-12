@@ -64,9 +64,9 @@ int sc_main(int argc, char *argv[]) {
         Vertex{40, 20, 200},
         Vertex{50, 10, 200},
 
-        Vertex{10, 15, 200},
-        Vertex{80, 15, 200},
-        Vertex{40, 40, 200},
+        Vertex{10, 15, 100},
+        Vertex{80, 15, 100},
+        Vertex{40, 40, 100},
     };
     gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
     while (gpu.userBlitter.hasPendingOperation()) {
