@@ -21,20 +21,21 @@ This project as an implementation of a simplified GPU using [SystemC](https://sy
 
 # Features
 The project is not very mature and it lacks many features. Existing functionalities as well as planned future improvements are presented in the table below
-| Feature                                      | Status                                                                                                                   |
-|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| Multi-client memory                          | :heavy_check_mark: `MemoryController` arbitrates access of clients to memory                                             |
-| Render a triangle                            | :heavy_check_mark:                                                                                                       |
-| Create vcd trace of all signals              | :heavy_check_mark:                                                                                                       |
-| Render multiple triangles                    | :heavy_check_mark:                                                                                                       |
-| Copying between system memory and GPU memory | :heavy_check_mark: Implemented `UserBlitter`                                                                             |
-| Depth test                                   | :heavy_check_mark: `OutputMerger` performs depth test                                                                    |
-| Customizable vertex layout                   | :x: Currently only 3-component vertices can be passed.                                                                   |
-| Floating point data                          | :x: Currently all vertex data is 16-bit ints.                                                                            |
+| Feature                                      | Status                                                                              |
+|----------------------------------------------|-------------------------------------------------------------------------------------|
+| Render a triangle                            | :heavy_check_mark:                                                                  |
+| Create vcd trace of all signals              | :heavy_check_mark:                                                                  |
+| Multi-client memory                          | :heavy_check_mark: `MemoryController` arbitrates access of clients to memory        |
+| Read vertex data from memory                 | :heavy_check_mark:                                                                  |
+| Render multiple triangles                    | :heavy_check_mark:                                                                  |
+| Copying between system memory and GPU memory | :heavy_check_mark: Implemented `UserBlitter`                                        |
+| Depth test                                   | :heavy_check_mark: `OutputMerger` performs depth test                               |
+| Customizable vertex layout                   | :x: Currently only 3-component vertices can be passed.                              |
+| Floating point data                          | :x: Currently all vertex data is 16-bit ints.                                       |
 | Programmability                              | :x: Some unified frontend to scheduling threads by multiple clients will be needed. |
-| Vertex shader                                | :x:                                                                                                                      |
-| Fragment shader                              | :x:                                                                                                                      |
-| Add a real-time visualization                | :x: Currently we dump the framebuffer to a png file                                                                   |
+| Vertex shader                                | :x:                                                                                 |
+| Fragment shader                              | :x:                                                                                 |
+| Add a real-time visualization                | :x: Currently we dump the framebuffer to a png file                                 |
 
 
 # Building and running
