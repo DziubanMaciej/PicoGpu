@@ -51,8 +51,8 @@ SC_MODULE(Gpu) {
         } RS;
 
         struct {
-            sc_signal<VertexPositionType> framebufferWidth{"RS_OM_framebufferWidth"};
-            sc_signal<VertexPositionType> framebufferHeight{"RS_OM_framebufferHeight"};
+            sc_signal<VertexPositionFloatType> framebufferWidth{"RS_OM_framebufferWidth"};
+            sc_signal<VertexPositionFloatType> framebufferHeight{"RS_OM_framebufferHeight"};
         } RS_OM;
 
         struct {
@@ -110,7 +110,7 @@ private:
         struct {
             sc_signal<bool> isEnabled{"PA_RS_isEnabled"};
             sc_signal<bool> isDone{"PA_RS_isDone"};
-            sc_signal<VertexPositionType> vertices[9];
+            sc_signal<VertexPositionFloatType> vertices[9];
         } PA_RS;
 
         struct {

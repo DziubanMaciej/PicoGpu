@@ -6,9 +6,9 @@
 #include <systemc.h>
 
 struct ShadedFragment {
-    VertexPositionType x;
-    VertexPositionType y;
-    VertexPositionType z;
+    VertexPositionIntegerType x;
+    VertexPositionIntegerType y;
+    VertexPositionFloatType z;
     FragmentColorType color;
 
     ShadedFragment &operator=(const ShadedFragment &rhs) {

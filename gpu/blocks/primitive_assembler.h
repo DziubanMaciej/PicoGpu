@@ -20,7 +20,7 @@ SC_MODULE(PrimitiveAssembler) {
     struct {
         sc_in<bool> inpIsDone;
         sc_out<bool> outEnable;
-        sc_out<VertexPositionType> outTriangleVertices[9];
+        sc_out<VertexPositionFloatType> outTriangleVertices[9];
     } nextBlock;
 
     SC_CTOR(PrimitiveAssembler) {

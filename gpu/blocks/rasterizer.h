@@ -7,11 +7,11 @@
 SC_MODULE(Rasterizer) {
     sc_in_clk inpClock;
     struct {
-        sc_in<VertexPositionType> inpWidth;
-        sc_in<VertexPositionType> inpHeight;
+        sc_in<VertexPositionFloatType> inpWidth;
+        sc_in<VertexPositionFloatType> inpHeight;
     } framebuffer;
     struct {
-        sc_in<VertexPositionType> inpTriangleVertices[9];
+        sc_in<VertexPositionFloatType> inpTriangleVertices[9];
         sc_in<bool> inpEnable;
         sc_out<bool> outIsDone;
     } previousBlock;

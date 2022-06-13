@@ -1,4 +1,5 @@
 #include "gpu/blocks/primitive_assembler.h"
+#include "gpu/util/conversions.h"
 
 void PrimitiveAssembler::assemble() {
     while (1) {
@@ -45,7 +46,8 @@ void PrimitiveAssembler::assemble() {
             }
             for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++) {
                 for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
-                    nextBlock.outTriangleVertices[vertexIndex * componentsPerVertex + componentIndex] = readVertices[vertexIndex][componentIndex];
+                    const uint32_t floatBits = readVertices[vertexIndex][componentIndex];
+                    nextBlock.outTriangleVertices[vertexIndex * componentsPerVertex + componentIndex] = floatBits;
                 }
             }
             nextBlock.outEnable = 1;

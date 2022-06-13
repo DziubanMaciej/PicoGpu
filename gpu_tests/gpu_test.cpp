@@ -53,7 +53,7 @@ int sc_main(int argc, char *argv[]) {
 
     // Upload vertex data to the memory
     struct Vertex {
-        uint32_t x, y, z;
+        float x, y, z;
     };
     Vertex vertices[] = {
         Vertex{10, 10, 200},
