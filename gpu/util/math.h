@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 struct Point {
     float x;
     float y;
@@ -21,4 +23,10 @@ bool isPointInTriangle(Point pt, Point v1, Point v2, Point v3) {
     has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
 
     return !(has_neg && has_pos);
+}
+
+bool isBitSet(uint32_t bits, uint32_t bitNumber) {
+    uint32_t mask = 1 << bitNumber;
+    bits &= mask;
+    return bits != 0;
 }

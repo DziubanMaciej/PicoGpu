@@ -37,3 +37,4 @@ define_gpu_test(GpuTest SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/gpu_test.
 define_gpu_test(UserBlitterTest DONT_ENABLE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/user_blitter_test.cpp")
     enable_gpu_test(UserBlitterTestWithMemController    UserBlitterTest "1")
     enable_gpu_test(UserBlitterTestWithoutMemController UserBlitterTest "0")
+define_gpu_test(ShaderUnitTest DONT_ENABLE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/shader_unit_test.cpp")
