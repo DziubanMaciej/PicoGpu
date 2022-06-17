@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gpu/blocks/shader_array/isa.h"
-#include "gpu/blocks/shader_array/vector_register.h"
+#include "gpu/isa/isa.h"
+#include "gpu/isa/vector_register.h"
 #include "gpu/types.h"
 
 #include <systemc.h>

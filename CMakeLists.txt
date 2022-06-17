@@ -1,10 +1,29 @@
 cmake_minimum_required(VERSION 3.10)
-project(PicoGpu)
+project(PicoGpu CXX)
 find_package(SystemCLanguage CONFIG REQUIRED)
 include(CMakeMacros.cmake)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Define ISA assembler code generation
+set(ASM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/gpu/isa/assembler")
+add_custom_command(
+    OUTPUT "${ASM_DIR}/generated/parser.cpp" "${ASM_DIR}/generated/inc.h"
+    COMMAND bison ${ASM_DIR}/parser.y --output=${ASM_DIR}/generated/parser.cpp --header=${ASM_DIR}/generated/inc.h --graph=${ASM_DIR}/generated/graph.dot
+    DEPENDS ${ASM_DIR}/parser.y
+    COMMENT "Generating ISA assembler parser"
+)
+add_custom_command(
+    OUTPUT "${ASM_DIR}/generated/scanner.cpp"
+    COMMAND flex --outfile=${ASM_DIR}/generated/scanner.cpp ${ASM_DIR}/scanner.l
+    DEPENDS ${ASM_DIR}/scanner.l
+    COMMENT "Generating ISA assembler scanner"
+)
+add_custom_target(GenerateAssembler ALL
+    DEPENDS "${ASM_DIR}/generated/parser.cpp" "${ASM_DIR}/generated/inc.h" "${ASM_DIR}/generated/scanner.cpp"
+)
+list(APPEND GPU_SOURCES "${ASM_DIR}/generated/parser.cpp" "${ASM_DIR}/generated/scanner.cpp")
 
 # Define GPU library
 append_sources(GPU_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu" OFF)
@@ -12,6 +31,7 @@ add_library(Gpu STATIC ${GPU_SOURCES})
 target_link_libraries(Gpu PUBLIC SystemC::systemc)
 target_include_directories(Gpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_property(TARGET Gpu PROPERTY CXX_STANDARD ${SystemC_CXX_STANDARD})
+add_dependencies(Gpu GenerateAssembler)
 
 # Define GPU tests
 function (enable_gpu_test TEST_NAME TARGET_NAME)
@@ -38,3 +58,4 @@ define_gpu_test(UserBlitterTest DONT_ENABLE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}
     enable_gpu_test(UserBlitterTestWithMemController    UserBlitterTest "1")
     enable_gpu_test(UserBlitterTestWithoutMemController UserBlitterTest "0")
 define_gpu_test(ShaderUnitTest DONT_ENABLE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/shader_unit_test.cpp")
+define_gpu_test(AssemblerTest SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/assembler_test.cpp")
