@@ -30,6 +30,8 @@
 
     // Communication with scanner
     int gpuasm_lex();
+    void scannerSetParsedString(const char *str);
+    void scannerUnsetParsetString();
     extern int gpuasm_lineno;
 
     // Error handling
@@ -44,7 +46,8 @@
 %token ADD MOV SWIZZLE
 %token <swizzleComponent> VEC_COMPONENT
 %token HASH_INPUT HASH_OUTPUT
-%token DOT REG_GENERAL REG_INPUT REG_OUTPUT
+%token DOT
+%token <reg> REG_GENERAL REG_INPUT REG_OUTPUT
 
 %type <ui> REG_MASK
 %type <dstReg> DST_REG
@@ -148,7 +151,10 @@ uint32_t constructMask(std::initializer_list<Isa::SwizzlePatternComponent> value
 }
 
 namespace Isa {
-    int assembly(PicoGpuBinary *binary)  {
-        return gpuasm_parse(binary);
+    int assembly(const char *code, PicoGpuBinary *outBinary)  {
+        scannerSetParsedString(code);
+        int result = gpuasm_parse(outBinary);
+        scannerUnsetParsetString();
+        return result;
     }
 }

@@ -49,3 +49,11 @@ static Isa::RegisterSelection calculateRegisterSelection(Isa::RegisterSelection 
     int value = int(base) + number;
     return Isa::RegisterSelection(value);
 }
+
+void scannerSetParsedString(const char *str) {
+    gpuasm__scan_string(str);
+}
+
+void scannerUnsetParsetString() {
+    gpuasm__delete_buffer(YY_CURRENT_BUFFER);
+}
