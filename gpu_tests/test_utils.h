@@ -8,7 +8,7 @@
                                                                                                                    \
     int verify() {                                                                                                 \
         int fail = 0;                                                                                              \
-        if (summaryCount != _expectedSummaryCount) {                                                               \
+        if (summaryCount != (_expectedSummaryCount)) {                                                             \
             Log() << name << ": FAILED! Incorrect summary count. Did the test ran simulation for too short time?"; \
             fail = 1;                                                                                              \
         } else if (summarySuccessCount != summaryCount) {                                                          \

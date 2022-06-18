@@ -2,8 +2,6 @@
 #include "gpu/util/error.h"
 #include "gpu/util/math.h"
 
-#include <cstdio>
-
 namespace Isa {
 
 PicoGpuBinary::PicoGpuBinary() {
@@ -14,7 +12,6 @@ PicoGpuBinary::PicoGpuBinary() {
 }
 
 void PicoGpuBinary::encodeDirectiveInput(int mask) {
-    printf("i%d mask=0x%02X\n", inputComponentsCount, mask);
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
 
     int components = countBits(mask);
@@ -40,7 +37,6 @@ void PicoGpuBinary::encodeDirectiveInput(int mask) {
 }
 
 void PicoGpuBinary::encodeDirectiveOutput(int mask) {
-    printf("o%d mask=0x%02X\n", outputComponentsCount, mask);
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
 
     int components = countBits(mask);
