@@ -7,7 +7,6 @@ namespace Isa {
 PicoGpuBinary::PicoGpuBinary() {
     const size_t headerSize = sizeof(Header) / sizeof(uint32_t);
     data.resize(headerSize);
-    header = reinterpret_cast<Header *>(data.data());
     directives = data.data() + headerSize;
 }
 
@@ -18,16 +17,16 @@ void PicoGpuBinary::encodeDirectiveInput(int mask) {
 
     switch (inputRegistersCount) {
     case 0:
-        header->dword2.inputSize0 = components;
+        getHeader().dword2.inputSize0 = components;
         break;
     case 1:
-        header->dword2.inputSize1 = components;
+        getHeader().dword2.inputSize1 = components;
         break;
     case 2:
-        header->dword2.inputSize2 = components;
+        getHeader().dword2.inputSize2 = components;
         break;
     case 3:
-        header->dword2.inputSize3 = components;
+        getHeader().dword2.inputSize3 = components;
         break;
     default:
         FATAL_ERROR("Too many input directives. Max is 4");
@@ -43,16 +42,16 @@ void PicoGpuBinary::encodeDirectiveOutput(int mask) {
 
     switch (outputRegistersCount) {
     case 0:
-        header->dword2.outputSize0 = components;
+        getHeader().dword2.outputSize0 = components;
         break;
     case 1:
-        header->dword2.outputSize1 = components;
+        getHeader().dword2.outputSize1 = components;
         break;
     case 2:
-        header->dword2.outputSize2 = components;
+        getHeader().dword2.outputSize2 = components;
         break;
     case 3:
-        header->dword2.outputSize3 = components;
+        getHeader().dword2.outputSize3 = components;
         break;
     default:
         FATAL_ERROR("Too many output directives. Max is 4");
@@ -119,7 +118,7 @@ bool PicoGpuBinary::finalizeInstructions(const char **error) {
         return false;
     }
 
-    header->dword1.programLength = data.size() - sizeof(Header) / sizeof(uint32_t);
+    getHeader().dword1.programLength = data.size() - sizeof(Header) / sizeof(uint32_t);
 
     *error = nullptr;
     return true;

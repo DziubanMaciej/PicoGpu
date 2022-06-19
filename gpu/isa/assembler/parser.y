@@ -18,6 +18,8 @@
 
 %union {
     uint32_t ui;
+    int32_t i;
+    float f;
     DstRegister dstReg;
     FullySwizzledRegister fullySwizzledReg;
     Isa::RegisterSelection reg;
@@ -44,10 +46,11 @@
 %}
 
 %token ADD MOV SWIZZLE
+%token HASH_INPUT HASH_OUTPUT DOT
 %token <swizzleComponent> VEC_COMPONENT
-%token HASH_INPUT HASH_OUTPUT
-%token DOT
 %token <reg> REG_GENERAL REG_INPUT REG_OUTPUT
+%token <i> NUMBER_INT
+%token <f> NUMBER_FLOAT
 
 %type <ui> REG_MASK
 %type <dstReg> DST_REG
@@ -90,9 +93,10 @@ INSTRUCTIONS:
     | INSTRUCTIONS INSTRUCTION
 
 INSTRUCTION:
-      ADD     DST_REG REG REG        { outputBinary->encodeBinaryMath(Isa::Opcode::add, $2.reg, $3, $4, $2.mask); }
-    | MOV     DST_REG REG            { outputBinary->encodeUnaryMath(Isa::Opcode::mov, $2.reg, $3, $2.mask); }
-    | SWIZZLE REG FULLY_SWIZZLED_REG { outputBinary->encodeSwizzle(Isa::Opcode::swizzle, $2, $3.reg, $3.x, $3.y, $3.z, $3.w); }
+      ADD      DST_REG REG REG        { outputBinary->encodeBinaryMath(Isa::Opcode::add, $2.reg, $3, $4, $2.mask); }
+    | ADD      DST_REG REG NUMBER_INT { outputBinary->encodeBinaryMathImm(Isa::Opcode::add_imm, $2.reg, $3, $2.mask, uint32_t($4)); }
+    | MOV      DST_REG REG            { outputBinary->encodeUnaryMath(Isa::Opcode::mov, $2.reg, $3, $2.mask); }
+    | SWIZZLE  REG FULLY_SWIZZLED_REG { outputBinary->encodeSwizzle(Isa::Opcode::swizzle, $2, $3.reg, $3.x, $3.y, $3.z, $3.w); }
 
 
 // ----------------------------- Miscealaneous constructs

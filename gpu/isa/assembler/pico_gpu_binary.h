@@ -20,6 +20,8 @@ public:
     void encodeSwizzle(Opcode opcode, RegisterSelection dest, RegisterSelection src, SwizzlePatternComponent x, SwizzlePatternComponent y, SwizzlePatternComponent z, SwizzlePatternComponent w);
     bool finalizeInstructions(const char **error);
 
+    auto &getData() { return data; }
+
 private:
     template <typename InstructionLayout>
     InstructionLayout *getSpace() {
@@ -28,9 +30,9 @@ private:
         InstructionLayout *space = reinterpret_cast<InstructionLayout *>(data.data() + data.size() - length);
         return space;
     }
+    Header &getHeader() { return reinterpret_cast<Header &>(data[0]); }
 
     std::vector<uint32_t> data = {};
-    Header *header;
     uint32_t *directives;
     uint32_t *instructions;
 

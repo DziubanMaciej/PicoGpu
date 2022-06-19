@@ -1,4 +1,5 @@
 #include "gpu/blocks/shader_array/shader_unit.h"
+#include "gpu/isa/assembler/assembler.h"
 #include "gpu/util/handshake.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/test_utils.h"
@@ -20,23 +21,24 @@ SC_MODULE(Tester) {
         sc_in<sc_uint<32>> inpData;
     } response;
 
-    TESTER("Tester", 1);
+    TESTER("Tester", 2);
 
     SC_CTOR(Tester) {
         SC_THREAD(main);
         sensitive << inpClock.pos();
     }
 
-    void main() {
-        bool success = true;
-
+    void setupProgramManually(uint32_t * outProgram, uint32_t & outSize) {
         struct DataStream {
             Isa::Header header = {};
             Isa::InstructionLayouts::BinaryMathImm isa0;
             Isa::InstructionLayouts::BinaryMathImm isa1;
             Isa::InstructionLayouts::UnaryMath isa2;
             uint32_t inputInit[4];
-        } dataStream = {};
+        };
+
+        DataStream &dataStream = reinterpret_cast<DataStream &>(*outProgram);
+        outSize = sizeof(dataStream) / sizeof(uint32_t);
 
         dataStream.header.dword1.programLength = 5;
         dataStream.header.dword2.inputSize0 = 4;
@@ -63,13 +65,36 @@ SC_MODULE(Tester) {
         dataStream.inputInit[1] = 20;
         dataStream.inputInit[2] = 30;
         dataStream.inputInit[3] = 40;
+    }
 
-        uint32_t *dataStreamRaw = (uint32_t *)&dataStream;
-        uint32_t dataStreamCount = sizeof(DataStream) / 4;
-        sc_uint<32> token = dataStreamRaw[0];
+    void setupProgramFromAssembler(uint32_t * outProgram, uint32_t & outSize) {
+        const char *code =
+            "#input i0.xyzw\n"
+            "#output o0.xyzw\n"
+            "add r0.xz i0 100\n"
+            "add r0.yw i0 1000\n"
+            "mov o0 r0\n";
+        Isa::PicoGpuBinary binary = {};
+        int result = Isa::assembly(code, &binary);
+        FATAL_ERROR_IF(result != 0, "Failed to assemble code");
+        auto &data = binary.getData();
+
+        std::copy(data.begin(), data.end(), outProgram);
+        outSize = data.size();
+
+        outProgram[outSize++] = 10;
+        outProgram[outSize++] = 20;
+        outProgram[outSize++] = 30;
+        outProgram[outSize++] = 40;
+    }
+
+    void verify(uint32_t * dataStream, uint32_t dataStreamCount) {
+        bool success = true;
+
+        sc_uint<32> token = dataStream[0];
         Handshake::send(request.inpReceiving, request.outSending, request.outData, token);
         for (int i = 1; i < dataStreamCount; i++) {
-            request.outData = dataStreamRaw[i];
+            request.outData = dataStream[i];
             wait();
         }
 
@@ -84,7 +109,17 @@ SC_MODULE(Tester) {
         ASSERT_EQ(1020, output[1]);
         ASSERT_EQ(130, output[2]);
         ASSERT_EQ(1040, output[3]);
-        SUMMARY_RESULT("Program");
+        SUMMARY_RESULT("Program hardcoded manually");
+    }
+
+    void main() {
+        uint32_t dataStream[Isa::maxIsaSize] = {};
+        uint32_t dataStreamCount = {};
+        setupProgramFromAssembler(dataStream, dataStreamCount);
+        verify(dataStream, dataStreamCount);
+
+        setupProgramManually(dataStream, dataStreamCount);
+        verify(dataStream, dataStreamCount);
     }
 };
 

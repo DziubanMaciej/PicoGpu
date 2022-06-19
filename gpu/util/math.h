@@ -7,11 +7,11 @@ struct Point {
     float y;
 };
 
-float sign(Point p1, Point p2, Point p3) {
+inline float sign(Point p1, Point p2, Point p3) {
     return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 }
 
-bool isPointInTriangle(Point pt, Point v1, Point v2, Point v3) {
+inline bool isPointInTriangle(Point pt, Point v1, Point v2, Point v3) {
     float d1, d2, d3;
     bool has_neg, has_pos;
 
@@ -25,13 +25,13 @@ bool isPointInTriangle(Point pt, Point v1, Point v2, Point v3) {
     return !(has_neg && has_pos);
 }
 
-bool isBitSet(uint32_t bits, uint32_t bitNumber) {
+inline bool isBitSet(uint32_t bits, uint32_t bitNumber) {
     uint32_t mask = 1 << bitNumber;
     bits &= mask;
     return bits != 0;
 }
 
-int countBits(uint32_t number) {
+inline int countBits(uint32_t number) {
     int count = 0;
     while (number) {
         count += number & 1;
