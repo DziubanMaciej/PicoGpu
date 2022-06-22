@@ -20,6 +20,8 @@ public:
     void encodeSwizzle(Opcode opcode, RegisterSelection dest, RegisterSelection src, SwizzlePatternComponent x, SwizzlePatternComponent y, SwizzlePatternComponent z, SwizzlePatternComponent w);
     bool finalizeInstructions(const char **error);
 
+    void setHasNextCommand();
+
     auto &getData() { return data; }
 
 private:
@@ -30,7 +32,7 @@ private:
         InstructionLayout *space = reinterpret_cast<InstructionLayout *>(data.data() + data.size() - length);
         return space;
     }
-    Header &getHeader() { return reinterpret_cast<Header &>(data[0]); }
+    Command::CommandStoreIsa &getStoreIsaCommand() { return reinterpret_cast<Command::CommandStoreIsa &>(data[0]); }
 
     std::vector<uint32_t> data = {};
     uint32_t *directives;

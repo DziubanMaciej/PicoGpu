@@ -5,7 +5,7 @@
 namespace Isa {
 
 PicoGpuBinary::PicoGpuBinary() {
-    const size_t headerSize = sizeof(Header) / sizeof(uint32_t);
+    const size_t headerSize = sizeof(Command::CommandStoreIsa) / sizeof(uint32_t);
     data.resize(headerSize);
     directives = data.data() + headerSize;
 }
@@ -13,20 +13,21 @@ PicoGpuBinary::PicoGpuBinary() {
 void PicoGpuBinary::encodeDirectiveInput(int mask) {
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
 
-    int components = countBits(mask);
+    const int components = countBits(mask);
+    const auto componentsField = Isa::Command::intToNonZeroCount(components);
 
     switch (inputRegistersCount) {
     case 0:
-        getHeader().dword2.inputSize0 = components;
+        getStoreIsaCommand().inputSize0 = componentsField;
         break;
     case 1:
-        getHeader().dword2.inputSize1 = components;
+        getStoreIsaCommand().inputSize1 = componentsField;
         break;
     case 2:
-        getHeader().dword2.inputSize2 = components;
+        getStoreIsaCommand().inputSize2 = componentsField;
         break;
     case 3:
-        getHeader().dword2.inputSize3 = components;
+        getStoreIsaCommand().inputSize3 = componentsField;
         break;
     default:
         FATAL_ERROR("Too many input directives. Max is 4");
@@ -38,20 +39,21 @@ void PicoGpuBinary::encodeDirectiveInput(int mask) {
 void PicoGpuBinary::encodeDirectiveOutput(int mask) {
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
 
-    int components = countBits(mask);
+    const int components = countBits(mask);
+    const auto componentsField = Isa::Command::intToNonZeroCount(components);
 
     switch (outputRegistersCount) {
     case 0:
-        getHeader().dword2.outputSize0 = components;
+        getStoreIsaCommand().outputSize0 = componentsField;
         break;
     case 1:
-        getHeader().dword2.outputSize1 = components;
+        getStoreIsaCommand().outputSize1 = componentsField;
         break;
     case 2:
-        getHeader().dword2.outputSize2 = components;
+        getStoreIsaCommand().outputSize2 = componentsField;
         break;
     case 3:
-        getHeader().dword2.outputSize3 = components;
+        getStoreIsaCommand().outputSize3 = componentsField;
         break;
     default:
         FATAL_ERROR("Too many output directives. Max is 4");
@@ -69,6 +71,9 @@ bool PicoGpuBinary::finalizeDirectives(const char **error) {
         *error = "At least one output directive is required";
         return false;
     }
+
+    getStoreIsaCommand().inputsCount = Isa::Command::intToNonZeroCount(inputComponentsCount);
+    getStoreIsaCommand().outputsCount = Isa::Command::intToNonZeroCount(outputComponentsCount);
 
     *error = nullptr;
     return true;
@@ -118,10 +123,14 @@ bool PicoGpuBinary::finalizeInstructions(const char **error) {
         return false;
     }
 
-    getHeader().dword1.programLength = data.size() - sizeof(Header) / sizeof(uint32_t);
+    getStoreIsaCommand().programLength = data.size() - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t);
 
     *error = nullptr;
     return true;
+}
+
+void PicoGpuBinary::setHasNextCommand() {
+    getStoreIsaCommand().hasNextCommand = 1;
 }
 
 } // namespace Isa

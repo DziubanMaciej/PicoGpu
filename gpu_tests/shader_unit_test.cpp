@@ -30,19 +30,22 @@ SC_MODULE(Tester) {
 
     void setupProgramManually(uint32_t * outProgram, uint32_t & outSize) {
         struct DataStream {
-            Isa::Header header = {};
+            Isa::Command::CommandStoreIsa command = {};
             Isa::InstructionLayouts::BinaryMathImm isa0;
             Isa::InstructionLayouts::BinaryMathImm isa1;
             Isa::InstructionLayouts::UnaryMath isa2;
-            uint32_t inputInit[4];
         };
 
         DataStream &dataStream = reinterpret_cast<DataStream &>(*outProgram);
-        outSize = sizeof(dataStream) / sizeof(uint32_t);
+        outSize = sizeof(dataStream);
 
-        dataStream.header.dword1.programLength = 5;
-        dataStream.header.dword2.inputSize0 = 4;
-        dataStream.header.dword2.outputSize0 = 4;
+        dataStream.command.commandType = Isa::Command::CommandType::StoreIsa;
+        dataStream.command.hasNextCommand = 1;
+        dataStream.command.programLength = 5;
+        dataStream.command.inputsCount = Isa::Command::NonZeroCount::One;
+        dataStream.command.outputsCount = Isa::Command::NonZeroCount::One;
+        dataStream.command.inputSize0 = Isa::Command::NonZeroCount::Four;
+        dataStream.command.outputSize0 = Isa::Command::NonZeroCount::Four;
 
         dataStream.isa0.opcode = Isa::Opcode::add_imm;
         dataStream.isa0.src = Isa::RegisterSelection::i0;
@@ -60,11 +63,6 @@ SC_MODULE(Tester) {
         dataStream.isa2.src = Isa::RegisterSelection::r0;
         dataStream.isa2.dest = Isa::RegisterSelection::o0;
         dataStream.isa2.destMask = 0b1111;
-
-        dataStream.inputInit[0] = 10;
-        dataStream.inputInit[1] = 20;
-        dataStream.inputInit[2] = 30;
-        dataStream.inputInit[3] = 40;
     }
 
     void setupProgramFromAssembler(uint32_t * outProgram, uint32_t & outSize) {
@@ -77,23 +75,34 @@ SC_MODULE(Tester) {
         Isa::PicoGpuBinary binary = {};
         int result = Isa::assembly(code, &binary);
         FATAL_ERROR_IF(result != 0, "Failed to assemble code");
+        binary.setHasNextCommand();
         auto &data = binary.getData();
 
         std::copy(data.begin(), data.end(), outProgram);
-        outSize = data.size();
-
-        outProgram[outSize++] = 10;
-        outProgram[outSize++] = 20;
-        outProgram[outSize++] = 30;
-        outProgram[outSize++] = 40;
+        outSize = data.size() * sizeof(uint32_t);
     }
 
-    void verify(uint32_t * dataStream, uint32_t dataStreamCount) {
+    void verify(uint32_t * dataStream, uint32_t dataStreamSize, const char *comment) {
+        struct ExecuteCommand {
+            Isa::Command::CommandExecuteIsa command;
+            uint32_t inputInits[4];
+        } executeCommand;
+        executeCommand.command.commandType = Isa::Command::CommandType::ExecuteIsa;
+        executeCommand.command.threadCount = 1;
+        executeCommand.inputInits[0] = 10;
+        executeCommand.inputInits[1] = 20;
+        executeCommand.inputInits[2] = 30;
+        executeCommand.inputInits[3] = 40;
+
+        memcpy(dataStream + dataStreamSize / sizeof(uint32_t), &executeCommand, sizeof(ExecuteCommand));
+        dataStreamSize += sizeof(ExecuteCommand);
+
         bool success = true;
 
         sc_uint<32> token = dataStream[0];
         Handshake::send(request.inpReceiving, request.outSending, request.outData, token);
-        for (int i = 1; i < dataStreamCount; i++) {
+        const uint32_t dwordCount = dataStreamSize / sizeof(uint32_t);
+        for (int i = 1; i < dwordCount; i++) {
             request.outData = dataStream[i];
             wait();
         }
@@ -109,17 +118,24 @@ SC_MODULE(Tester) {
         ASSERT_EQ(1020, output[1]);
         ASSERT_EQ(130, output[2]);
         ASSERT_EQ(1040, output[3]);
-        SUMMARY_RESULT("Program hardcoded manually");
+        SUMMARY_RESULT(comment);
     }
 
     void main() {
-        uint32_t dataStream[Isa::maxIsaSize] = {};
-        uint32_t dataStreamCount = {};
-        setupProgramFromAssembler(dataStream, dataStreamCount);
-        verify(dataStream, dataStreamCount);
 
-        setupProgramManually(dataStream, dataStreamCount);
-        verify(dataStream, dataStreamCount);
+        {
+            uint32_t dataStream[Isa::maxIsaSize] = {};
+            uint32_t dataSteamSize = {};
+            setupProgramManually(dataStream, dataSteamSize);
+            verify(dataStream, dataSteamSize, "Program hardcoded manually");
+        }
+
+        {
+            uint32_t dataStream[Isa::maxIsaSize] = {};
+            uint32_t dataSteamSize = {};
+            setupProgramFromAssembler(dataStream, dataSteamSize);
+            verify(dataStream, dataSteamSize, "Program assembled from code");
+        }
     }
 };
 
@@ -160,7 +176,7 @@ int sc_main(int argc, char *argv[]) {
     ADD_TRACE(responeSending);
     ADD_TRACE(responseData);
 
-    sc_start({2000, SC_NS});
+    sc_start({200000, SC_NS});
 
     return tester.verify();
 }

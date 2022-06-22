@@ -22,4 +22,9 @@ struct VectorRegister {
             FATAL_ERROR("Invalid argument to indexed VectorRegister access");
         }
     }
+
+    const uint32_t &operator[](size_t index) const {
+        VectorRegister &nonConst = *const_cast<VectorRegister *>(this);
+        return nonConst[index];
+    }
 };

@@ -4,73 +4,128 @@
 #include "gpu/util/math.h"
 
 void ShaderUnit::main() {
+    bool handshakeAlreadyEstablished = false;
+
     while (true) {
         // Read ISA header
-        Isa::Header header = {};
-        header.dword1.raw = Handshake::receive(request.inpSending, request.inpData, request.outReceiving).to_int();
-        wait();
-        header.dword2.raw = request.inpData.read();
-
-        // Validate values in header
-        // TODO
-
-        // Based on the header we know how long the ISA is. Read it from the input stream
-        uint32_t isaSize = header.dword1.programLength;
-        uint32_t isa[Isa::maxIsaSize] = {};
-        for (int i = 0; i < isaSize; i++) {
+        Isa::Command::Command command = {};
+        if (handshakeAlreadyEstablished) {
             wait();
-            isa[i] = request.inpData.read();
+            command.dummy.raw = request.inpData.read();
+        } else {
+            command.dummy.raw = Handshake::receive(request.inpSending, request.inpData, request.outReceiving).to_int();
         }
+        handshakeAlreadyEstablished = command.dummy.hasNextCommand;
 
-        // Clear all registers to 0
-        static_assert(std::is_pod_v<Registers>);
-        memset(&registers, 0, sizeof(registers));
-
-        // Stream-in values for input registers
-        initializeInputRegister(registers.i0, header.dword2.inputSize0);
-        initializeInputRegister(registers.i1, header.dword2.inputSize1);
-        initializeInputRegister(registers.i2, header.dword2.inputSize2);
-        initializeInputRegister(registers.i3, header.dword2.inputSize3);
-
-        // Execute isa
-        while (registers.pc < isaSize) {
-            executeInstruction(isa);
+        switch (command.dummy.commandType) {
+        case Isa::Command::CommandType::ExecuteIsa:
+            processExecuteIsaCommand(reinterpret_cast<Isa::Command::CommandExecuteIsa &>(command));
+            break;
+        case Isa::Command::CommandType::StoreIsa:
+            processStoreIsaCommand(reinterpret_cast<Isa::Command::CommandStoreIsa &>(command));
+            break;
+        default:
+            FATAL_ERROR("Unknown command type");
         }
-
-        // Stream-out values from output registers
-        uint32_t outputStream[4 * Isa::outputRegistersCount];
-        uint32_t outputStreamSize = {};
-        appendToOutputStream(registers.o0, header.dword2.outputSize0, outputStream, outputStreamSize);
-        appendToOutputStream(registers.o1, header.dword2.outputSize1, outputStream, outputStreamSize);
-        appendToOutputStream(registers.o2, header.dword2.outputSize2, outputStream, outputStreamSize);
-        appendToOutputStream(registers.o3, header.dword2.outputSize3, outputStream, outputStreamSize);
-        sc_uint<32> outputToken = outputStream[0];
-        Handshake::send(response.inpReceiving, response.outSending, response.outData, outputToken);
-        for (int i = 1; i < outputStreamSize; i++) {
-            outputToken = outputStream[i];
-            response.outData = outputToken;
-            wait();
-        }
-        response.outData = 0;
     }
 }
 
-void ShaderUnit::initializeInputRegister(VectorRegister &reg, uint32_t componentsCount) {
-    FATAL_ERROR_IF(componentsCount > 4, "Vectors have only 4 components.");
-
-    for (int component = 0; component < componentsCount; component++) {
+void ShaderUnit::processStoreIsaCommand(Isa::Command::CommandStoreIsa command) {
+    const uint32_t isaSize = command.programLength;
+    this->isaMetadata = command;
+    for (int i = 0; i < isaSize; i++) {
         wait();
-        // TODO currently read uints from simplicity. Change this to float
-        // reg[component] = Conversions::uintBytesToFloat(request.inpData.read());
-        reg[component] = request.inpData.read();
+        this->isa[i] = request.inpData.read();
     }
 }
 
-void ShaderUnit::appendToOutputStream(VectorRegister &reg, uint32_t componentsCount, uint32_t *outputStream, uint32_t &outputStreamSize) {
-    FATAL_ERROR_IF(componentsCount > 4, "Vectors have only 4 components.");
+void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa command) {
+    // Clear all registers to 0
+    static_assert(std::is_pod_v<Registers>);
+    memset(&registers, 0, sizeof(registers));
 
-    for (int component = 0; component < componentsCount; component++) {
-        outputStream[outputStreamSize++] = reg[component];
+    // Stream-in values for input registers
+    initializeInputRegisters();
+
+    // Execute isa
+    for (const uint32_t isaSize = isaMetadata.programLength; registers.pc < isaSize;) {
+        executeInstruction(isa);
+    }
+
+    // Stream-out values from output registers
+    uint32_t outputStream[4 * Isa::outputRegistersCount];
+    uint32_t outputStreamSize = {};
+    appendOutputRegistersValues(outputStream, outputStreamSize);
+    sc_uint<32> outputToken = outputStream[0];
+    Handshake::send(response.inpReceiving, response.outSending, response.outData, outputToken);
+    for (int i = 1; i < outputStreamSize; i++) {
+        outputToken = outputStream[i];
+        response.outData = outputToken;
+        wait();
+    }
+    response.outData = 0;
+}
+
+void ShaderUnit::initializeInputRegisters() {
+    const uint32_t inputsCount = Isa::Command::nonZeroCountToInt(isaMetadata.inputsCount);
+
+    for (int regIndex = 0; regIndex < inputsCount; regIndex++) {
+        Isa::Command::NonZeroCount componentsCountField = {};
+        switch (regIndex) {
+        case 0:
+            componentsCountField = isaMetadata.inputSize0;
+            break;
+        case 1:
+            componentsCountField = isaMetadata.inputSize1;
+            break;
+        case 2:
+            componentsCountField = isaMetadata.inputSize2;
+            break;
+        case 3:
+            componentsCountField = isaMetadata.inputSize3;
+            break;
+        default:
+            FATAL_ERROR("Invalid input reg index");
+        }
+        const uint32_t componentsCount = Isa::Command::nonZeroCountToInt(componentsCountField);
+
+        VectorRegister &reg = selectRegister(Isa::RegisterSelection::i0 + regIndex);
+        for (int component = 0; component < componentsCount; component++) {
+            wait();
+            // TODO currently read uints from simplicity. Change this to float
+            // reg[component] = Conversions::uintBytesToFloat(request.inpData.read());
+            reg[component] = request.inpData.read();
+        }
+    }
+}
+
+void ShaderUnit::appendOutputRegistersValues(uint32_t *outputStream, uint32_t &outputStreamSize) {
+    const uint32_t outputsCount = Isa::Command::nonZeroCountToInt(isaMetadata.outputsCount);
+
+    for (int regIndex = 0; regIndex < outputsCount; regIndex++) {
+        Isa::Command::NonZeroCount componentsCountField = {};
+        switch (regIndex) {
+        case 0:
+            componentsCountField = isaMetadata.outputSize0;
+            break;
+        case 1:
+            componentsCountField = isaMetadata.outputSize1;
+            break;
+        case 2:
+            componentsCountField = isaMetadata.outputSize2;
+            break;
+        case 3:
+            componentsCountField = isaMetadata.outputSize3;
+            break;
+        default:
+            FATAL_ERROR("Invalid output reg index");
+        }
+        const uint32_t componentsCount = Isa::Command::nonZeroCountToInt(componentsCountField);
+
+        const VectorRegister &reg = selectRegister(Isa::RegisterSelection::o0 + regIndex);
+        for (int component = 0; component < componentsCount; component++) {
+            outputStream[outputStreamSize++] = reg[component];
+        }
     }
 }
 

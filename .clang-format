@@ -55,7 +55,7 @@ KeepEmptyLinesAtTheStartOfBlocks: true
 MacroBlockBegin: ''
 MacroBlockEnd:   ''
 MaxEmptyLinesToKeep: 1
-NamespaceIndentation: None
+NamespaceIndentation: Inner
 ObjCBlockIndentWidth: 2
 AccessModifierOffset: -4
 ObjCSpaceAfterProperty: false

@@ -6,6 +6,11 @@
 
 #include <systemc.h>
 
+enum class ShaderUnitOperation {
+    StoreIsa = 0,
+    Execute = 1,
+};
+
 SC_MODULE(ShaderUnit) {
     sc_in_clk inpClock;
 
@@ -28,17 +33,23 @@ SC_MODULE(ShaderUnit) {
     void main();
 
 private:
-    void initializeInputRegister(VectorRegister & reg, uint32_t componentsCount);
-    void appendToOutputStream(VectorRegister & reg, uint32_t componentsCount, uint32_t * outputStream, uint32_t & outputStreamSize);
+    void processStoreIsaCommand(Isa::Command::CommandStoreIsa command);
+    void processExecuteIsaCommand(Isa::Command::CommandExecuteIsa command);
+
+    void initializeInputRegisters();
+    void appendOutputRegistersValues(uint32_t * outputStream, uint32_t & outputStreamSize);
     VectorRegister &selectRegister(Isa::RegisterSelection selection);
 
-    using UnaryFunction = uint32_t(*)(uint32_t);
-    using BinaryFunction = uint32_t(*)(uint32_t, uint32_t);
-    void executeInstruction(uint32_t *isa);
+    using UnaryFunction = uint32_t (*)(uint32_t);
+    using BinaryFunction = uint32_t (*)(uint32_t, uint32_t);
+    void executeInstruction(uint32_t * isa);
     void executeInstruction(Isa::InstructionLayouts::UnaryMath inst, UnaryFunction function);
     void executeInstruction(Isa::InstructionLayouts::BinaryMath inst, BinaryFunction function);
     void executeInstruction(Isa::InstructionLayouts::BinaryMathImm inst, BinaryFunction function);
     void executeInstruction(Isa::InstructionLayouts::Swizzle inst);
+
+    Isa::Command::CommandStoreIsa isaMetadata = {};
+    uint32_t isa[Isa::maxIsaSize] = {};
 
     struct Registers {
         VectorRegister i0;
