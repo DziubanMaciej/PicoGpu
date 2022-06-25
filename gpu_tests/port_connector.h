@@ -84,6 +84,23 @@ struct PortConnector {
         out(signal);
     }
 
+    template <typename SenderType, typename ReceiverType>
+    void connectHandshake(SenderType &sender, ReceiverType &receiver, const std::string &signalNamePrefix) {
+        using DataType = typename decltype(SenderType::outData)::data_type;
+
+        auto &sending = boolSignals.get(signalNamePrefix + "_sending");
+        sender.outSending(sending);
+        receiver.inpSending(sending);
+
+        auto &receiving = boolSignals.get(signalNamePrefix + "_receiving");
+        sender.inpReceiving(receiving);
+        receiver.outReceiving(receiving);
+
+        auto &data = signals<DataType>().get(signalNamePrefix + "data");
+        sender.outData(data);
+        receiver.inpData(data);
+    }
+
     template <MemoryClientType clientType = MemoryClientType::ReadWrite, MemoryServerType serverType = MemoryServerType::Normal, typename MemoryClient, typename MemoryServer>
     void connectMemoryToClient(MemoryClient &client, MemoryServer &memory, const std::string &signalNamePrefix) {
         auto &enable = boolSignals.get(signalNamePrefix + "_enable");

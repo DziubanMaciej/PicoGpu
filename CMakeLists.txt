@@ -58,4 +58,5 @@ define_gpu_test(UserBlitterTest DONT_ENABLE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}
     enable_gpu_test(UserBlitterTestWithMemController    UserBlitterTest "1")
     enable_gpu_test(UserBlitterTestWithoutMemController UserBlitterTest "0")
 define_gpu_test(ShaderUnitTest SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/shader_unit_test.cpp")
+define_gpu_test(ShaderFrontendTest SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/shader_frontend_test.cpp")
 define_gpu_test(AssemblerTest SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/gpu_tests/assembler_test.cpp")

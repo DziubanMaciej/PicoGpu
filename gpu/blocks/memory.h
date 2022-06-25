@@ -20,7 +20,7 @@ SC_MODULE(Memory) {
 
     void work();
 
-private:
+protected:
     sc_signal<MemoryDataType> rawMemory[Size];
 };
 

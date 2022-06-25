@@ -9,7 +9,7 @@ namespace Isa {
 // components using it.
 constexpr inline size_t simdExponent = 5;
 constexpr inline size_t simdSize = 1 << simdExponent;
-constexpr inline size_t maxIsaSizeExponent = 5;
+constexpr inline size_t maxIsaSizeExponent = 9;
 constexpr inline size_t maxIsaSize = 1 << maxIsaSizeExponent;
 constexpr inline size_t inputRegistersCount = 4;
 constexpr inline size_t outputRegistersCount = 4;

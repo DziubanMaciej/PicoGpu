@@ -1,5 +1,4 @@
 #include "gpu/isa/assembler/pico_gpu_binary.h"
-#include "gpu/util/error.h"
 #include "gpu/util/math.h"
 
 namespace Isa {
@@ -72,8 +71,8 @@ bool PicoGpuBinary::finalizeDirectives(const char **error) {
         return false;
     }
 
-    getStoreIsaCommand().inputsCount = Isa::Command::intToNonZeroCount(inputComponentsCount);
-    getStoreIsaCommand().outputsCount = Isa::Command::intToNonZeroCount(outputComponentsCount);
+    getStoreIsaCommand().inputsCount = Isa::Command::intToNonZeroCount(inputRegistersCount);
+    getStoreIsaCommand().outputsCount = Isa::Command::intToNonZeroCount(outputRegistersCount);
 
     *error = nullptr;
     return true;

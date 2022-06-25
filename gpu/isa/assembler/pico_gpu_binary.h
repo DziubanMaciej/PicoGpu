@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpu/isa/isa.h"
+#include "gpu/util/error.h"
 
 #include <cstddef>
 #include <vector>
@@ -9,6 +10,7 @@ namespace Isa {
 class PicoGpuBinary {
 public:
     PicoGpuBinary();
+    PicoGpuBinary &operator=(const PicoGpuBinary &) = default;
 
     void encodeDirectiveInput(int mask);
     void encodeDirectiveOutput(int mask);
@@ -28,6 +30,7 @@ private:
     template <typename InstructionLayout>
     InstructionLayout *getSpace() {
         const uint32_t length = sizeof(InstructionLayout) / sizeof(uint32_t);
+        FATAL_ERROR_IF(data.size() + length - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t) >= Isa::maxIsaSize, "Too long program"); // TODO make this more graceful
         data.resize(data.size() + length);
         InstructionLayout *space = reinterpret_cast<InstructionLayout *>(data.data() + data.size() - length);
         return space;
