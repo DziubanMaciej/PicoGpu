@@ -2,6 +2,7 @@
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/blocks/user_blitter.h"
 #include "gpu/util/vcd_trace.h"
+#include "gpu_tests/port_connector.h"
 #include "gpu_tests/test_utils.h"
 
 #include <systemc.h>
@@ -104,6 +105,8 @@ SC_MODULE(Tester) {
 int sc_main(int argc, char *argv[]) {
     const bool useMemoryController = argc > 1 && static_cast<bool>(argv[1][0] - '0');
 
+    PortConnector ports = {};
+
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     Memory<64> mem{"mem"};
     std::unique_ptr<MemoryController<1>> memController = {};
@@ -114,54 +117,12 @@ int sc_main(int argc, char *argv[]) {
     Tester tester("tester", blitter);
 
     // Bind mem with memController or blitter
-    sc_signal<bool> memInpEnable;
-    sc_signal<bool> memInpWrite;
-    sc_signal<MemoryAddressType> memInpAddress;
-    sc_signal<MemoryDataType> memInpData;
-    sc_signal<MemoryDataType> memOutData;
-    sc_signal<bool> memOutCompleted;
-    mem.inpEnable(memInpEnable);
-    mem.inpWrite(memInpWrite);
-    mem.inpAddress(memInpAddress);
-    mem.inpData(memInpData);
-    mem.outData(memOutData);
-    mem.outCompleted(memOutCompleted);
     if (useMemoryController) {
-        memController->memory.outEnable(memInpEnable);
-        memController->memory.outWrite(memInpWrite);
-        memController->memory.outAddress(memInpAddress);
-        memController->memory.outData(memInpData);
-        memController->memory.inpData(memOutData);
-        memController->memory.inpCompleted(memOutCompleted);
+        ports.connectMemoryToClient(memController->memory, mem, "MEMCTL_MEM");
+        ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(blitter, memController->clients[0], "MEMCTL_BLT");
+        ports.connectPorts(blitter.inpData, memController->outData, "MEMCTL_BLT_dataForRead");
     } else {
-        blitter.outEnable(memInpEnable);
-        blitter.outWrite(memInpWrite);
-        blitter.outAddress(memInpAddress);
-        blitter.outData(memInpData);
-        blitter.inpData(memOutData);
-        blitter.inpCompleted(memOutCompleted);
-    }
-
-    // Bind memController with blitter
-    sc_signal<bool> memControllerInpEnable;
-    sc_signal<bool> memControllerInpWrite;
-    sc_signal<MemoryAddressType> memControllerInpAddress;
-    sc_signal<MemoryDataType> memControllerInpData;
-    sc_signal<MemoryDataType> memControllerOutData;
-    sc_signal<bool> memControllerOutCompleted;
-    if (useMemoryController) {
-        memController->clients[0].inpEnable(memControllerInpEnable);
-        memController->clients[0].inpWrite(memControllerInpWrite);
-        memController->clients[0].inpAddress(memControllerInpAddress);
-        memController->clients[0].inpData(memControllerInpData);
-        memController->clients[0].outCompleted(memControllerOutCompleted);
-        memController->outData(memControllerOutData);
-        blitter.outEnable(memControllerInpEnable);
-        blitter.outWrite(memControllerInpWrite);
-        blitter.outAddress(memControllerInpAddress);
-        blitter.outData(memControllerInpData);
-        blitter.inpCompleted(memControllerOutCompleted);
-        blitter.inpData(memControllerOutData);
+        ports.connectMemoryToClient(blitter, mem, "MEM_BLT");
     }
 
     // Bind clock for every component
@@ -177,18 +138,7 @@ int sc_main(int argc, char *argv[]) {
     traceName.append(useMemoryController ? "WithMemoryController" : "WithoutMemoryController");
     VcdTrace trace{traceName.c_str()};
     ADD_TRACE(clock);
-    ADD_TRACE(memInpEnable);
-    ADD_TRACE(memInpWrite);
-    ADD_TRACE(memInpAddress);
-    ADD_TRACE(memInpData);
-    ADD_TRACE(memOutData);
-    ADD_TRACE(memOutCompleted);
-    ADD_TRACE(memControllerInpEnable);
-    ADD_TRACE(memControllerInpWrite);
-    ADD_TRACE(memControllerInpAddress);
-    ADD_TRACE(memControllerInpData);
-    ADD_TRACE(memControllerOutCompleted);
-    ADD_TRACE(memControllerOutData);
+    ports.addSignalsToTrace(trace);
 
     sc_start({200, SC_NS});
     return tester.verify();
