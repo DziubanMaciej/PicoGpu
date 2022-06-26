@@ -99,20 +99,10 @@ SC_MODULE(Tester) {
 
         bool success = true;
 
-        sc_uint<32> token = dataStream[0];
-        Handshake::send(request.inpReceiving, request.outSending, request.outData, token);
-        const uint32_t dwordCount = dataStreamSize / sizeof(uint32_t);
-        for (int i = 1; i < dwordCount; i++) {
-            request.outData = dataStream[i];
-            wait();
-        }
+        Handshake::sendArray(request.inpReceiving, request.outSending, request.outData, dataStream, dataStreamSize / sizeof(uint32_t));
 
-        sc_uint<32> output[4] = {};
-        output[0] = Handshake::receive(response.inpSending, response.inpData, response.outReceiving);
-        for (int i = 1; i < 4; i++) {
-            wait();
-            output[i] = response.inpData.read();
-        }
+        uint32_t output[4] = {};
+        Handshake::receiveArray(response.inpSending, response.inpData, response.outReceiving, output, 4);
 
         ASSERT_EQ(110, output[0]);
         ASSERT_EQ(1020, output[1]);

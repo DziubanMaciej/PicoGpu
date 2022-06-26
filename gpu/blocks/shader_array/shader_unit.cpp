@@ -56,14 +56,8 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     uint32_t outputStream[4 * Isa::outputRegistersCount];
     uint32_t outputStreamSize = {};
     appendOutputRegistersValues(outputStream, outputStreamSize);
-    sc_uint<32> outputToken = outputStream[0];
-    Handshake::send(response.inpReceiving, response.outSending, response.outData, outputToken);
-    for (int i = 1; i < outputStreamSize; i++) {
-        outputToken = outputStream[i];
-        response.outData = outputToken;
-        wait();
-    }
-    response.outData = 0;
+
+    Handshake::sendArray(response.inpReceiving, response.outSending, response.outData, outputStream, outputStreamSize);
 }
 
 void ShaderUnit::initializeInputRegisters() {
