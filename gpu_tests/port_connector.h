@@ -76,6 +76,14 @@ struct PortConnector {
         out(signal);
     }
 
+    template <typename DataType>
+    void connectPorts(sc_in<DataType> &inp0, sc_in<DataType> &inp1, sc_out<DataType> &out, const std::string &name) {
+        auto &signal = signals<DataType>().get(name);
+        inp0(signal);
+        inp1(signal);
+        out(signal);
+    }
+
     template <MemoryClientType clientType = MemoryClientType::ReadWrite, MemoryServerType serverType = MemoryServerType::Normal, typename MemoryClient, typename MemoryServer>
     void connectMemoryToClient(MemoryClient &client, MemoryServer &memory, const std::string &signalNamePrefix) {
         auto &enable = boolSignals.get(signalNamePrefix + "_enable");

@@ -1,6 +1,7 @@
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/util/vcd_trace.h"
+#include "gpu_tests/port_connector.h"
 #include "gpu_tests/test_utils.h"
 
 #include <systemc.h>
@@ -186,85 +187,25 @@ int sc_main(int argc, char *argv[]) {
     sc_set_time_resolution(100, SC_PS);
     sc_clock clock("my_clock", 1, SC_NS, 0.5, 0, SC_NS, true);
 
+    PortConnector ports = {};
+
     Memory<32> mem("mem");
     MemoryController<2> memController("memController");
+    Client0 client0{"client0"};
+    Client1 client1{"client1"};
 
     // Bind mem with memController
-    sc_signal<bool> memInpEnable;
-    sc_signal<bool> memInpWrite;
-    sc_signal<MemoryAddressType> memInpAddress;
-    sc_signal<MemoryDataType> memInpData;
-    sc_signal<MemoryDataType> memOutData;
-    sc_signal<bool> memOutCompleted;
-    mem.inpEnable(memInpEnable);
-    mem.inpWrite(memInpWrite);
-    mem.inpAddress(memInpAddress);
-    mem.inpData(memInpData);
-    mem.outData(memOutData);
-    mem.outCompleted(memOutCompleted);
-    memController.memory.outEnable(memInpEnable);
-    memController.memory.outWrite(memInpWrite);
-    memController.memory.outAddress(memInpAddress);
-    memController.memory.outData(memInpData);
-    memController.memory.inpData(memOutData);
-    memController.memory.inpCompleted(memOutCompleted);
-
-    // Bind client signals with memController
-    struct ClientSignals {
-        sc_signal<bool> inpEnable;
-        sc_signal<bool> inpWrite;
-        sc_signal<MemoryAddressType> inpAddress;
-        sc_signal<MemoryDataType> inpData;
-        sc_signal<bool> outCompleted;
-    } clientSignals[2];
-    sc_signal<MemoryDataType> clientOutData;
-    for (int i = 0; i < 2; i++) {
-        memController.clients[i].inpEnable(clientSignals[i].inpEnable);
-        memController.clients[i].inpWrite(clientSignals[i].inpWrite);
-        memController.clients[i].inpAddress(clientSignals[i].inpAddress);
-        memController.clients[i].inpData(clientSignals[i].inpData);
-        memController.clients[i].outCompleted(clientSignals[i].outCompleted);
-    }
-    memController.outData(clientOutData);
+    ports.connectMemoryToClient(memController.memory, mem, "MEMCTL_MEM");
 
     // Bind client0 with memController
-    Client0 client0{"client0"};
-    client0.outEnable(clientSignals[0].inpEnable);
-    client0.outWrite(clientSignals[0].inpWrite);
-    client0.outAddress(clientSignals[0].inpAddress);
-    client0.outData(clientSignals[0].inpData);
-    client0.inpData(clientOutData);
-    client0.inpCompleted(clientSignals[0].outCompleted);
-
-    // Bind client1 with memController
-    Client1 client1{"client1"};
-    client1.outEnable(clientSignals[1].inpEnable);
-    client1.outWrite(clientSignals[1].inpWrite);
-    client1.outAddress(clientSignals[1].inpAddress);
-    client1.outData(clientSignals[1].inpData);
-    client1.inpData(clientOutData);
-    client1.inpCompleted(clientSignals[1].outCompleted);
+    ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(client0, memController.clients[0], "MEMCTL_CLIENT0");
+    ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(client1, memController.clients[1], "MEMCTL_CLIENT1");
+    ports.connectPorts(client0.inpData, client1.inpData, memController.outData, "MEMCTL_dataForRead");
 
     // Setup trace
     VcdTrace trace{"memory"};
     ADD_TRACE(clock);
-    ADD_TRACE(memInpEnable);
-    ADD_TRACE(memInpWrite);
-    ADD_TRACE(memInpAddress);
-    ADD_TRACE(memInpData);
-    ADD_TRACE(memOutData);
-    ADD_TRACE(memOutCompleted);
-    trace.trace(clientSignals[0].inpEnable, "client0_inpEnable");
-    trace.trace(clientSignals[0].inpWrite, "client0_inpWrite");
-    trace.trace(clientSignals[0].inpAddress, "client0_inpAddress");
-    trace.trace(clientSignals[0].inpData, "client0_inpData");
-    trace.trace(clientSignals[0].outCompleted, "client0_outCompleted");
-    trace.trace(clientSignals[1].inpEnable, "client1_inpEnable");
-    trace.trace(clientSignals[1].inpWrite, "client1_inpWrite");
-    trace.trace(clientSignals[1].inpAddress, "client1_inpAddress");
-    trace.trace(clientSignals[1].inpData, "client1_inpData");
-    trace.trace(clientSignals[1].outCompleted, "client1_outCompleted");
-    ADD_TRACE(clientOutData);
+    ports.addSignalsToTrace(trace);
 
     // Bind clock for every component
     mem.inpClock(clock);
