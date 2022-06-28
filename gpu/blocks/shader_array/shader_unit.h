@@ -36,22 +36,29 @@ private:
     void processStoreIsaCommand(Isa::Command::CommandStoreIsa command);
     void processExecuteIsaCommand(Isa::Command::CommandExecuteIsa command);
 
-    void initializeInputRegisters();
-    void appendOutputRegistersValues(uint32_t * outputStream, uint32_t & outputStreamSize);
-    VectorRegister &selectRegister(Isa::RegisterSelection selection);
+    void initializeInputRegisters(uint32_t threadCount);
+    void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
+    VectorRegister &selectRegister(Isa::RegisterSelection selection, uint32_t lane);
 
     using UnaryFunction = uint32_t (*)(uint32_t);
     using BinaryFunction = uint32_t (*)(uint32_t, uint32_t);
-    void executeInstruction(uint32_t * isa);
-    void executeInstruction(Isa::InstructionLayouts::UnaryMath inst, UnaryFunction function);
-    void executeInstruction(Isa::InstructionLayouts::BinaryMath inst, BinaryFunction function);
-    void executeInstruction(Isa::InstructionLayouts::BinaryMathImm inst, BinaryFunction function);
-    void executeInstruction(Isa::InstructionLayouts::Swizzle inst);
+    void executeInstruction(uint32_t threadCount);
+    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::UnaryMath inst, UnaryFunction function);
+    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::BinaryMath inst, BinaryFunction function);
+    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::BinaryMathImm inst, BinaryFunction function);
+    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::Swizzle inst);
+
+    template <typename... Args>
+    void executeInstructionForLanes(uint32_t threadCount, Args && ...args) {
+        for (uint32_t lane = 0; lane < threadCount; lane++) {
+            executeInstructionLane(lane, std::forward<Args>(args)...);
+        }
+    }
 
     Isa::Command::CommandStoreIsa isaMetadata = {};
     uint32_t isa[Isa::maxIsaSize] = {};
 
-    struct Registers {
+    struct PerLaneRegisters {
         VectorRegister i0;
         VectorRegister i1;
         VectorRegister i2;
@@ -61,8 +68,6 @@ private:
         VectorRegister o2;
         VectorRegister o3;
 
-        uint32_t pc;
-
         VectorRegister r0;
         VectorRegister r1;
         VectorRegister r2;
@@ -71,5 +76,9 @@ private:
         VectorRegister r5;
         VectorRegister r6;
         VectorRegister r7;
+    };
+    struct Registers {
+        PerLaneRegisters lanes[Isa::simdSize];
+        uint32_t pc;
     } registers;
 };

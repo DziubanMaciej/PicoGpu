@@ -23,13 +23,13 @@
         return fail;                                                                                                                        \
     }
 
-#define ASSERT_EQ(a, b)                                                                           \
-    wait(SC_ZERO_TIME);                                                                           \
-    {                                                                                             \
-        if ((a) != (b)) {                                                                         \
-            success = false;                                                                      \
-            Log() << "ASSERT_EQ(" #a ", " #b ") at " << __FILE__ << ":" << __LINE__ << " failed"; \
-        }                                                                                         \
+#define ASSERT_EQ(a, b)                                                                                                                            \
+    wait(SC_ZERO_TIME);                                                                                                                            \
+    {                                                                                                                                              \
+        if ((a) != (b)) {                                                                                                                          \
+            success = false;                                                                                                                       \
+            Log() << "ASSERT_EQ(" #a ", " #b ") at " << __FILE__ << ":" << __LINE__ << " failed (expected: " << (a) << ", actual: " << (b) << ")"; \
+        }                                                                                                                                          \
     }
 
 #define SUMMARY_RESULT(NAME)                                      \
