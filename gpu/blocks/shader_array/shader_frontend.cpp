@@ -42,7 +42,7 @@ void ShaderFrontendBase::requestThread() {
             shaderInput[i] = clientInterface->request.inpData.read();
         }
 
-        // Out shader unit is stateful and the ISA to execute may already be loaded in it. If not, we have to read it from memory
+        // Our shader unit is stateful and the ISA to execute may already be loaded in it. If not, we have to read it from memory
         // and store it in the shader unit
         // TODO this stalls any other requests, that may have ISA already loaded. We could parallelize this somehow. There could be
         // a separate block that would be responsible for loading ISA from memory, caching it and sending to the shader units.
@@ -53,7 +53,7 @@ void ShaderFrontendBase::requestThread() {
         }
 
         // At this point shader unit already know what it has to execute. We only have to issue the command and send the inputs to it.
-        executeIsa(*shaderUnitInterface, handshakeOnlyOnce, shaderInput, shaderInputsCount);
+        executeIsa(*shaderUnitInterface, handshakeOnlyOnce, shaderInput, request.dword1.threadCount, shaderInputsCount);
 
         // Cache data about this request, so we can use it in responseThread
         shaderUnitState->request.isActive = true;
@@ -197,14 +197,14 @@ void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, int 
     }
 }
 
-void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, uint32_t shaderInputsCount) {
+void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, uint32_t threadCount, uint32_t shaderInputsCount) {
     auto &unit = shaderUnitInterface.request;
 
     // Send the command
     Isa::Command::CommandExecuteIsa command;
     command.commandType = Isa::Command::CommandType::ExecuteIsa;
     command.hasNextCommand = 0;
-    command.threadCount = 1;
+    command.threadCount = threadCount;
     if (handshakeAlreadyDone) {
         unit.outData = command.raw;
         wait();

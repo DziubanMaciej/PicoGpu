@@ -72,7 +72,8 @@ private:
     void initIsaCache();
     int getIsa(uint32_t isaAddress);
     void storeIsa(ShaderUnitInterface & shaderUnitInterface, int indexInIsaCache, bool hasNextCommand);
-    void executeIsa(ShaderUnitInterface & shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, uint32_t shaderInputsCount);
+    void executeIsa(ShaderUnitInterface & shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, uint32_t threadCount, uint32_t shaderInputsCount);
+
     // Methods for utility purposes
     size_t calculateShaderInputsCount(const ShaderFrontendRequest &request);
     size_t calculateShaderOutputsCount(const ShaderFrontendRequest &request);

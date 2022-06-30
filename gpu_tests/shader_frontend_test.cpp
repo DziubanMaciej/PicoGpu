@@ -52,11 +52,11 @@ private:
     void sendRequest(uint32_t isaAddress, uint32_t clientToken) {
         struct Request {
             ShaderFrontendRequest request;
-            uint32_t shaderInputs[4];
+            uint32_t shaderInputs[12];
         } shaderFrontendRequest = {};
         shaderFrontendRequest.request.dword0.isaAddress = isaAddress;
         shaderFrontendRequest.request.dword1.clientToken = clientToken;
-        shaderFrontendRequest.request.dword1.threadCount = 1;
+        shaderFrontendRequest.request.dword1.threadCount = 3;
         shaderFrontendRequest.request.dword2.inputsCount = Isa::Command::NonZeroCount::One;
         shaderFrontendRequest.request.dword2.inputSize0 = Isa::Command::NonZeroCount::Four;
         shaderFrontendRequest.request.dword2.outputsCount = Isa::Command::NonZeroCount::One;
@@ -65,6 +65,14 @@ private:
         shaderFrontendRequest.shaderInputs[1] = 20;
         shaderFrontendRequest.shaderInputs[2] = 30;
         shaderFrontendRequest.shaderInputs[3] = 40;
+        shaderFrontendRequest.shaderInputs[4] = 50;
+        shaderFrontendRequest.shaderInputs[5] = 60;
+        shaderFrontendRequest.shaderInputs[6] = 70;
+        shaderFrontendRequest.shaderInputs[7] = 80;
+        shaderFrontendRequest.shaderInputs[8] = 90;
+        shaderFrontendRequest.shaderInputs[9] = 100;
+        shaderFrontendRequest.shaderInputs[10] = 110;
+        shaderFrontendRequest.shaderInputs[11] = 120;
 
         Handshake::sendArray(request.inpReceiving, request.outSending, request.outData,
                              reinterpret_cast<uint32_t *>(&shaderFrontendRequest), sizeof(Request) / sizeof(uint32_t));
@@ -73,7 +81,7 @@ private:
     void expectResponse(uint32_t clientToken) {
         struct Response {
             ShaderFrontendResponse response;
-            uint32_t shaderOutputs[4];
+            uint32_t shaderOutputs[12];
         } shaderFrontendResponse;
         Handshake::receiveArray(response.inpSending, response.inpData, response.outReceiving,
                                 reinterpret_cast<uint32_t *>(&shaderFrontendResponse), sizeof(Response) / sizeof(uint32_t));
@@ -84,6 +92,14 @@ private:
         ASSERT_EQ(1020, shaderFrontendResponse.shaderOutputs[1]);
         ASSERT_EQ(130, shaderFrontendResponse.shaderOutputs[2]);
         ASSERT_EQ(1040, shaderFrontendResponse.shaderOutputs[3]);
+        ASSERT_EQ(150, shaderFrontendResponse.shaderOutputs[4]);
+        ASSERT_EQ(1060, shaderFrontendResponse.shaderOutputs[5]);
+        ASSERT_EQ(170, shaderFrontendResponse.shaderOutputs[6]);
+        ASSERT_EQ(1080, shaderFrontendResponse.shaderOutputs[7]);
+        ASSERT_EQ(190, shaderFrontendResponse.shaderOutputs[8]);
+        ASSERT_EQ(1100, shaderFrontendResponse.shaderOutputs[9]);
+        ASSERT_EQ(210, shaderFrontendResponse.shaderOutputs[10]);
+        ASSERT_EQ(1120, shaderFrontendResponse.shaderOutputs[11]);
         SUMMARY_RESULT("ShaderFrontend test with client token " + std::to_string(clientToken));
     }
 
