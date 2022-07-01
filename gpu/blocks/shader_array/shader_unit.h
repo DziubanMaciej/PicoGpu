@@ -40,19 +40,22 @@ private:
     void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
     VectorRegister &selectRegister(Isa::RegisterSelection selection, uint32_t lane);
 
-    using UnaryFunction = uint32_t (*)(uint32_t);
-    using BinaryFunction = uint32_t (*)(uint32_t, uint32_t);
+    using UnaryFunction = int32_t (*)(int32_t);
+    using BinaryFunction = int32_t (*)(int32_t, int32_t);
     void executeInstruction(uint32_t threadCount);
-    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::UnaryMath inst, UnaryFunction function);
-    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::BinaryMath inst, BinaryFunction function);
-    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::BinaryMathImm inst, BinaryFunction function);
-    void executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::Swizzle inst);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryFunction function);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryFunction function);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMathImm &inst, UnaryFunction function);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMathImm &inst, BinaryFunction function);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::Swizzle &inst);
 
     template <typename... Args>
-    void executeInstructionForLanes(uint32_t threadCount, Args && ...args) {
+    int32_t executeInstructionForLanes(uint32_t threadCount, Args && ...args) {
+        int32_t pcIncrement = 0;
         for (uint32_t lane = 0; lane < threadCount; lane++) {
-            executeInstructionLane(lane, std::forward<Args>(args)...);
+            pcIncrement = executeInstructionLane(lane, std::forward<Args>(args)...);
         }
+        return pcIncrement;
     }
 
     Isa::Command::CommandStoreIsa isaMetadata = {};

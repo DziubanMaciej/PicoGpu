@@ -48,6 +48,7 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     initializeInputRegisters(command.threadCount);
 
     // Execute isa
+    // TODO move this loop into function
     for (const uint32_t isaSize = isaMetadata.programLength; registers.pc < isaSize;) {
         executeInstruction(command.threadCount);
     }
@@ -91,8 +92,6 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
             uint32_t componentsCount = componentsCounts[regIndex];
             for (int component = 0; component < componentsCount; component++) {
                 wait();
-                // TODO currently read uints from simplicity. Change this to float
-                // reg[component] = Conversions::uintBytesToFloat(request.inpData.read());
                 reg[component] = request.inpData.read();
             }
         }
@@ -163,33 +162,78 @@ VectorRegister &ShaderUnit::selectRegister(Isa::RegisterSelection selection, uin
 void ShaderUnit::executeInstruction(uint32_t threadCount) {
     const Isa::Instruction &instruction = *reinterpret_cast<const Isa::Instruction *>(isa + registers.pc);
 
-    size_t programCounterIncrement = 1;
+    const static auto asf = [](int32_t arg) { return reinterpret_cast<float &>(arg); };
+    const static auto asi = [](float arg) { return reinterpret_cast<int32_t &>(arg); };
+
     switch (instruction.header.opcode) {
-    case Isa::Opcode::add:
-        executeInstructionForLanes(threadCount, instruction.binaryMath, [](uint32_t src1, uint32_t src2) { return src1 + src2; });
+    case Isa::Opcode::fadd:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return asi(asf(src1) + asf(src2)); });
         break;
-    case Isa::Opcode::mul:
-        executeInstructionForLanes(threadCount, instruction.binaryMath, [](uint32_t src1, uint32_t src2) { return src1 * src2; });
+    case Isa::Opcode::fadd_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return asi(asf(src1) + asf(src2)); });
+        break;
+    case Isa::Opcode::fsub:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return asi(asf(src1) - asf(src2)); });
+        break;
+    case Isa::Opcode::fsub_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return asi(asf(src1) - asf(src2)); });
+        break;
+    case Isa::Opcode::fmul:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return asi(asf(src1) * asf(src2)); });
+        break;
+    case Isa::Opcode::fmul_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return asi(asf(src1) * asf(src2)); });
+        break;
+    case Isa::Opcode::fdiv:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return asi(asf(src1) / asf(src2)); });
+        break;
+    case Isa::Opcode::fdiv_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return asi(asf(src1) / asf(src2)); });
+        break;
+
+    case Isa::Opcode::iadd:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 + src2; });
+        break;
+    case Isa::Opcode::iadd_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return src1 + src2; });
+        break;
+    case Isa::Opcode::isub:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 - src2; });
+        break;
+    case Isa::Opcode::isub_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return src1 - src2; });
+        break;
+    case Isa::Opcode::imul:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 * src2; });
+        break;
+    case Isa::Opcode::imul_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return src1 * src2; });
+        break;
+    case Isa::Opcode::idiv:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 / src2; });
+        break;
+    case Isa::Opcode::idiv_imm:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](int32_t src1, int32_t src2) { return src1 / src2; });
+        break;
+
+    case Isa::Opcode::init:
+        registers.pc += executeInstructionForLanes(threadCount, instruction.unaryMathImm, [](int32_t src) { return src; });
         break;
     case Isa::Opcode::mov:
-        executeInstructionForLanes(threadCount, instruction.unaryMath, [](uint32_t src) { return src; });
-        break;
-    case Isa::Opcode::add_imm:
-        executeInstructionForLanes(threadCount, instruction.binaryMathImm, [](uint32_t src1, uint32_t src2) { return src1 + src2; });
-        programCounterIncrement = 2;
+        registers.pc += executeInstructionForLanes(threadCount, instruction.unaryMath, [](int32_t src) { return src; });
         break;
     case Isa::Opcode::swizzle:
-        executeInstructionForLanes(threadCount, instruction.swizzle);
+        registers.pc += executeInstructionForLanes(threadCount, instruction.swizzle);
         break;
+
     default:
         FATAL_ERROR("Unknown opcode: ", (uint32_t)instruction.header.opcode);
     }
 
-    registers.pc += programCounterIncrement;
     wait();
 }
 
-void ShaderUnit::executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::UnaryMath inst, UnaryFunction function) {
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryFunction function) {
     VectorRegister &src = selectRegister(inst.src, lane);
     VectorRegister &dest = selectRegister(inst.dest, lane);
     for (int i = 0; i < 4; i++) {
@@ -197,9 +241,10 @@ void ShaderUnit::executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::
             dest[i] = function(src[i]);
         }
     }
+    return sizeof(inst) / sizeof(uint32_t);
 }
 
-void ShaderUnit::executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::BinaryMath inst, BinaryFunction function) {
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryFunction function) {
     VectorRegister &src1 = selectRegister(inst.src1, lane);
     VectorRegister &src2 = selectRegister(inst.src2, lane);
     VectorRegister &dest = selectRegister(inst.dest, lane);
@@ -208,25 +253,53 @@ void ShaderUnit::executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::
             dest[i] = function(src1[i], src2[i]);
         }
     }
+    return sizeof(inst) / sizeof(uint32_t);
 }
 
-void ShaderUnit::executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::BinaryMathImm inst, BinaryFunction function) {
-    VectorRegister &src1 = selectRegister(inst.src, lane);
-    uint32_t src2 = inst.immediateValue;
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMathImm &inst, UnaryFunction function) {
+    const size_t immCount = Isa::Command::nonZeroCountToInt(inst.immediateValuesCount);
+
     VectorRegister &dest = selectRegister(inst.dest, lane);
+    size_t immediateValueIndex = 0;
     for (int i = 0; i < 4; i++) {
         if (isBitSet(inst.destMask, 3 - i)) {
-            dest[i] = function(src1[i], src2);
+            int32_t src2 = reinterpret_cast<const int32_t &>(inst.immediateValues[immediateValueIndex]);
+            dest[i] = function(src2);
+
+            if (immediateValueIndex + 1 < immCount) {
+                immediateValueIndex++;
+            }
         }
     }
+    return 1 + immCount;
 }
 
-void ShaderUnit::executeInstructionLane(uint32_t lane, Isa::InstructionLayouts::Swizzle inst) {
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMathImm &inst, BinaryFunction function) {
+    const size_t immCount = Isa::Command::nonZeroCountToInt(inst.immediateValuesCount);
+
+    VectorRegister &src1 = selectRegister(inst.src, lane);
+    VectorRegister &dest = selectRegister(inst.dest, lane);
+    size_t immediateValueIndex = 0;
+    for (int i = 0; i < 4; i++) {
+        if (isBitSet(inst.destMask, 3 - i)) {
+            int32_t src2 = reinterpret_cast<const int32_t &>(inst.immediateValues[immediateValueIndex]);
+            dest[i] = function(src1[i], src2);
+
+            if (immediateValueIndex + 1 < immCount) {
+                immediateValueIndex++;
+            }
+        }
+    }
+    return 1 + immCount;
+}
+
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::Swizzle &inst) {
     VectorRegister &src = selectRegister(inst.src, lane);
     VectorRegister &dest = selectRegister(inst.dest, lane);
 
-    dest.x = src[static_cast<uint32_t>(inst.patternX)];
-    dest.y = src[static_cast<uint32_t>(inst.patternY)];
-    dest.z = src[static_cast<uint32_t>(inst.patternZ)];
-    dest.w = src[static_cast<uint32_t>(inst.patternW)];
+    dest.x = src[static_cast<size_t>(inst.patternX)];
+    dest.y = src[static_cast<size_t>(inst.patternY)];
+    dest.z = src[static_cast<size_t>(inst.patternZ)];
+    dest.w = src[static_cast<size_t>(inst.patternW)];
+    return sizeof(inst) / sizeof(uint32_t);
 }

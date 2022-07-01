@@ -111,8 +111,8 @@ private:
         std::string code =
             "#input i0.xyzw\n"
             "#output o0.xyzw\n"
-            "add r0.xz i0 100\n"
-            "add r0.yw i0 1000\n"
+            "iadd r0.xz i0 100\n"
+            "iadd r0.yw i0 1000\n"
             "mov o0 r0\n";
         int result = Isa::assembly(code.c_str(), &binary);
         FATAL_ERROR_IF(result != 0, "Failed to assemble code");
@@ -122,8 +122,8 @@ private:
         code =
             "#input i0.xyzw\n"
             "#output o0.xyzw\n"
-            "add r0.xz i0 100\n"
-            "add r0.yw i0 1000\n";
+            "iadd r0.xz i0 100\n"
+            "iadd r0.yw i0 1000\n";
         for (int i = 0; i < 500; i++) {
             code += "mov r2 r2\n"; // just some garbage instructions that take time
         }

@@ -7,7 +7,15 @@ struct Conversions {
         return *reinterpret_cast<uint32_t *>(&arg);
     }
 
+    static int32_t floatBytesToInt(float arg) {
+        return *reinterpret_cast<int32_t *>(&arg);
+    }
+
     static float uintBytesToFloat(uint32_t arg) {
+        return *reinterpret_cast<float *>(&arg);
+    }
+
+    static float intBytesToFloat(int32_t arg) {
         return *reinterpret_cast<float *>(&arg);
     }
 

@@ -3,12 +3,12 @@
 #include "gpu/util/error.h"
 
 struct VectorRegister {
-    uint32_t x;
-    uint32_t y;
-    uint32_t z;
-    uint32_t w;
+    int32_t x;
+    int32_t y;
+    int32_t z;
+    int32_t w;
 
-    uint32_t &operator[](size_t index) {
+    int32_t &operator[](size_t index) {
         switch (index) {
         case 0:
             return x;
@@ -23,7 +23,7 @@ struct VectorRegister {
         }
     }
 
-    const uint32_t &operator[](size_t index) const {
+    const int32_t &operator[](size_t index) const {
         VectorRegister &nonConst = *const_cast<VectorRegister *>(this);
         return nonConst[index];
     }

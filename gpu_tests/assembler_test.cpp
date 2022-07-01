@@ -30,7 +30,7 @@ const char *passingPrograms[] = {
     ""
     "mov r0    i0\n"
     "mov r0.xw i1\n"
-    "add r0 r0 r0\n"
+    "fadd r0 r0 r0\n"
     "mov o0 r0\n"
     "swizzle o0 o0.wzyx\n",
 };

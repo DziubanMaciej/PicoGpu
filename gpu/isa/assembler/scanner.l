@@ -16,9 +16,19 @@ static Isa::RegisterSelection calculateRegisterSelection(Isa::RegisterSelection 
 
 
 [ \t\n]+ { } // ignore whitespace
+"//".*     { } // ignore comments
 
-"add" { return ADD; }
-"mov" { return MOV; }
+"finit"   { return FINIT; }
+"fadd"    { return FADD; }
+"fsub"    { return FSUB; }
+"fmul"    { return FMUL; }
+"fdiv"    { return FDIV; }
+"iinit"   { return IINIT; }
+"iadd"    { return IADD; }
+"isub"    { return ISUB; }
+"imul"    { return IMUL; }
+"idiv"    { return IDIV; }
+"mov"     { return MOV; }
 "swizzle" { return SWIZZLE; }
 
 i[0-3] { gpuasm_lval.reg = calculateRegisterSelection(Isa::RegisterSelection::i0, atoi(&yytext[1])); return REG_INPUT; }

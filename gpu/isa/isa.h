@@ -85,14 +85,30 @@ namespace Command {
 } // namespace Command
 
 enum class Opcode : uint32_t {
+    // Float math
+    fadd,
+    fadd_imm,
+    fsub,
+    fsub_imm,
+    fmul,
+    fmul_imm,
+    fdiv,
+    fdiv_imm,
+
     // Integer math
-    add,
-    add_imm,
-    mul,
-    mov,
+    iadd,
+    iadd_imm,
+    isub,
+    isub_imm,
+    imul,
+    imul_imm,
+    idiv,
+    idiv_imm,
 
     // Misc
+    init,
     swizzle,
+    mov,
 };
 
 enum class SwizzlePatternComponent : uint32_t {
@@ -151,16 +167,31 @@ namespace InstructionLayouts {
         uint32_t destMask : 4;
     };
 
-    // Any operation, that can take a register and an immediate value, compute something and output
+    // Any operation, that can take one or more immediate values, compute something and output
+    // to a register. Destination is masked, which means we can select which channels of the vector register
+    // will be affected (1 bit per channel). ImmediateValues field is a one-element array, but the instruction
+    // can actually take more bytes if immediateValuesCount is greater than 1.
+    struct UnaryMathImm {
+        Opcode opcode : 5;
+        RegisterSelection dest : 4;
+        uint32_t destMask : 4;
+        Command::NonZeroCount immediateValuesCount : 2;
+        uint32_t reserved : 17;
+        uint32_t immediateValues[1];
+    };
+
+    // Any operation, that can take a register and one or more immediate values, compute something and output
     // to a register. Destination is masked, which means we can select which channels of the vector registers
-    // will be affected (1 bit per channel)
+    // will be affected (1 bit per channel). ImmediateValues field is a one-element array, but the instruction
+    // can actually take more bytes if immediateValuesCount is greater than 1.
     struct BinaryMathImm {
         Opcode opcode : 5;
         RegisterSelection dest : 4;
         RegisterSelection src : 4;
         uint32_t destMask : 4;
-        uint32_t reserved : 15;
-        uint32_t immediateValue : 32;
+        Command::NonZeroCount immediateValuesCount : 2;
+        uint32_t reserved : 13;
+        uint32_t immediateValues[1];
     };
 
     // Swizzle the components of a vector register and store it in a register (can be the same one).
@@ -180,6 +211,7 @@ union Instruction {
     InstructionLayouts::Header header;
     InstructionLayouts::BinaryMath binaryMath;
     InstructionLayouts::UnaryMath unaryMath;
+    InstructionLayouts::UnaryMathImm unaryMathImm;
     InstructionLayouts::BinaryMathImm binaryMathImm;
     InstructionLayouts::Swizzle swizzle;
     uint32_t raw;

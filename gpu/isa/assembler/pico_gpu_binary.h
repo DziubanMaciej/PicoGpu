@@ -18,7 +18,8 @@ public:
 
     void encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask);
     void encodeBinaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, uint32_t destMask);
-    void encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask, uint32_t immediateValue);
+    void encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, uint32_t destMask, const std::vector<int32_t> &immediateValue);
+    void encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask, const std::vector<int32_t> &immediateValue);
     void encodeSwizzle(Opcode opcode, RegisterSelection dest, RegisterSelection src, SwizzlePatternComponent x, SwizzlePatternComponent y, SwizzlePatternComponent z, SwizzlePatternComponent w);
     bool finalizeInstructions(const char **error);
 
@@ -30,6 +31,10 @@ private:
     template <typename InstructionLayout>
     InstructionLayout *getSpace() {
         const uint32_t length = sizeof(InstructionLayout) / sizeof(uint32_t);
+        return getSpace<InstructionLayout>(length);
+    }
+    template <typename InstructionLayout>
+    InstructionLayout *getSpace(uint32_t length) {
         FATAL_ERROR_IF(data.size() + length - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t) >= Isa::maxIsaSize, "Too long program"); // TODO make this more graceful
         data.resize(data.size() + length);
         InstructionLayout *space = reinterpret_cast<InstructionLayout *>(data.data() + data.size() - length);

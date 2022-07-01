@@ -95,13 +95,33 @@ void PicoGpuBinary::encodeBinaryMath(Opcode opcode, RegisterSelection dest, Regi
     inst->destMask = destMask;
 }
 
-void PicoGpuBinary::encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask, uint32_t immediateValue) {
-    auto inst = getSpace<InstructionLayouts::BinaryMathImm>();
+void PicoGpuBinary::encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
+    FATAL_ERROR_IF(immediateValues.empty(), "UnaryMathImm must have at least one immediate value\n");
+    FATAL_ERROR_IF(immediateValues.size() > 4, "UnaryMathImm can have at most 4 immediate values");
+
+    auto inst = getSpace<InstructionLayouts::UnaryMathImm>(1 + immediateValues.size());
+    inst->opcode = opcode;
+    inst->dest = dest;
+    inst->destMask = destMask;
+    inst->immediateValuesCount = Isa::Command::intToNonZeroCount(immediateValues.size());
+    for (uint32_t i = 0; i < immediateValues.size(); i++) {
+        inst->immediateValues[i] = reinterpret_cast<const uint32_t &>(immediateValues[i]);
+    }
+}
+
+void PicoGpuBinary::encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
+    FATAL_ERROR_IF(immediateValues.empty(), "BinaryMathImm must have at least one immediate value\n");
+    FATAL_ERROR_IF(immediateValues.size() > 4, "BinaryMathImm can have at most 4 immediate values");
+
+    auto inst = getSpace<InstructionLayouts::BinaryMathImm>(1 + immediateValues.size());
     inst->opcode = opcode;
     inst->dest = dest;
     inst->src = src;
     inst->destMask = destMask;
-    inst->immediateValue = immediateValue;
+    inst->immediateValuesCount = Isa::Command::intToNonZeroCount(immediateValues.size());
+    for (uint32_t i = 0; i < immediateValues.size(); i++) {
+        inst->immediateValues[i] = reinterpret_cast<const uint32_t &>(immediateValues[i]);
+    }
 }
 
 void PicoGpuBinary::encodeSwizzle(Opcode opcode, RegisterSelection dest, RegisterSelection src,
