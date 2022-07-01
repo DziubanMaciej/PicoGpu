@@ -5,8 +5,6 @@
 #include "gpu/util/handshake.h"
 
 void ShaderFrontendBase::requestThread() {
-    initIsaCache();
-
     constexpr bool handshakeOnlyOnce = true;
     constexpr size_t maxShaderInputsCount = 4 * Isa::inputRegistersCount * Isa::simdSize;
     uint32_t shaderInput[maxShaderInputsCount] = {};
@@ -48,7 +46,7 @@ void ShaderFrontendBase::requestThread() {
         // a separate block that would be responsible for loading ISA from memory, caching it and sending to the shader units.
         // However, shader frontend would have to wait for it.
         if (request.dword0.isaAddress != shaderUnitState->loadedIsaAddress) {
-            int isaCacheIndex = getIsa(request.dword0.isaAddress);
+            IsaCacheEntry &isaCacheIndex = getIsa(request.dword0.isaAddress);
             storeIsa(*shaderUnitInterface, isaCacheIndex, handshakeOnlyOnce);
         }
 
@@ -106,84 +104,52 @@ void ShaderFrontendBase::responseThread() {
     }
 }
 
-void ShaderFrontendBase::initIsaCache() {
-    for (auto &entry : isaCache.entries) {
-        entry.address = std::numeric_limits<uint32_t>::max();
-        entry.dataSize = 0;
-    }
-    for (int i = 0; i < isaCacheSize; i++) {
-        isaCache.lru[i] = i;
-    }
-}
-
-int ShaderFrontendBase::getIsa(uint32_t isaAddress) {
+ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddress) {
     // First look in cache
-    bool cacheHit = false;
-    int indexInCache = -1;
-    for (int i = 0; i < isaCacheSize; i++) {
-        if (isaCache.entries[i].address == isaAddress) {
-            cacheHit = true;
-            indexInCache = i;
-            break;
-
-            // TODO promote this index to the beginning of LRU
-        }
+    if (IsaCacheEntry *isa = isaCache.get(isaAddress); isa != nullptr) {
+        return *isa;
     }
 
-    // If did not found in cache, load from memory and store in cache
-    if (!cacheHit) {
-        // Index of least (not last) recently used entry is at the end of LRU structure. Shift it to the right and
-        // store new entry at index 0. This could be implemented more efficiently with a ring buffer, but cache size
-        // will generally be small, so it shouldn't matter that much.
-        indexInCache = isaCache.lru[isaCacheSize - 1];
-        for (int i = isaCacheSize - 1; i >= 1; i--) {
-            isaCache.lru[i] = isaCache.lru[i - 1];
-        }
-        isaCache.lru[0] = indexInCache;
-        auto &cacheEntry = isaCache.entries[indexInCache];
-        cacheEntry.address = isaAddress;
+    // If did not found in cache, load from memory
+    IsaCacheEntry isa = {};
+    size_t dwordsLoaded = 0;
+    size_t dwordsToLoad = 1;
+    while (dwordsToLoad > 0) {
+        FATAL_ERROR_IF(dwordsLoaded >= Isa::maxIsaSize, "Too big ISA to fit in cache");
 
-        // Memory loads
-        size_t dwordsLoaded = 0;
-        size_t dwordsToLoad = 1;
-        while (dwordsToLoad > 0) {
-            FATAL_ERROR_IF(dwordsLoaded >= Isa::maxIsaSize, "Too big ISA to fit in cache");
-
-            // Load from memory
-            memory.outAddress = isaAddress + 4 * dwordsLoaded;
-            memory.outEnable = 1;
+        // Load from memory
+        memory.outAddress = isaAddress + 4 * dwordsLoaded;
+        memory.outEnable = 1;
+        wait();
+        memory.outEnable = 0;
+        while (!memory.inpCompleted) {
             wait();
-            memory.outEnable = 0;
-            while (!memory.inpCompleted) {
-                wait();
-            }
-            memory.outAddress = 0;
-
-            // Store in cache
-            uint32_t dword = memory.inpData.read().to_int();
-            cacheEntry.data[dwordsLoaded] = dword;
-
-            // Update counters
-            dwordsLoaded++;
-            dwordsToLoad--;
-
-            // If this is a first dword we've read, we're looking at the command header with metadata, which we have to process
-            if (dwordsLoaded == 1) {
-                auto command = reinterpret_cast<Isa::Command::CommandStoreIsa &>(dword);
-                FATAL_ERROR_IF(command.commandType != Isa::Command::CommandType::StoreIsa, "Invalid command header");
-                dwordsToLoad = command.programLength;
-            }
         }
+        memory.outAddress = 0;
 
-        cacheEntry.dataSize = dwordsLoaded;
+        // Store in cache
+        uint32_t dword = memory.inpData.read().to_int();
+        isa.data[dwordsLoaded] = dword;
+
+        // Update counters
+        dwordsLoaded++;
+        dwordsToLoad--;
+
+        // If this is a first dword we've read, we're looking at the command header with metadata, which we have to process
+        if (dwordsLoaded == 1) {
+            auto command = reinterpret_cast<Isa::Command::CommandStoreIsa &>(dword);
+            FATAL_ERROR_IF(command.commandType != Isa::Command::CommandType::StoreIsa, "Invalid command header");
+            dwordsToLoad = command.programLength;
+        }
     }
 
-    // Return result
-    return indexInCache;
+    isa.dataSize = dwordsLoaded;
+
+    // Store in cache and return the address to cached entry
+    return *isaCache.put(isaAddress, std::move(isa));
 }
 
-void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, int indexInIsaCache, bool hasNextCommand) {
-    auto &cache = isaCache.entries[indexInIsaCache];
+void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, ShaderFrontendBase::IsaCacheEntry &cache, bool hasNextCommand) {
     auto &unit = shaderUnitInterface.request;
 
     reinterpret_cast<Isa::Command::CommandStoreIsa &>(cache.data[0]).hasNextCommand = hasNextCommand;

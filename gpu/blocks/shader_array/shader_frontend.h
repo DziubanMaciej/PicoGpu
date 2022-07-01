@@ -3,6 +3,7 @@
 #include "gpu/blocks/shader_array/request.h"
 #include "gpu/isa/isa.h"
 #include "gpu/types.h"
+#include "gpu/util/entry_cache.h"
 
 #include <systemc.h>
 
@@ -68,29 +69,31 @@ private:
     void requestThread();
     void responseThread();
 
+    // ShaderFrontend must read ISA from memory and store it into its ShaderUnits before a shader is executed. The
+    // code is cached, so we don't have to read it all the way from memory each time.
+    struct IsaCacheEntry {
+        IsaCacheEntry() = default;
+        IsaCacheEntry &operator=(IsaCacheEntry &&other) {
+            std::copy_n(other.data, other.dataSize, this->data);
+            this->dataSize = other.dataSize;
+            return *this;
+        }
+        uint32_t data[Isa::maxIsaSize];
+        uint32_t dataSize = 0;
+    };
+    constexpr static inline size_t isaCacheSize = 2;
+    constexpr static inline size_t invalidAddress = 0xffffffff;
+    EntryCache<uint32_t, IsaCacheEntry, isaCacheSize, invalidAddress> isaCache;
+
     // Methods for manipulating and executing ISA
-    void initIsaCache();
-    int getIsa(uint32_t isaAddress);
-    void storeIsa(ShaderUnitInterface & shaderUnitInterface, int indexInIsaCache, bool hasNextCommand);
+    IsaCacheEntry &getIsa(uint32_t isaAddress);
+    void storeIsa(ShaderUnitInterface & shaderUnitInterface, IsaCacheEntry & indexInIsaCache, bool hasNextCommand);
     void executeIsa(ShaderUnitInterface & shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, uint32_t threadCount, uint32_t shaderInputsCount);
 
     // Methods for utility purposes
     size_t calculateShaderInputsCount(const ShaderFrontendRequest &request);
     size_t calculateShaderOutputsCount(const ShaderFrontendRequest &request);
     void validateRequest(const ShaderFrontendRequest &request, Isa::Command::CommandStoreIsa &isaCommand);
-
-    // This structure serves as ISA cache. ShaderFrontend must store ISA code into its ShaderUnits before.
-    // a shader is executed. The code is cached, so we don't have to read it all the way from memory each time.
-    // TODO extract these data and logic to a separate class?
-    constexpr static inline size_t isaCacheSize = 2;
-    struct {
-        struct {
-            uint32_t address;
-            uint32_t data[Isa::maxIsaSize];
-            uint32_t dataSize;
-        } entries[isaCacheSize];
-        int lru[isaCacheSize]; // first element is index of last recently used cache entry, last elemnt is will be removed in case of cache miss
-    } isaCache;
 };
 
 template <size_t clientsCount, size_t shaderUnitsCount>
