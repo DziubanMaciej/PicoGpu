@@ -42,7 +42,7 @@ private:
 
     using UnaryFunction = int32_t (*)(int32_t);
     using BinaryFunction = int32_t (*)(int32_t, int32_t);
-    void executeInstruction(uint32_t threadCount);
+    void executeInstructions(uint32_t isaSize, uint32_t threadCount);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryFunction function);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryFunction function);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMathImm &inst, UnaryFunction function);
