@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gpu/util/non_zero_count.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -27,16 +29,6 @@ namespace Command {
         VertexShader = 0,
         FragmentShader = 1,
     };
-
-    enum class NonZeroCount : uint32_t {
-        One = 0,
-        Two = 1,
-        Three = 2,
-        Four = 3,
-    };
-
-    constexpr inline NonZeroCount intToNonZeroCount(int arg) { return NonZeroCount(arg - 1); }
-    constexpr inline int nonZeroCountToInt(NonZeroCount arg) { return int(arg) + 1; }
 
     union CommandDummy {
         struct {
@@ -175,7 +167,7 @@ namespace InstructionLayouts {
         Opcode opcode : 5;
         RegisterSelection dest : 4;
         uint32_t destMask : 4;
-        Command::NonZeroCount immediateValuesCount : 2;
+        NonZeroCount immediateValuesCount : 2;
         uint32_t reserved : 17;
         uint32_t immediateValues[1];
     };
@@ -189,7 +181,7 @@ namespace InstructionLayouts {
         RegisterSelection dest : 4;
         RegisterSelection src : 4;
         uint32_t destMask : 4;
-        Command::NonZeroCount immediateValuesCount : 2;
+        NonZeroCount immediateValuesCount : 2;
         uint32_t reserved : 13;
         uint32_t immediateValues[1];
     };

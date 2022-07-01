@@ -223,18 +223,18 @@ void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bo
 size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendRequest &request) {
     size_t components = 0;
 
-    int registersCount = Isa::Command::nonZeroCountToInt(request.dword2.inputsCount);
+    int registersCount = nonZeroCountToInt(request.dword2.inputsCount);
     if (registersCount > 0) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.inputSize0);
+        components += nonZeroCountToInt(request.dword2.inputSize0);
     }
     if (registersCount > 1) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.inputSize1);
+        components += nonZeroCountToInt(request.dword2.inputSize1);
     }
     if (registersCount > 2) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.inputSize2);
+        components += nonZeroCountToInt(request.dword2.inputSize2);
     }
     if (registersCount > 3) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.inputSize3);
+        components += nonZeroCountToInt(request.dword2.inputSize3);
     }
 
     components *= request.dword1.threadCount;
@@ -244,18 +244,18 @@ size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendReques
 size_t ShaderFrontendBase::calculateShaderOutputsCount(const ShaderFrontendRequest &request) {
     size_t components = 0;
 
-    int registersCount = Isa::Command::nonZeroCountToInt(request.dword2.outputsCount);
+    int registersCount = nonZeroCountToInt(request.dword2.outputsCount);
     if (registersCount > 0) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.outputSize0);
+        components += nonZeroCountToInt(request.dword2.outputSize0);
     }
     if (registersCount > 1) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.outputSize1);
+        components += nonZeroCountToInt(request.dword2.outputSize1);
     }
     if (registersCount > 2) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.outputSize2);
+        components += nonZeroCountToInt(request.dword2.outputSize2);
     }
     if (registersCount > 3) {
-        components += Isa::Command::nonZeroCountToInt(request.dword2.outputSize3);
+        components += nonZeroCountToInt(request.dword2.outputSize3);
     }
 
     components *= request.dword1.threadCount;

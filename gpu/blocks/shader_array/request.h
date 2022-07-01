@@ -1,6 +1,5 @@
 #pragma once
 
-// TODO: isa.h is only included for this utility type. It should be move to some utility header, we don't need the entire ISA here.
 #include "gpu/isa/isa.h"
 
 struct ShaderFrontendRequest {
@@ -19,16 +18,16 @@ struct ShaderFrontendRequest {
 
     union {
         struct {
-            Isa::Command::NonZeroCount inputsCount : 2;
-            Isa::Command::NonZeroCount outputsCount : 2;
-            Isa::Command::NonZeroCount inputSize0 : 2;
-            Isa::Command::NonZeroCount inputSize1 : 2;
-            Isa::Command::NonZeroCount inputSize2 : 2;
-            Isa::Command::NonZeroCount inputSize3 : 2;
-            Isa::Command::NonZeroCount outputSize0 : 2;
-            Isa::Command::NonZeroCount outputSize1 : 2;
-            Isa::Command::NonZeroCount outputSize2 : 2;
-            Isa::Command::NonZeroCount outputSize3 : 2;
+            NonZeroCount inputsCount : 2;
+            NonZeroCount outputsCount : 2;
+            NonZeroCount inputSize0 : 2;
+            NonZeroCount inputSize1 : 2;
+            NonZeroCount inputSize2 : 2;
+            NonZeroCount inputSize3 : 2;
+            NonZeroCount outputSize0 : 2;
+            NonZeroCount outputSize1 : 2;
+            NonZeroCount outputSize2 : 2;
+            NonZeroCount outputSize3 : 2;
         };
         uint32_t raw;
     } dword2;

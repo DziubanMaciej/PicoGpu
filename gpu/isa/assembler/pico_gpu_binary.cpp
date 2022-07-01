@@ -13,7 +13,7 @@ void PicoGpuBinary::encodeDirectiveInput(int mask) {
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
 
     const int components = countBits(mask);
-    const auto componentsField = Isa::Command::intToNonZeroCount(components);
+    const auto componentsField = intToNonZeroCount(components);
 
     switch (inputRegistersCount) {
     case 0:
@@ -39,7 +39,7 @@ void PicoGpuBinary::encodeDirectiveOutput(int mask) {
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
 
     const int components = countBits(mask);
-    const auto componentsField = Isa::Command::intToNonZeroCount(components);
+    const auto componentsField = intToNonZeroCount(components);
 
     switch (outputRegistersCount) {
     case 0:
@@ -71,8 +71,8 @@ bool PicoGpuBinary::finalizeDirectives(const char **error) {
         return false;
     }
 
-    getStoreIsaCommand().inputsCount = Isa::Command::intToNonZeroCount(inputRegistersCount);
-    getStoreIsaCommand().outputsCount = Isa::Command::intToNonZeroCount(outputRegistersCount);
+    getStoreIsaCommand().inputsCount = intToNonZeroCount(inputRegistersCount);
+    getStoreIsaCommand().outputsCount = intToNonZeroCount(outputRegistersCount);
 
     *error = nullptr;
     return true;
@@ -103,7 +103,7 @@ void PicoGpuBinary::encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, ui
     inst->opcode = opcode;
     inst->dest = dest;
     inst->destMask = destMask;
-    inst->immediateValuesCount = Isa::Command::intToNonZeroCount(immediateValues.size());
+    inst->immediateValuesCount = intToNonZeroCount(immediateValues.size());
     for (uint32_t i = 0; i < immediateValues.size(); i++) {
         inst->immediateValues[i] = reinterpret_cast<const uint32_t &>(immediateValues[i]);
     }
@@ -118,7 +118,7 @@ void PicoGpuBinary::encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, R
     inst->dest = dest;
     inst->src = src;
     inst->destMask = destMask;
-    inst->immediateValuesCount = Isa::Command::intToNonZeroCount(immediateValues.size());
+    inst->immediateValuesCount = intToNonZeroCount(immediateValues.size());
     for (uint32_t i = 0; i < immediateValues.size(); i++) {
         inst->immediateValues[i] = reinterpret_cast<const uint32_t &>(immediateValues[i]);
     }

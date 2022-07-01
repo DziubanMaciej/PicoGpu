@@ -62,11 +62,11 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
 }
 
 void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
-    const uint32_t inputsCount = Isa::Command::nonZeroCountToInt(isaMetadata.inputsCount);
+    const uint32_t inputsCount = nonZeroCountToInt(isaMetadata.inputsCount);
 
     uint32_t componentsCounts[4] = {};
     for (int regIndex = 0; regIndex < inputsCount; regIndex++) {
-        Isa::Command::NonZeroCount componentsCountField = {};
+        NonZeroCount componentsCountField = {};
         switch (regIndex) {
         case 0:
             componentsCountField = isaMetadata.inputSize0;
@@ -83,7 +83,7 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
         default:
             FATAL_ERROR("Invalid input reg index");
         }
-        componentsCounts[regIndex] = Isa::Command::nonZeroCountToInt(componentsCountField);
+        componentsCounts[regIndex] = nonZeroCountToInt(componentsCountField);
     }
 
     for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
@@ -99,11 +99,11 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
 }
 
 void ShaderUnit::appendOutputRegistersValues(uint32_t threadCount, uint32_t *outputStream, uint32_t &outputStreamSize) {
-    const uint32_t outputsCount = Isa::Command::nonZeroCountToInt(isaMetadata.outputsCount);
+    const uint32_t outputsCount = nonZeroCountToInt(isaMetadata.outputsCount);
 
     uint32_t componentsCounts[4] = {};
     for (int regIndex = 0; regIndex < outputsCount; regIndex++) {
-        Isa::Command::NonZeroCount componentsCountField = {};
+        NonZeroCount componentsCountField = {};
         switch (regIndex) {
         case 0:
             componentsCountField = isaMetadata.outputSize0;
@@ -120,7 +120,7 @@ void ShaderUnit::appendOutputRegistersValues(uint32_t threadCount, uint32_t *out
         default:
             FATAL_ERROR("Invalid output reg index");
         }
-        componentsCounts[regIndex] = Isa::Command::nonZeroCountToInt(componentsCountField);
+        componentsCounts[regIndex] = nonZeroCountToInt(componentsCountField);
     }
 
     for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
@@ -257,7 +257,7 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 }
 
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMathImm &inst, UnaryFunction function) {
-    const size_t immCount = Isa::Command::nonZeroCountToInt(inst.immediateValuesCount);
+    const size_t immCount = nonZeroCountToInt(inst.immediateValuesCount);
 
     VectorRegister &dest = selectRegister(inst.dest, lane);
     size_t immediateValueIndex = 0;
@@ -275,7 +275,7 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 }
 
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMathImm &inst, BinaryFunction function) {
-    const size_t immCount = Isa::Command::nonZeroCountToInt(inst.immediateValuesCount);
+    const size_t immCount = nonZeroCountToInt(inst.immediateValuesCount);
 
     VectorRegister &src1 = selectRegister(inst.src, lane);
     VectorRegister &dest = selectRegister(inst.dest, lane);

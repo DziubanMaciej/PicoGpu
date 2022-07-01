@@ -116,30 +116,30 @@ SC_MODULE(Tester) {
         dataStream.storeCommand.commandType = Isa::Command::CommandType::StoreIsa;
         dataStream.storeCommand.hasNextCommand = 1;
         dataStream.storeCommand.programLength = 7;
-        dataStream.storeCommand.inputsCount = Isa::Command::NonZeroCount::One;
-        dataStream.storeCommand.outputsCount = Isa::Command::NonZeroCount::One;
-        dataStream.storeCommand.inputSize0 = Isa::Command::NonZeroCount::Three;
-        dataStream.storeCommand.outputSize0 = Isa::Command::NonZeroCount::Four;
+        dataStream.storeCommand.inputsCount = NonZeroCount::One;
+        dataStream.storeCommand.outputsCount = NonZeroCount::One;
+        dataStream.storeCommand.inputSize0 = NonZeroCount::Three;
+        dataStream.storeCommand.outputSize0 = NonZeroCount::Four;
 
         dataStream.isa0.opcode = Isa::Opcode::iadd_imm;
         dataStream.isa0.src = Isa::RegisterSelection::i0;
         dataStream.isa0.dest = Isa::RegisterSelection::r0;
         dataStream.isa0.destMask = 0b1100;
-        dataStream.isa0.immediateValuesCount = Isa::Command::NonZeroCount::One;
+        dataStream.isa0.immediateValuesCount = NonZeroCount::One;
         dataStream.isa0.immediateValues[0] = 100;
 
         dataStream.isa1.opcode = Isa::Opcode::iadd_imm;
         dataStream.isa1.src = Isa::RegisterSelection::i0;
         dataStream.isa1.dest = Isa::RegisterSelection::r0;
         dataStream.isa1.destMask = 0b0010;
-        dataStream.isa1.immediateValuesCount = Isa::Command::NonZeroCount::One;
+        dataStream.isa1.immediateValuesCount = NonZeroCount::One;
         dataStream.isa1.immediateValues[0] = 1000;
 
         dataStream.isa2.opcode = Isa::Opcode::iadd_imm;
         dataStream.isa2.src = Isa::RegisterSelection::i0;
         dataStream.isa2.dest = Isa::RegisterSelection::r0;
         dataStream.isa2.destMask = 0b0001;
-        dataStream.isa2.immediateValuesCount = Isa::Command::NonZeroCount::One;
+        dataStream.isa2.immediateValuesCount = NonZeroCount::One;
         dataStream.isa2.immediateValues[0] = 10000;
 
         dataStream.isa3.opcode = Isa::Opcode::mov;
