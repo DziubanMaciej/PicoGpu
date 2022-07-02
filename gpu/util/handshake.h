@@ -37,6 +37,9 @@ struct Handshake {
             }
             wait();
         }
+        for (size_t port = 0; port < outDataCount; port++) {
+            outData[port].write({});
+        }
     }
 
     template <typename DataT, typename DataToSendT>

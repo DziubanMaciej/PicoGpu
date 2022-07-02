@@ -139,6 +139,7 @@ ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddres
         if (dwordsLoaded == 1) {
             auto command = reinterpret_cast<Isa::Command::CommandStoreIsa &>(dword);
             FATAL_ERROR_IF(command.commandType != Isa::Command::CommandType::StoreIsa, "Invalid command header");
+            FATAL_ERROR_IF(command.programLength == 0, "Invalid program length");
             dwordsToLoad = command.programLength;
         }
     }

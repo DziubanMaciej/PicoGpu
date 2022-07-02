@@ -1,8 +1,10 @@
 #pragma once
 
 #include <iostream>
+#include <systemc.h>
 
 [[noreturn]] inline void performAbort() {
+    sc_stop();
     throw std::exception{};
 }
 

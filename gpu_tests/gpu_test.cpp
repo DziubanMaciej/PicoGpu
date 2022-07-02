@@ -1,4 +1,5 @@
 #include "gpu/gpu.h"
+#include "gpu/isa/assembler/assembler.h"
 #include "gpu/util/vcd_trace.h"
 
 #include <memory>
@@ -9,11 +10,11 @@ struct AddressAllocator {
 
     size_t allocate(size_t size, const char *purpose) {
         FATAL_ERROR_IF(currentOffset + size > memorySize, "Too small memory");
-        FATAL_ERROR_IF(size % 4 != 0, "Size must be a multiple of 4");
+        FATAL_ERROR_IF(size % 4 != 0, "Size must be a multiple of 4. Got ", size);
         const size_t result = currentOffset;
         currentOffset += size;
 
-        printf("  %14s: 0x%08x - 0x%08x\n", purpose, result, currentOffset);
+        printf("  %16s: 0x%08x - 0x%08x\n", purpose, result, currentOffset);
         return result;
     }
 
@@ -23,11 +24,24 @@ private:
 };
 
 int sc_main(int argc, char *argv[]) {
+    // Compile shaders
+    Isa::PicoGpuBinary vs = {};
+    const char *vsCode = R"code(
+            #input i0.xyz
+            #output o0.xyz
+            mov o0 i0
+
+            finit r0 100.f
+            fsub o0.y r0 o0
+        )code";
+    FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
+
     // Prepare addresses
     AddressAllocator addressAllocator{Gpu::memorySize * 4};
     MemoryAddressType vertexBufferAddress = addressAllocator.allocate(27 * 4, "vertexBuffer");
     MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4, "frameBuffer");
     MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4, "depthBuffer");
+    MemoryAddressType vsAddress = addressAllocator.allocate(vs.getSizeInBytes(), "vertexShaderIsa");
 
     // Initialize GPU
     Gpu gpu{"Gpu"};
@@ -36,6 +50,7 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.PA.inpEnable = false;
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 9;
+    gpu.blocks.VS.inpShaderAddress = vsAddress;
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;
@@ -45,6 +60,12 @@ int sc_main(int argc, char *argv[]) {
     // Create vcd trace
     VcdTrace trace{TEST_NAME};
     gpu.addSignalsToVcdTrace(trace, true, true);
+
+    // Upload vertex shader to the memory
+    gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
+    while (gpu.userBlitter.hasPendingOperation()) {
+        sc_start({1, SC_NS});
+    }
 
     // Upload vertex data to the memory
     struct Vertex {

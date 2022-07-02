@@ -26,6 +26,8 @@ public:
     void setHasNextCommand();
 
     auto &getData() { return data; }
+    auto getSizeInBytes() { return data.size() * sizeof(uint32_t); }
+    auto getSizeInDwords() { return data.size(); }
 
 private:
     template <typename InstructionLayout>

@@ -5,7 +5,10 @@
 #include "gpu/blocks/output_merger.h"
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/blocks/rasterizer.h"
+#include "gpu/blocks/shader_array/shader_frontend.h"
+#include "gpu/blocks/shader_array/shader_unit.h"
 #include "gpu/blocks/user_blitter.h"
+#include "gpu/blocks/vertex_shader.h"
 #include "gpu/util/port_connector.h"
 
 #include <systemc.h>
@@ -18,9 +21,13 @@ SC_MODULE(Gpu) {
 
     // Blocks of the GPU
     UserBlitter userBlitter;               // abbreviation: BLT
-    MemoryController<3> memoryController;  // abbreviation: MEMCTL
+    MemoryController<4> memoryController;  // abbreviation: MEMCTL
     Memory<memorySize> memory;             // abbreviation: MEM
+    ShaderFrontend<1, 2> shaderFrontend;   // abbreviation: SF
+    ShaderUnit shaderUnit0;                // abbreviation SU0
+    ShaderUnit shaderUnit1;                // abbreviation SU1
     PrimitiveAssembler primitiveAssembler; // abbreviation: PA
+    VertexShader vertexShader;             // abbreviation: VS
     Rasterizer rasterizer;                 // abbreviation: RS
     OutputMerger outputMerger;             // abbreviation: OM
 
@@ -36,6 +43,10 @@ SC_MODULE(Gpu) {
             sc_signal<MemoryAddressType> inpVerticesAddress{"PA_inpVerticesAddress"};
             sc_signal<sc_uint<8>> inpVerticesCount{"PA_inpVerticesCount"};
         } PA;
+
+        struct {
+            sc_signal<MemoryAddressType> inpShaderAddress{"VS_inpShaderAddress"};
+        } VS;
 
         struct {
             sc_signal<VertexPositionFloatType> framebufferWidth{"RS_OM_framebufferWidth"};

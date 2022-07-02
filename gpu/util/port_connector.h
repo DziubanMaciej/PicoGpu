@@ -33,7 +33,11 @@ private:
             signals = reinterpret_cast<SignalType *>(signalsMemory.get());
         }
 
-        Chunk(Chunk &&other) = default;
+        Chunk(Chunk &&other) : signalsMemory(std::move(other.signalsMemory)),
+                               signals(other.signals),
+                               usedSignalsCount(other.usedSignalsCount) {
+            other.usedSignalsCount = 0;
+        }
 
         ~Chunk() {
             for (int i = 0; i < usedSignalsCount; i++) {
@@ -86,7 +90,7 @@ struct PortConnector {
     }
 
     template <typename DataType, size_t inputsCount>
-    void connectPortsA(sc_in<DataType>* (&inp)[inputsCount], sc_out<DataType> &out, const std::string &name) {
+    void connectPortsA(sc_in<DataType> *(&inp)[inputsCount], sc_out<DataType> &out, const std::string &name) {
         auto &signal = signals<DataType>().get(name);
         for (size_t i = 0; i < inputsCount; i++) {
             (*inp[i])(signal);
