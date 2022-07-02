@@ -15,12 +15,12 @@ Gpu::Gpu(sc_module_name name)
 }
 
 void Gpu::connectClocks() {
-    userBlitter.inpClock(blocks.BLT.inpClock);
-    memoryController.inpClock(blocks.MEMCTL.inpClock);
-    memory.inpClock(blocks.MEM.inpClock);
-    primitiveAssembler.inpClock(blocks.PA.inpClock);
-    rasterizer.inpClock(blocks.RS.inpClock);
-    outputMerger.inpClock(blocks.OM.inpClock);
+    userBlitter.inpClock(blocks.GLOBAL.inpClock);
+    memoryController.inpClock(blocks.GLOBAL.inpClock);
+    memory.inpClock(blocks.GLOBAL.inpClock);
+    primitiveAssembler.inpClock(blocks.GLOBAL.inpClock);
+    rasterizer.inpClock(blocks.GLOBAL.inpClock);
+    outputMerger.inpClock(blocks.GLOBAL.inpClock);
 }
 
 void Gpu::connectInternalPorts() {
@@ -58,35 +58,17 @@ void Gpu::connectPublicPorts() {
     outputMerger.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
 }
 
-void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publicPorts, bool internalPorts) {
+void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalPorts) {
     if (publicPorts) {
-        trace.trace(blocks.BLT.inpClock);
+        trace.trace(blocks.GLOBAL.inpClock);
 
-        if (!allClocksTheSame) {
-            trace.trace(blocks.MEMCTL.inpClock);
-        }
-
-        if (!allClocksTheSame) {
-            trace.trace(blocks.MEM.inpClock);
-        }
-
-        if (!allClocksTheSame) {
-            trace.trace(blocks.PA.inpClock);
-        }
         trace.trace(blocks.PA.inpEnable);
         trace.trace(blocks.PA.inpVerticesAddress);
         trace.trace(blocks.PA.inpVerticesCount);
 
-        if (!allClocksTheSame) {
-            trace.trace(blocks.RS.inpClock);
-        }
-
         trace.trace(blocks.RS_OM.framebufferWidth);
         trace.trace(blocks.RS_OM.framebufferHeight);
 
-        if (!allClocksTheSame) {
-            trace.trace(blocks.OM.inpClock);
-        }
         trace.trace(blocks.OM.inpFramebufferAddress);
         trace.trace(blocks.OM.inpDepthEnable);
         trace.trace(blocks.OM.inpDepthBufferAddress);

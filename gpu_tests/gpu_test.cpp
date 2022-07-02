@@ -32,24 +32,19 @@ int sc_main(int argc, char *argv[]) {
     // Initialize GPU
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
-    gpu.blocks.BLT.inpClock(clock);
-    gpu.blocks.MEMCTL.inpClock(clock);
-    gpu.blocks.MEM.inpClock(clock);
-    gpu.blocks.PA.inpClock(clock);
+    gpu.blocks.GLOBAL.inpClock(clock);
     gpu.blocks.PA.inpEnable = false;
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 9;
-    gpu.blocks.RS.inpClock(clock);
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
-    gpu.blocks.OM.inpClock(clock);
     gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;
     gpu.blocks.OM.inpDepthEnable = 1;
     gpu.blocks.OM.inpDepthBufferAddress = depthBufferAddress;
 
     // Create vcd trace
     VcdTrace trace{TEST_NAME};
-    gpu.addSignalsToVcdTrace(trace, true, true, true);
+    gpu.addSignalsToVcdTrace(trace, true, true);
 
     // Upload vertex data to the memory
     struct Vertex {

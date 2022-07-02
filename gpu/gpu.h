@@ -28,28 +28,14 @@ SC_MODULE(Gpu) {
     // user. Ideally user should set all of the fields to desired values.
     struct {
         struct {
-            sc_in_clk inpClock{"BLT_inpClock"};
-        } BLT;
+            sc_in_clk inpClock{"inpClock"};
+        } GLOBAL;
 
         struct {
-            sc_in_clk inpClock{"MEMCTL_inpClock"};
-        } MEMCTL;
-
-        struct {
-            sc_in_clk inpClock{"MEM_inpClock"};
-        } MEM;
-
-        struct {
-            sc_in_clk inpClock{"PA_inpClock"};
             sc_signal<bool> inpEnable{"PA_inpEnable"};
             sc_signal<MemoryAddressType> inpVerticesAddress{"PA_inpVerticesAddress"};
             sc_signal<sc_uint<8>> inpVerticesCount{"PA_inpVerticesCount"};
         } PA;
-
-        struct {
-            sc_in_clk inpClock{"RS_inpClock"};
-
-        } RS;
 
         struct {
             sc_signal<VertexPositionFloatType> framebufferWidth{"RS_OM_framebufferWidth"};
@@ -57,14 +43,13 @@ SC_MODULE(Gpu) {
         } RS_OM;
 
         struct {
-            sc_in_clk inpClock{"OM_inpClock"};
             sc_signal<MemoryAddressType> inpFramebufferAddress{"OM_inpFramebufferAddress"};
             sc_signal<bool> inpDepthEnable{"OM_inpDepthEnable"};
             sc_signal<MemoryAddressType> inpDepthBufferAddress{"OM_inpDepthBufferAddress"};
         } OM;
     } blocks;
 
-    void addSignalsToVcdTrace(VcdTrace & trace, bool allClocksTheSame, bool publicPorts, bool internalPorts);
+    void addSignalsToVcdTrace(VcdTrace & trace, bool publicPorts, bool internalPorts);
 
 private:
     void connectClocks();
