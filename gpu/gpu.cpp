@@ -61,8 +61,8 @@ Gpu::Gpu(sc_module_name name)
     primitiveAssembler.memory.outAddress(internalSignals.MEMCTL_PA.address);
     primitiveAssembler.memory.inpData(internalSignals.MEMCTL.dataForRead);
     primitiveAssembler.memory.inpCompleted(internalSignals.MEMCTL_PA.completed);
-    primitiveAssembler.nextBlock.inpIsDone(internalSignals.PA_RS.isDone);
-    primitiveAssembler.nextBlock.outEnable(internalSignals.PA_RS.isEnabled);
+    primitiveAssembler.nextBlock.inpReceiving(internalSignals.PA_RS.receiving);
+    primitiveAssembler.nextBlock.outSending(internalSignals.PA_RS.sending);
     for (int i = 0; i < 9; i++) {
         primitiveAssembler.nextBlock.outTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
     }
@@ -74,8 +74,8 @@ Gpu::Gpu(sc_module_name name)
     for (int i = 0; i < 9; i++) {
         rasterizer.previousBlock.inpTriangleVertices[i](internalSignals.PA_RS.vertices[i]);
     }
-    rasterizer.previousBlock.inpEnable(internalSignals.PA_RS.isEnabled);
-    rasterizer.previousBlock.outIsDone(internalSignals.PA_RS.isDone);
+    rasterizer.previousBlock.inpSending(internalSignals.PA_RS.sending);
+    rasterizer.previousBlock.outReceiving(internalSignals.PA_RS.receiving);
     rasterizer.nextBlock.inpIsReceiving(internalSignals.RS_OM.isReceiving);
     rasterizer.nextBlock.outIsSending(internalSignals.RS_OM.isSending);
     rasterizer.nextBlock.outFragment(internalSignals.RS_OM.fragment);
@@ -160,8 +160,8 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool allClocksTheSame, bool publ
         trace.trace(internalSignals.MEMCTL_OM.dataForWrite);
         trace.trace(internalSignals.MEMCTL_OM.completed);
 
-        trace.trace(internalSignals.PA_RS.isEnabled);
-        trace.trace(internalSignals.PA_RS.isDone);
+        trace.trace(internalSignals.PA_RS.sending);
+        trace.trace(internalSignals.PA_RS.receiving);
         for (int i = 0; i < 9; i++) {
             trace.trace(internalSignals.PA_RS.vertices[i]);
         }

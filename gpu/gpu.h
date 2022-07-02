@@ -108,8 +108,8 @@ private:
         } MEMCTL_OM;
 
         struct {
-            sc_signal<bool> isEnabled{"PA_RS_isEnabled"};
-            sc_signal<bool> isDone{"PA_RS_isDone"};
+            sc_signal<bool> sending{"PA_RS_sending"};
+            sc_signal<bool> receiving{"PA_RS_receiving"};
             sc_signal<VertexPositionFloatType> vertices[9];
         } PA_RS;
 

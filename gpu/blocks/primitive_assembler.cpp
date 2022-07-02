@@ -1,33 +1,32 @@
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/util/conversions.h"
+#include "gpu/util/handshake.h"
 
 void PrimitiveAssembler::assemble() {
     while (1) {
         wait();
-
-        nextBlock.outEnable = 0;
 
         if (!inpEnable) {
             continue;
         }
 
         const auto verticesAddress = inpVerticesAddress.read().to_int();
-        const auto trianglesCount = inpVerticesCount.read().to_int() / 3;
+        const auto verticesInPrimitive = 3; // only triangles
+        const auto primitiveCount = inpVerticesCount.read().to_int() / verticesInPrimitive;
         const auto componentsPerVertex = 3; // x, y, z
 
-        uint32_t readVertices[3][componentsPerVertex] = {};
+        uint32_t readVertices[verticesInPrimitive * componentsPerVertex] = {};
 
-        for (int triangleIndex = 0; triangleIndex < trianglesCount; triangleIndex++) {
+        for (int triangleIndex = 0; triangleIndex < primitiveCount; triangleIndex++) {
             if (triangleIndex != 0) {
                 wait();
             }
-            nextBlock.outEnable = 0;
 
             // Read all vertices of the triangle to local memory
-            for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++) {
+            for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
                 for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
                     memory.outEnable = 1;
-                    memory.outAddress = verticesAddress + sizeof(uint32_t) * (triangleIndex * 3 * componentsPerVertex + componentsPerVertex * vertexIndex + componentIndex);
+                    memory.outAddress = verticesAddress + sizeof(uint32_t) * (triangleIndex * verticesInPrimitive * componentsPerVertex + componentsPerVertex * vertexIndex + componentIndex);
                     wait(1);
                     memory.outEnable = 0;
 
@@ -36,21 +35,14 @@ void PrimitiveAssembler::assemble() {
                     }
 
                     memory.outAddress = 0;
-                    readVertices[vertexIndex][componentIndex] = memory.inpData.read();
+                    readVertices[vertexIndex * componentsPerVertex + componentIndex] = memory.inpData.read();
                 }
             }
 
-            // Output the triangle to the nexr block
-            while (!nextBlock.inpIsDone) {
-                wait(1);
-            }
-            for (int vertexIndex = 0; vertexIndex < 3; vertexIndex++) {
-                for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
-                    const uint32_t floatBits = readVertices[vertexIndex][componentIndex];
-                    nextBlock.outTriangleVertices[vertexIndex * componentsPerVertex + componentIndex] = floatBits;
-                }
-            }
-            nextBlock.outEnable = 1;
+            // Output the triangle to the next block
+            Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending,
+                                                  nextBlock.outTriangleVertices, nextBlock.portsCount,
+                                                  readVertices, verticesInPrimitive * componentsPerVertex);
         }
     }
 }

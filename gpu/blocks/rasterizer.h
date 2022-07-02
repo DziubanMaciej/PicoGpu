@@ -5,15 +5,17 @@
 #include <systemc.h>
 
 SC_MODULE(Rasterizer) {
+
     sc_in_clk inpClock;
     struct {
         sc_in<VertexPositionFloatType> inpWidth;
         sc_in<VertexPositionFloatType> inpHeight;
     } framebuffer;
-    struct {
-        sc_in<VertexPositionFloatType> inpTriangleVertices[9];
-        sc_in<bool> inpEnable;
-        sc_out<bool> outIsDone;
+    struct PreviousBlock {
+        sc_in<bool> inpSending;
+        sc_out<bool> outReceiving;
+        constexpr static inline ssize_t portsCount = 9;
+        sc_in<VertexPositionFloatType> inpTriangleVertices[portsCount];
     } previousBlock;
     struct {
         sc_in<bool> inpIsReceiving;

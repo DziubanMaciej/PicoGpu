@@ -17,10 +17,11 @@ SC_MODULE(PrimitiveAssembler) {
         sc_in<bool> inpCompleted;
     } memory;
 
-    struct {
-        sc_in<bool> inpIsDone;
-        sc_out<bool> outEnable;
-        sc_out<VertexPositionFloatType> outTriangleVertices[9];
+    struct NextBlock {
+        sc_in<bool> inpReceiving;
+        sc_out<bool> outSending;
+        constexpr static inline ssize_t portsCount = 9;
+        sc_out<VertexPositionFloatType> outTriangleVertices[portsCount];
     } nextBlock;
 
     SC_CTOR(PrimitiveAssembler) {
