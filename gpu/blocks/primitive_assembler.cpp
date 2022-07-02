@@ -41,7 +41,7 @@ void PrimitiveAssembler::assemble() {
 
             // Output the triangle to the next block
             Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending,
-                                                  nextBlock.outTriangleVertices, nextBlock.portsCount,
+                                                  nextBlock.outData, nextBlock.portsCount,
                                                   readVertices, verticesInPrimitive * componentsPerVertex);
         }
     }

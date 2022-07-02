@@ -2,9 +2,9 @@
 #include "gpu/blocks/shader_array/shader_unit.h"
 #include "gpu/isa/assembler/assembler.h"
 #include "gpu/util/handshake.h"
+#include "gpu/util/port_connector.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/debug_memory.h"
-#include "gpu_tests/port_connector.h"
 #include "gpu_tests/test_utils.h"
 
 #include <systemc.h>

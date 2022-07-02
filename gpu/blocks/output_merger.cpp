@@ -4,7 +4,7 @@
 
 void OutputMerger::main() {
     while (true) {
-        const ShadedFragment fragment = Handshake::receive(previousBlock.inpIsSending, previousBlock.inpFragment, previousBlock.outIsReceiving);
+        const ShadedFragment fragment = Handshake::receive(previousBlock.inpSending, previousBlock.inpData, previousBlock.outReceiving);
         const uint32_t fragmentX = fragment.x;
         const uint32_t fragmentY = fragment.y;
         const float fragmentZ = Conversions::uintBytesToFloat(fragment.z);

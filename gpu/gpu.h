@@ -6,6 +6,7 @@
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/blocks/rasterizer.h"
 #include "gpu/blocks/user_blitter.h"
+#include "gpu/util/port_connector.h"
 
 #include <systemc.h>
 
@@ -66,58 +67,9 @@ SC_MODULE(Gpu) {
     void addSignalsToVcdTrace(VcdTrace & trace, bool allClocksTheSame, bool publicPorts, bool internalPorts);
 
 private:
-    // This structure represents internal wirings between individual blocks
-    // The user should not care about them, they are a GPU's implementation
-    // detail.
-    struct {
-        struct {
-            sc_signal<bool> enable{"BLT_MEMCTL_enable"};
-            sc_signal<bool> write{"BLT_MEMCTL_write"};
-            sc_signal<MemoryAddressType> address{"BLT_MEMCTL_address"};
-            sc_signal<MemoryDataType> dataForWrite{"BLT_MEMCTL_dataForWrite"};
-            sc_signal<bool> completed{"BLT_MEMCTL_completed"};
-        } BLT_MEMCTL;
+    void connectClocks();
+    void connectInternalPorts();
+    void connectPublicPorts();
 
-        struct {
-            sc_signal<MemoryDataType> dataForRead{"MEMCTL_dataForRead"};
-        } MEMCTL;
-
-        struct {
-            sc_signal<bool> enable{"MEMCTL_MEM_enable"};
-            sc_signal<bool> write{"MEMCTL_MEM_write"};
-            sc_signal<MemoryAddressType> address{"MEMCTL_MEM_address"};
-            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_MEM_dataForWrite"};
-            sc_signal<MemoryDataType> dataForRead{"MEMCTL_MEM_dataForRead"};
-            sc_signal<bool> completed{"MEMCTL_MEM_completed"};
-        } MEMCTL_MEM;
-
-        struct {
-            sc_signal<bool> enable{"MEMCTL_PA_enable"};
-            sc_signal<bool> write{"MEMCTL_PA_write", 0}; // unused, always 0
-            sc_signal<MemoryAddressType> address{"MEMCTL_PA_address"};
-            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_PA_dataForWrite", 0}; // unused, always 0
-            sc_signal<bool> completed{"MEMCTL_PA_completed"};
-        } MEMCTL_PA;
-
-        struct {
-            sc_signal<bool> enable{"MEMCTL_OM_enable"};
-            sc_signal<bool> write{"MEMCTL_OM_write"};
-            sc_signal<MemoryAddressType> address{"MEMCTL_OM_address"};
-            sc_signal<MemoryDataType> dataForWrite{"MEMCTL_OM_dataForWrite"};
-            sc_signal<bool> completed{"MEMCTL_OM_completed"};
-        } MEMCTL_OM;
-
-        struct {
-            sc_signal<bool> sending{"PA_RS_sending"};
-            sc_signal<bool> receiving{"PA_RS_receiving"};
-            sc_signal<VertexPositionFloatType> vertices[9];
-        } PA_RS;
-
-        struct {
-            sc_signal<bool> isReceiving{"RS_OM_isReceiving"};
-            sc_signal<bool> isSending{"RS_OM_isSending"};
-            sc_signal<ShadedFragment> fragment{"RS_OM_fragment"};
-        } RS_OM;
-
-    } internalSignals;
+    PortConnector ports;
 };

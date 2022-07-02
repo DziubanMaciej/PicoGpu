@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/fragment.h"
 #include "gpu/util/error.h"
 #include "gpu/util/vcd_trace.h"
 
@@ -84,6 +85,15 @@ struct PortConnector {
         out(signal);
     }
 
+    template <typename DataType, size_t inputsCount>
+    void connectPortsA(sc_in<DataType>* (&inp)[inputsCount], sc_out<DataType> &out, const std::string &name) {
+        auto &signal = signals<DataType>().get(name);
+        for (size_t i = 0; i < inputsCount; i++) {
+            (*inp[i])(signal);
+        }
+        out(signal);
+    }
+
     template <typename SenderType, typename ReceiverType>
     void connectHandshake(SenderType &sender, ReceiverType &receiver, const std::string &signalNamePrefix) {
         using DataType = typename decltype(SenderType::outData)::data_type;
@@ -96,9 +106,32 @@ struct PortConnector {
         sender.inpReceiving(receiving);
         receiver.outReceiving(receiving);
 
-        auto &data = signals<DataType>().get(signalNamePrefix + "data");
+        auto &data = signals<DataType>().get(signalNamePrefix + "_data");
         sender.outData(data);
         receiver.inpData(data);
+    }
+
+    template <typename SenderType, typename ReceiverType>
+    void connectHandshakeWithParallelPorts(SenderType &sender, ReceiverType &receiver, const std::string &signalNamePrefix) {
+        using PortArrayType = decltype(SenderType::outData);
+        using PortType = std::remove_extent_t<PortArrayType>;
+        using DataType = typename PortType::data_type;
+
+        static_assert(SenderType::portsCount == ReceiverType::portsCount);
+
+        auto &sending = boolSignals.get(signalNamePrefix + "_sending");
+        sender.outSending(sending);
+        receiver.inpSending(sending);
+
+        auto &receiving = boolSignals.get(signalNamePrefix + "_receiving");
+        sender.inpReceiving(receiving);
+        receiver.outReceiving(receiving);
+
+        for (size_t i = 0; i < SenderType::portsCount; i++) {
+            auto &data = signals<DataType>().get(signalNamePrefix + "_data" + std::to_string(i));
+            sender.outData[i](data);
+            receiver.inpData[i](data);
+        }
     }
 
     template <MemoryClientType clientType = MemoryClientType::ReadWrite, MemoryServerType serverType = MemoryServerType::Normal, typename MemoryClient, typename MemoryServer>
@@ -141,6 +174,7 @@ struct PortConnector {
     void addSignalsToTrace(VcdTrace &trace) {
         dwordSignals.addSignalsToTrace(trace);
         boolSignals.addSignalsToTrace(trace);
+        shadedFragmentSignals.addSignalsToTrace(trace);
     }
 
 private:
@@ -148,12 +182,22 @@ private:
     SignalVector<DataType> &signals() {
         if constexpr (std::is_same_v<DataType, sc_uint<32>>) {
             return dwordSignals;
-        }
-        if constexpr (std::is_same_v<DataType, bool>) {
+        } else if constexpr (std::is_same_v<DataType, bool>) {
             return boolSignals;
+        } else if constexpr (std::is_same_v<DataType, ShadedFragment>) {
+            return shadedFragmentSignals;
+        } else {
+            staticNoMatch();
         }
     }
 
+    // This function is needed for implementing something like "else constexpr { static_assert(...) }",
+    // which cannot be achieved in regular C++. It uses the fact, that this function template will
+    // not be instantiated if any of constexpr ifs in signals() method is evaluated to true.
+    template <bool flag = false>
+    static void staticNoMatch() { static_assert(flag, "Invalid datatype"); }
+
     SignalVector<sc_uint<32>> dwordSignals;
     SignalVector<bool> boolSignals;
+    SignalVector<ShadedFragment> shadedFragmentSignals;
 };

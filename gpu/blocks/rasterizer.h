@@ -15,12 +15,12 @@ SC_MODULE(Rasterizer) {
         sc_in<bool> inpSending;
         sc_out<bool> outReceiving;
         constexpr static inline ssize_t portsCount = 9;
-        sc_in<VertexPositionFloatType> inpTriangleVertices[portsCount];
+        sc_in<VertexPositionFloatType> inpData[portsCount];
     } previousBlock;
     struct {
-        sc_in<bool> inpIsReceiving;
-        sc_out<bool> outIsSending;
-        sc_out<ShadedFragment> outFragment;
+        sc_in<bool> inpReceiving;
+        sc_out<bool> outSending;
+        sc_out<ShadedFragment> outData;
     } nextBlock;
 
     SC_CTOR(Rasterizer) {

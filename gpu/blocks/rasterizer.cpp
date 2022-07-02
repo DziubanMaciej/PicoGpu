@@ -12,7 +12,7 @@ void Rasterizer::rasterize() {
         uint32_t receivedVertices[verticesInPrimitive * componentsPerVertex];
 
         Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving,
-                                                 previousBlock.inpTriangleVertices, previousBlock.portsCount,
+                                                 previousBlock.inpData, previousBlock.portsCount,
                                                  receivedVertices, verticesInPrimitive * componentsPerVertex);
 
         // Iterate over pixels
@@ -29,8 +29,8 @@ void Rasterizer::rasterize() {
                 const Point pixel{static_cast<float>(currentFragment.x), static_cast<float>(currentFragment.y)};
                 const bool hit = isPointInTriangle(pixel, v1, v2, v3);
                 if (hit) {
-                    currentFragment.z = previousBlock.inpTriangleVertices[2]; // TODO: this is incorrect. We should probably interpolate the z-value. Barycentrics???
-                    Handshake::send(nextBlock.inpIsReceiving, nextBlock.outIsSending, nextBlock.outFragment, currentFragment);
+                    currentFragment.z = previousBlock.inpData[2]; // TODO: this is incorrect. We should probably interpolate the z-value. Barycentrics???
+                    Handshake::send(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, currentFragment);
                 }
             }
         }

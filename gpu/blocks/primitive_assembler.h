@@ -21,7 +21,7 @@ SC_MODULE(PrimitiveAssembler) {
         sc_in<bool> inpReceiving;
         sc_out<bool> outSending;
         constexpr static inline ssize_t portsCount = 9;
-        sc_out<VertexPositionFloatType> outTriangleVertices[portsCount];
+        sc_out<VertexPositionFloatType> outData[portsCount];
     } nextBlock;
 
     SC_CTOR(PrimitiveAssembler) {

@@ -8,9 +8,9 @@
 SC_MODULE(OutputMerger) {
     sc_in_clk inpClock;
     struct {
-        sc_out<bool> outIsReceiving;
-        sc_in<bool> inpIsSending;
-        sc_in<ShadedFragment> inpFragment;
+        sc_out<bool> outReceiving;
+        sc_in<bool> inpSending;
+        sc_in<ShadedFragment> inpData;
     } previousBlock;
     struct {
         sc_in<MemoryAddressType> inpAddress;

@@ -1,8 +1,8 @@
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/blocks/user_blitter.h"
+#include "gpu/util/port_connector.h"
 #include "gpu/util/vcd_trace.h"
-#include "gpu_tests/port_connector.h"
 #include "gpu_tests/test_utils.h"
 
 #include <systemc.h>
