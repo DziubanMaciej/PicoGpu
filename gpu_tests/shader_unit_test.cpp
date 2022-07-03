@@ -22,7 +22,7 @@ SC_MODULE(Tester) {
         sc_in<sc_uint<32>> inpData;
     } response;
 
-    TESTER("Tester", 3);
+    TESTER("Tester", 5);
 
     SC_CTOR(Tester) {
         SC_THREAD(main);
@@ -48,7 +48,7 @@ SC_MODULE(Tester) {
 
             Isa::Command::CommandExecuteIsa command = {};
             command.commandType = Isa::Command::CommandType::ExecuteIsa;
-            command.threadCount = 3;
+            command.threadCount = threadCount;
 
             std::copy(reinterpret_cast<uint32_t *>(&command),
                       reinterpret_cast<uint32_t *>(&command) + sizeof(Isa::Command::CommandExecuteIsa) / sizeof(uint32_t),
@@ -74,7 +74,7 @@ SC_MODULE(Tester) {
         const char *name;
         std::vector<uint32_t> inputDataStream;
         std::vector<int32_t> expectedOutputs;
-        bool floatOutputs = false;
+        std::vector<bool> floatOutputs;
     };
 
     void executeTestCase(const TestCase &testCase) {
@@ -87,12 +87,14 @@ SC_MODULE(Tester) {
 
         bool success = true;
         for (size_t i = 0; i < actualOutputs.size(); i++) {
-            if (testCase.floatOutputs) {
+            if (!testCase.floatOutputs.empty() && testCase.floatOutputs[i]) {
                 float exp = Conversions::intBytesToFloat(testCase.expectedOutputs[i]);
                 float act = Conversions::intBytesToFloat(actualOutputs[i]);
                 ASSERT_EQ(exp, act);
             } else {
-                ASSERT_EQ(testCase.expectedOutputs[i], actualOutputs[i]);
+                int32_t exp = testCase.expectedOutputs[i];
+                int32_t act = Conversions::uintBytesToInt(actualOutputs[i]);
+                ASSERT_EQ(exp, act);
             }
         }
         SUMMARY_RESULT(testCase.name);
@@ -275,7 +277,92 @@ SC_MODULE(Tester) {
             Conversions::floatBytesToInt((15.f * 8.f + 8.f - 3.f) / 8.f),
         });
 
-        testCase.floatOutputs = true;
+        testCase.floatOutputs = {true, true, true, true, true, true, true, true, true};
+        return testCase;
+    }
+
+    TestCase createNegationTestCase() {
+        const char *code = R"code(
+            #input i0.xyzw
+            #output o0.xyzw
+
+            ineg o0.xy i0
+            fneg o0.zw i0
+        )code";
+
+        Isa::PicoGpuBinary binary = {};
+        int result = Isa::assembly(code, &binary);
+        FATAL_ERROR_IF(result != 0, "Failed to assemble code");
+
+        auto &data = binary.getData();
+
+        TestCase testCase{"negation"};
+        testCase.appendStoreCommand(binary);
+        testCase.appendExecuteCommand(1);
+        testCase.appendShaderInputs({
+            13,
+            -28,
+            Conversions::floatBytesToInt(13.f),
+            Conversions::floatBytesToInt(-28.f),
+        });
+        testCase.appendExpectedOutputs({
+            -13,
+            28,
+            Conversions::floatBytesToInt(-13.f),
+            Conversions::floatBytesToInt(28.f),
+        });
+
+        testCase.floatOutputs = {false, false, true, true};
+        return testCase;
+    }
+
+    TestCase createVectorProductsTestCase() {
+        const char *code = R"code(
+            #input i0.xyzw
+            #input i0.xyzw
+            #output o0.xyzw
+            #output o1.xyzw
+
+            finit o0 13.f
+            finit o1 13.f
+
+            fdot   o0.z i0 i1
+            fcross o1   i0 i1
+        )code";
+
+        Isa::PicoGpuBinary binary = {};
+        int result = Isa::assembly(code, &binary);
+        FATAL_ERROR_IF(result != 0, "Failed to assemble code");
+
+        auto &data = binary.getData();
+
+        TestCase testCase{"vector products"};
+        testCase.appendStoreCommand(binary);
+        testCase.appendExecuteCommand(1);
+        testCase.appendShaderInputs({
+            Conversions::floatBytesToInt(1),
+            Conversions::floatBytesToInt(2),
+            Conversions::floatBytesToInt(3),
+            Conversions::floatBytesToInt(4),
+            Conversions::floatBytesToInt(5),
+            Conversions::floatBytesToInt(6),
+            Conversions::floatBytesToInt(7),
+            Conversions::floatBytesToInt(8),
+        });
+        testCase.appendExpectedOutputs({
+            // Dot product results. We initialized everything to 13 and then written result to z component
+            Conversions::floatBytesToInt(13.f),
+            Conversions::floatBytesToInt(13.f),
+            Conversions::floatBytesToInt(5.f + 12.f + 21.f + 32.f),
+            Conversions::floatBytesToInt(13.f),
+            // Cross product results. We initialized everything to 13 and then written result to x,y,z components
+            Conversions::floatBytesToInt(14.f - 18.f),
+            Conversions::floatBytesToInt(15.f - 7.f),
+            Conversions::floatBytesToInt(6.f - 10.f),
+            Conversions::floatBytesToInt(0.f),
+        });
+
+        testCase.floatOutputs = {true, true, true, true, true, true, true, true};
         return testCase;
     }
 
@@ -283,6 +370,8 @@ SC_MODULE(Tester) {
         executeTestCase(createSimpleTestCase());
         executeTestCase(createManualTestCase());
         executeTestCase(createFloatTestCase());
+        executeTestCase(createNegationTestCase());
+        executeTestCase(createVectorProductsTestCase());
     }
 };
 

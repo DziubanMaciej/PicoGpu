@@ -56,7 +56,9 @@
     inline int32_t asint(float arg) { return reinterpret_cast<int32_t&>(arg); }
 %}
 
-%token FINIT FADD FSUB FMUL FDIV IINIT IADD ISUB IMUL IDIV MOV SWIZZLE
+%token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS
+%token IINIT IADD ISUB IMUL IDIV INEG
+%token MOV SWIZZLE
 %token HASH_INPUT HASH_OUTPUT DOT
 %token <swizzleComponent> VEC_COMPONENT
 %token <reg> REG_GENERAL REG_INPUT REG_OUTPUT
@@ -64,7 +66,7 @@
 %token <f> NUMBER_FLOAT
 
 %type <ui> REG_MASK
-%type <dstReg> DST_REG
+%type <dstReg> DST_REG DST_REG_COMPONENT
 %type <fullySwizzledReg> FULLY_SWIZZLED_REG
 %type <reg> REG
 %type <immediateArgs> IMMEDIATE_INTS IMMEDIATE_FLOATS
@@ -113,6 +115,9 @@ INSTRUCTION:
     | FMUL      DST_REG REG NUMBER_FLOAT  { outputBinary->encodeBinaryMathImm(Isa::Opcode::fmul_imm, $2.reg, $3, $2.mask, {asint($4)}); }
     | FDIV      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fdiv, $2.reg, $3, $4, $2.mask); }
     | FDIV      DST_REG REG NUMBER_FLOAT  { outputBinary->encodeBinaryMathImm(Isa::Opcode::fdiv_imm, $2.reg, $3, $2.mask, {asint($4)}); }
+    | FNEG      DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::fneg, $2.reg, $3, $2.mask); }
+    | FDOT      DST_REG_COMPONENT REG REG { outputBinary->encodeBinaryMath(Isa::Opcode::fdot, $2.reg, $3, $4, $2.mask); }
+    | FCROSS    REG REG REG               { outputBinary->encodeBinaryMath(Isa::Opcode::fcross, $2, $3, $4, 0b1111); }
     | IADD      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::iadd, $2.reg, $3, $4, $2.mask); }
     | IADD      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::iadd_imm, $2.reg, $3, $2.mask, {$4}); }
     | ISUB      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::isub, $2.reg, $3, $4, $2.mask); }
@@ -121,6 +126,7 @@ INSTRUCTION:
     | IMUL      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::imul_imm, $2.reg, $3, $2.mask, {$4}); }
     | IDIV      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::idiv, $2.reg, $3, $4, $2.mask); }
     | IDIV      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::idiv_imm, $2.reg, $3, $2.mask, {$4}); }
+    | INEG      DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::ineg, $2.reg, $3, $2.mask); }
     | SWIZZLE   REG FULLY_SWIZZLED_REG    { outputBinary->encodeSwizzle(Isa::Opcode::swizzle, $2, $3.reg, $3.x, $3.y, $3.z, $3.w); }
     | MOV       DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::mov, $2.reg, $3, $2.mask); }
     | FINIT     DST_REG IMMEDIATE_FLOATS  { outputBinary->encodeUnaryMathImm(Isa::Opcode::init, $2.reg, $2.mask, $3.toVector()); }
@@ -130,6 +136,9 @@ INSTRUCTION:
 DST_REG:
       REG          { $$ = DstRegister{$1, 0b1111}; }
     | REG REG_MASK { $$ = DstRegister{$1, $2}; }
+
+DST_REG_COMPONENT:
+    REG DOT VEC_COMPONENT { $$ = DstRegister{$1, constructMask({$3})}; }
 
 REG:
       REG_GENERAL

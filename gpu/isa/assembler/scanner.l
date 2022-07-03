@@ -23,11 +23,15 @@ static Isa::RegisterSelection calculateRegisterSelection(Isa::RegisterSelection 
 "fsub"    { return FSUB; }
 "fmul"    { return FMUL; }
 "fdiv"    { return FDIV; }
+"fneg"    { return FNEG; }
+"fdot"    { return FDOT; }
+"fcross"  { return FCROSS; }
 "iinit"   { return IINIT; }
 "iadd"    { return IADD; }
 "isub"    { return ISUB; }
 "imul"    { return IMUL; }
 "idiv"    { return IDIV; }
+"ineg"    { return INEG; }
 "mov"     { return MOV; }
 "swizzle" { return SWIZZLE; }
 

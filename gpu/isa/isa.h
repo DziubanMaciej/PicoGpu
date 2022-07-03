@@ -86,6 +86,9 @@ enum class Opcode : uint32_t {
     fmul_imm,
     fdiv,
     fdiv_imm,
+    fneg,
+    fdot,
+    fcross,
 
     // Integer math
     iadd,
@@ -96,6 +99,7 @@ enum class Opcode : uint32_t {
     imul_imm,
     idiv,
     idiv_imm,
+    ineg,
 
     // Misc
     init,

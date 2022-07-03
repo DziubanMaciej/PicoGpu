@@ -19,6 +19,10 @@ struct Conversions {
         return *reinterpret_cast<float *>(&arg);
     }
 
+    static int32_t uintBytesToInt(uint32_t arg) {
+        return *reinterpret_cast<int32_t *>(&arg);
+    }
+
     static float readFloat(sc_in<sc_uint<32>> &in) {
         uint32_t bytes = in.read().to_int();
         return uintBytesToFloat(bytes);
