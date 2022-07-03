@@ -81,16 +81,8 @@ struct PortConnector {
         out(signal);
     }
 
-    template <typename DataType>
-    void connectPorts(sc_in<DataType> &inp0, sc_in<DataType> &inp1, sc_out<DataType> &out, const std::string &name) {
-        auto &signal = signals<DataType>().get(name);
-        inp0(signal);
-        inp1(signal);
-        out(signal);
-    }
-
     template <typename DataType, size_t inputsCount>
-    void connectPortsA(sc_in<DataType> *(&inp)[inputsCount], sc_out<DataType> &out, const std::string &name) {
+    void connectPortsMultiple(sc_in<DataType> *(&inp)[inputsCount], sc_out<DataType> &out, const std::string &name) {
         auto &signal = signals<DataType>().get(name);
         for (size_t i = 0; i < inputsCount; i++) {
             (*inp[i])(signal);

@@ -40,7 +40,7 @@ void Gpu::connectInternalPorts() {
                                              &primitiveAssembler.memory.inpData,
                                              &outputMerger.memory.inpData,
                                              &shaderFrontend.memory.inpData};
-    ports.connectPortsA(portsForRead, memoryController.outData, "MEMCTL_dataForRead");
+    ports.connectPortsMultiple(portsForRead, memoryController.outData, "MEMCTL_dataForRead");
     ports.connectMemoryToClient<MemoryClientType::ReadOnly, MemoryServerType::SeparateOutData>(primitiveAssembler.memory, memoryController.clients[0], "MEMCTL_BLT");
     ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(userBlitter, memoryController.clients[1], "MEMCTL_PA");
     ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(outputMerger.memory, memoryController.clients[2], "MEMCTL_OM");

@@ -200,7 +200,8 @@ int sc_main(int argc, char *argv[]) {
     // Bind client0 with memController
     ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(client0, memController.clients[0], "MEMCTL_CLIENT0");
     ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(client1, memController.clients[1], "MEMCTL_CLIENT1");
-    ports.connectPorts(client0.inpData, client1.inpData, memController.outData, "MEMCTL_dataForRead");
+    sc_in<MemoryDataType> *portsForRead[] = {&client0.inpData, &client1.inpData};
+    ports.connectPortsMultiple(portsForRead, memController.outData, "MEMCTL_dataForRead");
 
     // Setup trace
     VcdTrace trace{"memory"};
