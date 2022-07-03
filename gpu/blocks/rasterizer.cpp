@@ -13,7 +13,8 @@ void Rasterizer::rasterize() {
 
         Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving,
                                                  previousBlock.inpData, previousBlock.portsCount,
-                                                 receivedVertices, verticesInPrimitive * componentsPerVertex);
+                                                 receivedVertices, verticesInPrimitive * componentsPerVertex,
+                                                 &profiling.outBusy);
 
         // Iterate over pixels
         const auto width = framebuffer.inpWidth.read();
@@ -31,6 +32,7 @@ void Rasterizer::rasterize() {
                 if (hit) {
                     currentFragment.z = previousBlock.inpData[2]; // TODO: this is incorrect. We should probably interpolate the z-value. Barycentrics???
                     Handshake::send(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, currentFragment);
+                    profiling.outFragmentsProduced = profiling.outFragmentsProduced.read() + 1;
                 }
             }
         }

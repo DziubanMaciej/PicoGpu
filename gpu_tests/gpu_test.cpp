@@ -57,9 +57,11 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.OM.inpDepthEnable = 1;
     gpu.blocks.OM.inpDepthBufferAddress = depthBufferAddress;
 
-    // Create vcd trace
+    // Create vcd traces
     VcdTrace trace{TEST_NAME};
     gpu.addSignalsToVcdTrace(trace, true, true);
+    VcdTrace profilingTrace{TEST_NAME "Profiling"};
+    gpu.addProfilingSignalsToVcdTrace(profilingTrace);
 
     // Upload vertex shader to the memory
     gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());

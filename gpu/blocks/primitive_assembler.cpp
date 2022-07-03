@@ -1,6 +1,7 @@
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/util/conversions.h"
 #include "gpu/util/handshake.h"
+#include "gpu/util/raii_boolean_setter.h"
 
 void PrimitiveAssembler::assemble() {
     while (1) {
@@ -9,6 +10,7 @@ void PrimitiveAssembler::assemble() {
         if (!inpEnable) {
             continue;
         }
+        RaiiBooleanSetter busySetter{profiling.outBusy};
 
         const auto verticesAddress = inpVerticesAddress.read().to_int();
         const auto verticesInPrimitive = 3; // only triangles
@@ -43,6 +45,7 @@ void PrimitiveAssembler::assemble() {
             Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending,
                                                   nextBlock.outData, nextBlock.portsCount,
                                                   readVertices, verticesInPrimitive * componentsPerVertex);
+            profiling.outPrimitivesProduced = profiling.outPrimitivesProduced.read() + 1;
         }
     }
 }

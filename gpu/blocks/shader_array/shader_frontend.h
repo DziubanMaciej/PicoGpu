@@ -15,10 +15,18 @@ SC_MODULE(ShaderFrontendBase) {
         sc_in<MemoryDataType> inpData;
         sc_in<bool> inpCompleted;
     } memory;
+    struct {
+        sc_signal<bool> requestThreadBusy;
+        sc_signal<bool> responseThreadBusy;
+        sc_out<bool> outBusy;
+        sc_out<sc_uint<32>> outIsaFetches;
+    } profiling;
 
     SC_CTOR(ShaderFrontendBase) {
         SC_CTHREAD(requestThread, inpClock.pos());
         SC_CTHREAD(responseThread, inpClock.pos());
+        SC_METHOD(busySignalMethod);
+        sensitive << profiling.responseThreadBusy << profiling.requestThreadBusy;
     }
 
 protected:
@@ -68,6 +76,7 @@ private:
     // Methods implementing SystemC processes
     void requestThread();
     void responseThread();
+    void busySignalMethod();
 
     // ShaderFrontend must read ISA from memory and store it into its ShaderUnits before a shader is executed. The
     // code is cached, so we don't have to read it all the way from memory each time.

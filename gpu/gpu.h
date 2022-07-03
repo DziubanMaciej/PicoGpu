@@ -61,11 +61,14 @@ SC_MODULE(Gpu) {
     } blocks;
 
     void addSignalsToVcdTrace(VcdTrace & trace, bool publicPorts, bool internalPorts);
+    void addProfilingSignalsToVcdTrace(VcdTrace & trace);
 
 private:
     void connectClocks();
     void connectInternalPorts();
     void connectPublicPorts();
+    void connectProfilingPorts();
 
     PortConnector ports;
+    PortConnector profilingPorts;
 };

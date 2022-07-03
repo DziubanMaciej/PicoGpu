@@ -22,6 +22,10 @@ SC_MODULE(Rasterizer) {
         sc_out<bool> outSending;
         sc_out<ShadedFragment> outData;
     } nextBlock;
+    struct {
+        sc_out<bool> outBusy;
+        sc_out<sc_uint<32>> outFragmentsProduced;
+    } profiling;
 
     SC_CTOR(Rasterizer) {
         SC_CTHREAD(rasterize, inpClock.pos());

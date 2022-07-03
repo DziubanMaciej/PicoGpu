@@ -13,6 +13,10 @@ SC_MODULE(UserBlitter) {
     sc_in<MemoryDataType> inpData;
     sc_in<bool> inpCompleted;
 
+    struct {
+        sc_out<bool> outBusy;
+    } profiling;
+
     SC_CTOR(UserBlitter) {
         SC_CTHREAD(main, inpClock.pos());
     }

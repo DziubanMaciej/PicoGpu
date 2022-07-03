@@ -38,12 +38,13 @@ The project is not very mature and it lacks many features. Existing functionalit
 | Floating point data                          | :heavy_check_mark: Data flowing through 32-bit wide ports are assumed to be floating point by various blocks. |
 | Programmability                              | :heavy_check_mark: `ShaderUnit` can execute our own *PicoGpu* ISA.                          |
 | Vertex shader                                | :heavy_check_mark: A programmable stage before rasterization. Can alter vertex data         | 
+| Signals for profiling                        | :heavy_check_mark:                                                                          |
+| Signals indicating business and completion   | :heavy_check_mark:                                                                          |
 | Customizable vertex layout                   | :x: Currently only 3-component vertices can be passed.                                      |
 | Fragment shader                              | :x:                                                                                         |
 | Passing uniform data to shaders              | :x:                                                                                         |
 | Perspective division in rasterizer           | :x:                                                                                         |
-| Signals for profiling                        | :x:                                                                                         |
-| Signals indicating business and completion   | :x:                                                                                         |
+| Better waiting on completion                 | :x:                                                                                         |
 | Moving additional data to fragment shader    | :x: VS should be free to output data to be fed into FS (their output and inputs must match) |
 | Add a real-time visualization                | :x: Currently we dump the framebuffer to a png file                                         |
 

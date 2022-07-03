@@ -26,6 +26,12 @@ SC_MODULE(ShaderUnit) {
         sc_out<sc_uint<32>> outData;
     } response;
 
+    struct {
+        sc_out<bool> outBusy;
+        sc_out<sc_uint<32>> outThreadsStarted;
+        sc_out<sc_uint<32>> outThreadsFinished;
+    } profiling;
+
     SC_CTOR(ShaderUnit) {
         SC_CTHREAD(main, inpClock.pos());
     }

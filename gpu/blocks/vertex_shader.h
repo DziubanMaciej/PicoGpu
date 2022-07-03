@@ -35,11 +35,14 @@ SC_MODULE(VertexShader) {
         } response;
     } shaderFrontend;
 
+    struct {
+        sc_out<bool> outBusy;
+    } profiling;
+
     SC_CTOR(VertexShader) {
         SC_CTHREAD(main, inpClock.pos());
     }
 
 private:
     void main();
-    
 };

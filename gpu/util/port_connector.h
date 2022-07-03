@@ -75,6 +75,12 @@ enum class MemoryServerType {
 
 struct PortConnector {
     template <typename DataType>
+    void connectPort(sc_out<DataType> &out, const std::string &name) {
+        auto &signal = signals<DataType>().get(name);
+        out(signal);
+    }
+
+    template <typename DataType>
     void connectPorts(sc_in<DataType> &inp, sc_out<DataType> &out, const std::string &name) {
         auto &signal = signals<DataType>().get(name);
         inp(signal);

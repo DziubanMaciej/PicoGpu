@@ -13,7 +13,7 @@ void ShaderUnit::main() {
             wait();
             command.dummy.raw = request.inpData.read();
         } else {
-            command.dummy.raw = Handshake::receive(request.inpSending, request.inpData, request.outReceiving).to_int();
+            command.dummy.raw = Handshake::receive(request.inpSending, request.inpData, request.outReceiving, &profiling.outBusy).to_int();
         }
         handshakeAlreadyEstablished = command.dummy.hasNextCommand;
 
@@ -48,7 +48,9 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     initializeInputRegisters(command.threadCount);
 
     // Execute isa
+    profiling.outThreadsStarted = profiling.outThreadsStarted.read() + command.threadCount;
     executeInstructions(isaMetadata.programLength, command.threadCount);
+    profiling.outThreadsFinished = profiling.outThreadsFinished.read() + command.threadCount;
 
     // Stream-out values from output registers
     uint32_t outputStream[4 * Isa::outputRegistersCount];

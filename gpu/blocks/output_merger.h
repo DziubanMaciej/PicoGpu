@@ -29,6 +29,9 @@ SC_MODULE(OutputMerger) {
         sc_in<MemoryDataType> inpData;
         sc_in<bool> inpCompleted;
     } memory;
+    struct {
+        sc_out<bool> outBusy;
+    } profiling;
 
     SC_CTOR(OutputMerger) {
         SC_CTHREAD(main, inpClock.pos());

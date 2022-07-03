@@ -1,5 +1,6 @@
 #include "gpu/blocks/user_blitter.h"
 #include "gpu/util/error.h"
+#include "gpu/util/raii_boolean_setter.h"
 
 void UserBlitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
     FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
@@ -41,6 +42,8 @@ void UserBlitter::main() {
         if (!pendingOperation.isValid) {
             continue;
         }
+
+        RaiiBooleanSetter busySetter{profiling.outBusy};
 
         for (size_t dwordIndex = 0; dwordIndex < pendingOperation.sizeInDwords; dwordIndex++) {
             outEnable = 1;

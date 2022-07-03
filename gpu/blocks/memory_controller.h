@@ -30,6 +30,12 @@ SC_MODULE(MemoryController) {
         sc_in<bool> inpCompleted;
     } memory;
 
+    struct {
+        sc_out<bool> outBusy;
+        sc_out<sc_uint<32>> outReadsPerformed;
+        sc_out<sc_uint<32>> outWritesPerformed;
+    } profiling;
+
     // Latched values from clients
     struct ClientLatchedSignals {
         sc_signal<bool, SC_UNCHECKED_WRITERS> enable;
@@ -83,8 +89,10 @@ SC_MODULE(MemoryController) {
 
                 // Skip iteration this client, if it didn't issue any memory operation
                 if (!clientLatched.enable.read()) {
+                    profiling.outBusy = false;
                     continue;
                 }
+                profiling.outBusy = true;
 
                 // Make a request to the memory
                 const bool memoryWrite = clientLatched.write.read();
@@ -99,11 +107,13 @@ SC_MODULE(MemoryController) {
                     memory.outWrite.write(0);
 
                     waitForMemory();
+                    profiling.outWritesPerformed = profiling.outWritesPerformed.read() + 1;
                 } else {
                     wait();
                     memory.outEnable.write(0);
 
                     waitForMemory();
+                    profiling.outReadsPerformed = profiling.outReadsPerformed.read() + 1;
 
                     outData.write(memory.inpData.read());
                 }

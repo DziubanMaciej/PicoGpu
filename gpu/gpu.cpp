@@ -16,6 +16,7 @@ Gpu::Gpu(sc_module_name name)
     connectClocks();
     connectInternalPorts();
     connectPublicPorts();
+    connectProfilingPorts();
 }
 
 void Gpu::connectClocks() {
@@ -83,6 +84,34 @@ void Gpu::connectPublicPorts() {
     outputMerger.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
 }
 
+void Gpu::connectProfilingPorts() {
+    profilingPorts.connectPort(userBlitter.profiling.outBusy, "BLT_busy");
+
+    profilingPorts.connectPort(memoryController.profiling.outBusy, "MEMCTL_busy");
+    profilingPorts.connectPort(memoryController.profiling.outReadsPerformed, "MEMCTL_reads");
+    profilingPorts.connectPort(memoryController.profiling.outWritesPerformed, "MEMCTL_writes");
+
+    profilingPorts.connectPort(shaderFrontend.profiling.outBusy, "SF_busy");
+    profilingPorts.connectPort(shaderFrontend.profiling.outIsaFetches, "SF_isaFetches");
+
+    profilingPorts.connectPort(shaderUnit0.profiling.outBusy, "SU0_busy");
+    profilingPorts.connectPort(shaderUnit0.profiling.outThreadsStarted, "SU0_threadsStarted");
+    profilingPorts.connectPort(shaderUnit0.profiling.outThreadsFinished, "SU0_threadsFinished");
+    profilingPorts.connectPort(shaderUnit1.profiling.outBusy, "SU1_busy");
+    profilingPorts.connectPort(shaderUnit1.profiling.outThreadsStarted, "SU1_threadsStarted");
+    profilingPorts.connectPort(shaderUnit1.profiling.outThreadsFinished, "SU1_threadsFinished");
+
+    profilingPorts.connectPort(primitiveAssembler.profiling.outBusy, "PA_busy");
+    profilingPorts.connectPort(primitiveAssembler.profiling.outPrimitivesProduced, "PA_primitivesProduced");
+
+    profilingPorts.connectPort(vertexShader.profiling.outBusy, "VS_busy");
+
+    profilingPorts.connectPort(rasterizer.profiling.outBusy, "RS_busy");
+    profilingPorts.connectPort(rasterizer.profiling.outFragmentsProduced, "RS_fragmentsProduced");
+
+    profilingPorts.connectPort(outputMerger.profiling.outBusy, "OM_busy");
+}
+
 void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalPorts) {
     if (publicPorts) {
         trace.trace(blocks.GLOBAL.inpClock);
@@ -104,4 +133,9 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
     if (internalPorts) {
         ports.addSignalsToTrace(trace);
     }
+}
+
+void Gpu::addProfilingSignalsToVcdTrace(VcdTrace &trace) {
+    profilingPorts.addSignalsToTrace(trace);
+    trace.trace(blocks.GLOBAL.inpClock);
 }

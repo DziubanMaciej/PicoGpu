@@ -45,7 +45,8 @@ struct Handshake {
     template <typename DataT, typename DataToSendT>
     static void receiveArrayWithParallelPorts(sc_in<bool> &inpSending, sc_out<bool> &outReceiving,
                                               sc_in<DataT> *inpData, size_t inpDataCount,
-                                              DataToSendT *dataToReceive, size_t dataToReceiveCount) {
+                                              DataToSendT *dataToReceive, size_t dataToReceiveCount,
+                                              sc_out<bool> *outBusinessSignal = nullptr) {
         FATAL_ERROR_IF(dataToReceiveCount == 0, "Cannot receive empty array");
         FATAL_ERROR_IF(inpDataCount == 0, "Cannot receive through zero ports");
 
@@ -53,9 +54,16 @@ struct Handshake {
         outReceiving = 1;
 
         // Wait for the sender to acknowledge the transmission
-        do {
+        wait();
+        while (!inpSending.read()) {
+            if (outBusinessSignal) {
+                *outBusinessSignal = false;
+            }
             wait();
-        } while (!inpSending.read());
+        }
+        if (outBusinessSignal) {
+            *outBusinessSignal = true;
+        }
         outReceiving = 0;
 
         // Receive packages of data
@@ -77,8 +85,10 @@ struct Handshake {
     }
 
     template <typename DataT, typename DataToReceiveT>
-    static inline void receiveArray(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving, DataToReceiveT *dataToReceive, size_t dataToReceiveCount) {
-        receiveArrayWithParallelPorts(inpSending, outReceiving, &inpData, 1, dataToReceive, dataToReceiveCount);
+    static inline void receiveArray(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving,
+                                    DataToReceiveT *dataToReceive, size_t dataToReceiveCount,
+                                    sc_out<bool> *outBusinessSignal = nullptr) {
+        receiveArrayWithParallelPorts(inpSending, outReceiving, &inpData, 1, dataToReceive, dataToReceiveCount, outBusinessSignal);
     }
 
     template <typename DataT, typename DataToSendT>
@@ -87,9 +97,9 @@ struct Handshake {
     }
 
     template <typename DataT>
-    static inline DataT receive(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving) {
+    static inline DataT receive(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving, sc_out<bool> *outBusinessSignal = nullptr) {
         DataT dataToReceive = {};
-        receiveArrayWithParallelPorts(inpSending, outReceiving, &inpData, 1, &dataToReceive, 1);
+        receiveArrayWithParallelPorts(inpSending, outReceiving, &inpData, 1, &dataToReceive, 1, outBusinessSignal);
         return dataToReceive;
     }
 };

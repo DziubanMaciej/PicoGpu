@@ -3,6 +3,7 @@
 #include "gpu/isa/isa.h"
 #include "gpu/util/error.h"
 #include "gpu/util/handshake.h"
+#include "gpu/util/raii_boolean_setter.h"
 
 void ShaderFrontendBase::requestThread() {
     constexpr bool handshakeOnlyOnce = true;
@@ -11,16 +12,19 @@ void ShaderFrontendBase::requestThread() {
 
     while (true) {
         wait();
+        profiling.requestThreadBusy = true;
 
         ClientInterface *clientInterface = {};
         size_t *clientIndex = {};
         if (!findClientMakingRequest(&clientInterface, &clientIndex)) {
+            profiling.requestThreadBusy = false;
             continue;
         }
 
         ShaderUnitInterface *shaderUnitInterface = {};
         ShaderUnitState *shaderUnitState = {};
         if (!findFreeShaderUnit(&shaderUnitInterface, &shaderUnitState)) {
+            profiling.requestThreadBusy = false;
             continue;
         }
 
@@ -72,8 +76,10 @@ void ShaderFrontendBase::responseThread() {
         ShaderUnitState *shaderUnitState = {};
         ClientInterface *clientInterface = {};
         if (!findShaderUnitSendingResponse(&shaderUnitInterface, &shaderUnitState, &clientInterface)) {
+            profiling.responseThreadBusy = false;
             continue;
         }
+        profiling.responseThreadBusy = true;
         FATAL_ERROR_IF(!shaderUnitState->request.isActive, "Shader unit tried to return results for no reason");
 
         // Prepare response header
@@ -102,6 +108,10 @@ void ShaderFrontendBase::responseThread() {
             wait();
         }
     }
+}
+
+void ShaderFrontendBase::busySignalMethod() {
+    profiling.outBusy = profiling.requestThreadBusy | profiling.responseThreadBusy;
 }
 
 ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddress) {
@@ -145,6 +155,8 @@ ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddres
     }
 
     isa.dataSize = dwordsLoaded;
+
+    profiling.outIsaFetches = profiling.outIsaFetches.read() + 1;
 
     // Store in cache and return the address to cached entry
     return *isaCache.put(isaAddress, std::move(isa));

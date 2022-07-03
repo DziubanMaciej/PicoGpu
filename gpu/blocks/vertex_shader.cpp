@@ -20,7 +20,8 @@ void VertexShader::main() {
 
         Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving,
                                                  previousBlock.inpData, previousBlock.portsCount,
-                                                 request.vertexData, dwordsPerPrimitive);
+                                                 request.vertexData, dwordsPerPrimitive,
+                                                 &profiling.outBusy);
 
         request.header.dword0.isaAddress = inpShaderAddress.read();
         request.header.dword1.clientToken++;

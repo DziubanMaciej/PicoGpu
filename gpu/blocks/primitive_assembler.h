@@ -24,6 +24,11 @@ SC_MODULE(PrimitiveAssembler) {
         sc_out<VertexPositionFloatType> outData[portsCount];
     } nextBlock;
 
+    struct {
+        sc_out<bool> outBusy;
+        sc_out<sc_uint<32>> outPrimitivesProduced;
+    } profiling;
+
     SC_CTOR(PrimitiveAssembler) {
         SC_CTHREAD(assemble, inpClock.pos());
     }
