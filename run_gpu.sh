@@ -9,6 +9,7 @@ rm result.png 2>/dev/null
 if [ "$debug" == "1" ]; then
     cgdb ./GpuTest || exit 1
 else
-    ./GpuTest || exit 1
+    SC_COPYRIGHT_MESSAGE=DISABLE ./GpuTest || exit 1
+    read _
     xdg-open result.png
 fi
