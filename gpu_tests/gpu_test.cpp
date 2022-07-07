@@ -1,5 +1,6 @@
 #include "gpu/gpu.h"
 #include "gpu/isa/assembler/assembler.h"
+#include "gpu/util/timer.h"
 #include "gpu/util/vcd_trace.h"
 
 #include <memory>
@@ -24,6 +25,8 @@ private:
 };
 
 int sc_main(int argc, char *argv[]) {
+    sc_report_handler::set_actions(SC_INFO, SC_DO_NOTHING);
+
     // Compile shaders
     Isa::PicoGpuBinary vs = {};
     const char *vsCode = R"code(
@@ -37,11 +40,13 @@ int sc_main(int argc, char *argv[]) {
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
 
     // Prepare addresses
+    printf("Memory layout:\n");
     AddressAllocator addressAllocator{Gpu::memorySize * 4};
     MemoryAddressType vertexBufferAddress = addressAllocator.allocate(27 * 4, "vertexBuffer");
     MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4, "frameBuffer");
     MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4, "depthBuffer");
     MemoryAddressType vsAddress = addressAllocator.allocate(vs.getSizeInBytes(), "vertexShaderIsa");
+    printf("\n");
 
     // Initialize GPU
     Gpu gpu{"Gpu"};
@@ -64,44 +69,61 @@ int sc_main(int argc, char *argv[]) {
     gpu.addProfilingSignalsToVcdTrace(profilingTrace);
 
     // Upload vertex shader to the memory
-    gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
-    gpu.waitForIdle(clock);
+    {
+        RaiiTimer timer{"  Uploaded VS in %s\n"};
+        gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
+        gpu.waitForIdle(clock);
+    }
 
     // Upload vertex data to the memory
-    struct Vertex {
-        float x, y, z;
-    };
-    Vertex vertices[] = {
-        Vertex{10, 10, 200},
-        Vertex{10, 20, 200},
-        Vertex{20, 10, 200},
+    {
+        RaiiTimer timer{"  Uploaded VB in %s\n"};
+        struct Vertex {
+            float x, y, z;
+        };
+        Vertex vertices[] = {
+            Vertex{10, 10, 200},
+            Vertex{10, 20, 200},
+            Vertex{20, 10, 200},
 
-        Vertex{40, 10, 200},
-        Vertex{40, 20, 200},
-        Vertex{50, 10, 200},
+            Vertex{40, 10, 200},
+            Vertex{40, 20, 200},
+            Vertex{50, 10, 200},
 
-        Vertex{10, 15, 100},
-        Vertex{80, 15, 100},
-        Vertex{40, 40, 100},
-    };
-    gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
-    gpu.waitForIdle(clock);
+            Vertex{10, 15, 100},
+            Vertex{80, 15, 100},
+            Vertex{40, 40, 100},
+        };
+        gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
+        gpu.waitForIdle(clock);
+    }
 
     // Clear framebuffer
-    uint32_t clearColor = 0xffcccccc;
-    gpu.userBlitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
-    gpu.waitForIdle(clock);
+    {
+        RaiiTimer timer{"  Cleared framebuffer in %s\n"};
+        uint32_t clearColor = 0xffcccccc;
+        gpu.userBlitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
+        gpu.waitForIdle(clock);
+    }
 
-    // Enable primitive assembler
-    gpu.blocks.PA.inpEnable = true;
-    sc_start({1, SC_NS});
-    gpu.blocks.PA.inpEnable = false;
-    gpu.waitForIdle(clock);
+    // Issue a drawcall
+    {
+        RaiiTimer timer{"  Performed draw in %s\n"};
+        gpu.blocks.PA.inpEnable = true;
+        sc_start({1, SC_NS});
+        gpu.blocks.PA.inpEnable = false;
+        gpu.waitForIdle(clock);
+    }
 
-    // Blit results to a normal user buffer and output it to a file
+    // Blit results to a normal user buffer
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
-    gpu.userBlitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
-    gpu.waitForIdle(clock);
+    {
+        RaiiTimer timer{"  Read back framebuffer %s\n"};
+        gpu.userBlitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
+        gpu.waitForIdle(clock);
+    }
+
+    // Save to a file
     stbi_write_png("result.png", 100, 100, 4, pixels.get(), 100 * 4);
 
     return 0;
