@@ -173,6 +173,16 @@ int sc_main(int argc, char *argv[]) {
     ADD_TRACE(clock);
     ports.addSignalsToTrace(trace);
 
+    // Bind profiling ports to dummy signals
+    ports.connectPort(shaderUnit0.profiling.outBusy, "SU0_busy");
+    ports.connectPort(shaderUnit0.profiling.outThreadsStarted, "SU0_threadsStarted");
+    ports.connectPort(shaderUnit0.profiling.outThreadsFinished, "SU0_threadsFinished");
+    ports.connectPort(shaderUnit1.profiling.outBusy, "SU1_busy");
+    ports.connectPort(shaderUnit1.profiling.outThreadsStarted, "SU1_threadsStarted");
+    ports.connectPort(shaderUnit1.profiling.outThreadsFinished, "SU1_threadsFinished");
+    ports.connectPort(shaderFrontend.profiling.outBusy, "SF_busy");
+    ports.connectPort(shaderFrontend.profiling.outIsaFetches, "SF_isaFetches");
+
     // Run the simulation
     sc_start({200000, SC_NS});
     return tester.verify();

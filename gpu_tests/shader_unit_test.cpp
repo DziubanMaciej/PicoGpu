@@ -2,6 +2,7 @@
 #include "gpu/isa/assembler/assembler.h"
 #include "gpu/util/conversions.h"
 #include "gpu/util/handshake.h"
+#include "gpu/util/port_connector.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/test_utils.h"
 
@@ -379,6 +380,8 @@ int sc_main(int argc, char *argv[]) {
     sc_set_time_resolution(100, SC_PS);
     sc_clock clock("my_clock", 1, SC_NS, 0.5, 0, SC_NS, true);
 
+    PortConnector ports = {};
+
     Tester tester{"tester"};
     ShaderUnit shaderUnit{"shaderUnit"};
 
@@ -411,6 +414,11 @@ int sc_main(int argc, char *argv[]) {
     ADD_TRACE(responseReceiving);
     ADD_TRACE(responeSending);
     ADD_TRACE(responseData);
+
+    // Bind profiling ports to dummy signals
+    ports.connectPort(shaderUnit.profiling.outBusy, "SU_busy");
+    ports.connectPort(shaderUnit.profiling.outThreadsStarted, "SU_threadsStarted");
+    ports.connectPort(shaderUnit.profiling.outThreadsFinished, "SU_threadsFinished");
 
     sc_start({200000, SC_NS});
 

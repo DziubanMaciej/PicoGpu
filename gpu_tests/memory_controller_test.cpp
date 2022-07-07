@@ -214,6 +214,11 @@ int sc_main(int argc, char *argv[]) {
     client0.inpClk(clock);
     client1.inpClk(clock);
 
+    // Bind profiling ports to dummy signals
+    ports.connectPort(memController.profiling.outBusy, "MEMCTL_busy");
+    ports.connectPort(memController.profiling.outReadsPerformed, "MEMCTL_reads");
+    ports.connectPort(memController.profiling.outWritesPerformed, "MEMCTL_writes");
+
     sc_start({65, SC_NS});
 
     return client0.verify() || client1.verify();

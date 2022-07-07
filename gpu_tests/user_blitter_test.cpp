@@ -133,6 +133,14 @@ int sc_main(int argc, char *argv[]) {
     blitter.inpClock(clock);
     tester.inpClock(clock);
 
+    // Bind profiling ports to dummy signals
+    if (useMemoryController) {
+        ports.connectPort(memController->profiling.outBusy, "MEMCTL_busy");
+        ports.connectPort(memController->profiling.outReadsPerformed, "MEMCTL_reads");
+        ports.connectPort(memController->profiling.outWritesPerformed, "MEMCTL_writes");
+    }
+    ports.connectPort(blitter.profiling.outBusy, "BLT_busy");
+
     // Add vcd trace
     std::string traceName{TEST_NAME};
     traceName.append(useMemoryController ? "WithMemoryController" : "WithoutMemoryController");
