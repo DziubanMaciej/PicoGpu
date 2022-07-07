@@ -36,6 +36,7 @@ add_dependencies(Gpu GenerateAssembler)
 # Define GPU tests
 function (enable_gpu_test TEST_NAME TARGET_NAME)
     add_test(NAME ${TEST_NAME} COMMAND $<TARGET_FILE:${TARGET_NAME}> ${ARGN})
+    set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "SC_COPYRIGHT_MESSAGE=DISABLE")
 endfunction()
 function (define_gpu_test TARGET_NAME)
     set(OPTIONS DONT_ENABLE)
