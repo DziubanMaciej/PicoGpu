@@ -1,6 +1,23 @@
 #include "gpu/gpu.h"
 #include "gpu/util/vcd_trace.h"
 
+#include <array>
+
+std::array<sc_out<bool> *, 10> getBlocksBusySignals(Gpu *gpu) {
+    return {
+        &gpu->userBlitter.profiling.outBusy,
+        &gpu->memoryController.profiling.outBusy,
+        &gpu->shaderFrontend.profiling.outBusy,
+        &gpu->shaderFrontend.profiling.outBusy,
+        &gpu->shaderUnit0.profiling.outBusy,
+        &gpu->shaderUnit1.profiling.outBusy,
+        &gpu->primitiveAssembler.profiling.outBusy,
+        &gpu->vertexShader.profiling.outBusy,
+        &gpu->rasterizer.profiling.outBusy,
+        &gpu->outputMerger.profiling.outBusy,
+    };
+}
+
 Gpu::Gpu(sc_module_name name)
     : userBlitter("UserBlitter"),
       memoryController("MemoryController"),
@@ -17,6 +34,11 @@ Gpu::Gpu(sc_module_name name)
     connectInternalPorts();
     connectPublicPorts();
     connectProfilingPorts();
+
+    SC_METHOD(setBusyValue);
+    for (auto signal : getBlocksBusySignals(this)) {
+        sensitive << *signal;
+    }
 }
 
 void Gpu::connectClocks() {
@@ -138,4 +160,19 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
 void Gpu::addProfilingSignalsToVcdTrace(VcdTrace &trace) {
     profilingPorts.addSignalsToTrace(trace);
     trace.trace(blocks.GLOBAL.inpClock);
+    trace.trace(out.busy);
+}
+
+void Gpu::waitForIdle(const sc_clock &clock) const {
+    do {
+        sc_start(2 * clock.period());
+    } while (out.busy.read());
+}
+
+void Gpu::setBusyValue() {
+    bool value = false;
+    for (auto signal : getBlocksBusySignals(this)) {
+        value = value || signal->read();
+    }
+    out.busy = value;
 }

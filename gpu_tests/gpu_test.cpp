@@ -65,9 +65,7 @@ int sc_main(int argc, char *argv[]) {
 
     // Upload vertex shader to the memory
     gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
-    while (gpu.userBlitter.hasPendingOperation()) {
-        sc_start({1, SC_NS});
-    }
+    gpu.waitForIdle(clock);
 
     // Upload vertex data to the memory
     struct Vertex {
@@ -87,31 +85,23 @@ int sc_main(int argc, char *argv[]) {
         Vertex{40, 40, 100},
     };
     gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
-    while (gpu.userBlitter.hasPendingOperation()) {
-        sc_start({1, SC_NS});
-    }
+    gpu.waitForIdle(clock);
 
     // Clear framebuffer
     uint32_t clearColor = 0xffcccccc;
     gpu.userBlitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
-    while (gpu.userBlitter.hasPendingOperation()) {
-        sc_start({1, SC_NS});
-    }
+    gpu.waitForIdle(clock);
 
     // Enable primitive assembler
     gpu.blocks.PA.inpEnable = true;
     sc_start({1, SC_NS});
     gpu.blocks.PA.inpEnable = false;
-
-    // Allow the simulation to proceed and write results to a file
-    sc_start({120000, SC_NS}); // TODO implement some better way of waiting, e.g. some rendered triangles counter in the GPU
+    gpu.waitForIdle(clock);
 
     // Blit results to a normal user buffer and output it to a file
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
     gpu.userBlitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
-    while (gpu.userBlitter.hasPendingOperation()) {
-        sc_start({1, SC_NS});
-    }
+    gpu.waitForIdle(clock);
     stbi_write_png("result.png", 100, 100, 4, pixels.get(), 100 * 4);
 
     return 0;

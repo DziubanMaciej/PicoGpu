@@ -17,6 +17,7 @@ class VcdTrace;
 
 SC_MODULE(Gpu) {
     constexpr static inline size_t memorySize = 21000;
+    SC_HAS_PROCESS(Gpu);
     Gpu(sc_module_name name);
 
     // Blocks of the GPU
@@ -60,14 +61,24 @@ SC_MODULE(Gpu) {
         } OM;
     } blocks;
 
+    // This structure represents outputs signals to be read by user. The user
+    // should not set any of these signals to any value and treat them as read-only.
+    struct {
+        sc_signal<bool> busy{"busy"};
+    } out;
+
     void addSignalsToVcdTrace(VcdTrace & trace, bool publicPorts, bool internalPorts);
     void addProfilingSignalsToVcdTrace(VcdTrace & trace);
+
+    void waitForIdle(const sc_clock &clock) const;
 
 private:
     void connectClocks();
     void connectInternalPorts();
     void connectPublicPorts();
     void connectProfilingPorts();
+
+    void setBusyValue();
 
     PortConnector ports;
     PortConnector profilingPorts;
