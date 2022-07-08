@@ -1,8 +1,10 @@
 #pragma once
 
 #include "gpu/types.h"
+#include "gpu/util/double_buffer.h"
 
 #include <systemc.h>
+#include <unordered_map>
 
 SC_MODULE(VertexShader) {
     sc_in_clk inpClock;
@@ -40,9 +42,20 @@ SC_MODULE(VertexShader) {
     } profiling;
 
     SC_CTOR(VertexShader) {
-        SC_CTHREAD(main, inpClock.pos());
+        SC_CTHREAD(processReceiveFromPreviousBlock, inpClock.pos());
+        SC_CTHREAD(processSendForShading, inpClock.pos());
+        SC_CTHREAD(processReceiveFromShading, inpClock.pos());
+        SC_CTHREAD(processSendToNextBlock, inpClock.pos());
     }
 
 private:
     void main();
+    void processReceiveFromPreviousBlock();
+    void processSendForShading();
+    void processReceiveFromShading();
+    void processSendToNextBlock();
+
+    DoubleBuffer<uint32_t, 32> verticesBeforeShade;
+    std::unordered_map<uint16_t, size_t> shadingTasks; // key is clientToken, value is thread count
+    DoubleBuffer<uint32_t, 32> verticesAfterShade;
 };
