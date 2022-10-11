@@ -5,6 +5,8 @@
 struct Point {
     float x;
     float y;
+    float z;
+    float w;
 };
 
 inline float sign(Point p1, Point p2, Point p3) {

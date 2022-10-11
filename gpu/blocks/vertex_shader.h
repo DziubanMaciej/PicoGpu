@@ -18,7 +18,7 @@ SC_MODULE(VertexShader) {
     struct NextBlock {
         sc_in<bool> inpReceiving;
         sc_out<bool> outSending;
-        constexpr static inline size_t portsCount = 9;
+        constexpr static inline size_t portsCount = 12;
         sc_out<VertexPositionFloatType> outData[portsCount];
     } nextBlock;
 

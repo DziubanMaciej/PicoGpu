@@ -8,7 +8,7 @@ void Rasterizer::rasterize() {
         wait();
 
         const auto verticesInPrimitive = 3; // only triangles
-        const auto componentsPerVertex = 3; // x, y, z
+        const auto componentsPerVertex = 4; // x, y, z
         uint32_t receivedVertices[verticesInPrimitive * componentsPerVertex];
 
         Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving,
@@ -20,9 +20,9 @@ void Rasterizer::rasterize() {
         const auto width = framebuffer.inpWidth.read();
         const auto height = framebuffer.inpHeight.read();
 
-        const Point v1{Conversions::uintBytesToFloat(receivedVertices[0]), Conversions::uintBytesToFloat(receivedVertices[1])};
-        const Point v2{Conversions::uintBytesToFloat(receivedVertices[3]), Conversions::uintBytesToFloat(receivedVertices[4])};
-        const Point v3{Conversions::uintBytesToFloat(receivedVertices[6]), Conversions::uintBytesToFloat(receivedVertices[7])};
+        const Point v1 = readPoint(receivedVertices, componentsPerVertex, 0);
+        const Point v2 = readPoint(receivedVertices, componentsPerVertex, 1);
+        const Point v3 = readPoint(receivedVertices, componentsPerVertex, 2);
         ShadedFragment currentFragment{};
         currentFragment.color = randomizeColor();
         for (currentFragment.y = 0; currentFragment.y < height; currentFragment.y++) {
@@ -37,6 +37,17 @@ void Rasterizer::rasterize() {
             }
         }
     }
+}
+
+Point Rasterizer::readPoint(const uint32_t *receivedVertices, size_t stride, size_t pointIndex) {
+    Point point;
+    const float w = Conversions::uintBytesToFloat(receivedVertices[pointIndex * stride + 3]);
+    FATAL_ERROR_IF(w == 0, "Homogeneous coordinate is 0");
+    point.x = Conversions::uintBytesToFloat(receivedVertices[pointIndex * stride + 0]) / w;
+    point.y = Conversions::uintBytesToFloat(receivedVertices[pointIndex * stride + 1]) / w;
+    point.z = Conversions::uintBytesToFloat(receivedVertices[pointIndex * stride + 2]) / w;
+    point.w = w;
+    return point;
 }
 
 FragmentColorType Rasterizer::randomizeColor() {

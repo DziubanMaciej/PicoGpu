@@ -31,8 +31,9 @@ int sc_main(int argc, char *argv[]) {
     Isa::PicoGpuBinary vs = {};
     const char *vsCode = R"code(
             #input i0.xyz
-            #output o0.xyz
-            mov o0 i0
+            #output o0.xyzw
+            mov o0.xyz i0
+            finit o0.w 2.f
 
             finit r0 100.f
             fsub o0.y r0 o0
