@@ -53,7 +53,7 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     profiling.outThreadsFinished = profiling.outThreadsFinished.read() + command.threadCount;
 
     // Stream-out values from output registers
-    uint32_t outputStream[4 * Isa::outputRegistersCount];
+    uint32_t outputStream[4 * Isa::outputRegistersCount * Isa::simdSize];
     uint32_t outputStreamSize = {};
     appendOutputRegistersValues(command.threadCount, outputStream, outputStreamSize);
 

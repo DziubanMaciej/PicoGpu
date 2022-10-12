@@ -57,7 +57,9 @@ private:
         sc_in<DataT> *inpData;                     // array of parallel ports used to receive data
         DataToSendT *dataToReceive;                // array of data elements to fill upon receiving
         size_t dataToReceiveCount;                 // number of data elements to receive
-        sc_out<bool> *outBusinessSignal = nullptr; // control signal, that will be deactivated when receiving is stalled
+        sc_out<bool> *outBusinessSignal = nullptr; // optional control signal, that will be deactivated when receiving is stalled
+        size_t *timeout = nullptr;                 // optional number of clock ticks after which the operation will be cancelled
+        bool *success = nullptr;                   // optional success code
     };
     template <typename DataT, typename DataToSendT, size_t numberOfPorts>
     static void receiveArrayImpl(ReceiveArgs<DataT, DataToSendT, numberOfPorts> &args) {
@@ -67,6 +69,10 @@ private:
         // Tell the sender that we're able to begin transmission
         args.outReceiving->write(1);
 
+        // Prepare some variables for timeout behavior
+        bool cancelled = false;
+        size_t clocksWaiting = 1;
+
         // Wait for the sender to acknowledge the transmission
         wait();
         while (!args.inpSending->read()) {
@@ -74,11 +80,24 @@ private:
                 *args.outBusinessSignal = false;
             }
             wait();
+
+            if (args.timeout && *args.timeout >= (++clocksWaiting)) {
+                cancelled = true;
+                break;
+            }
         }
         if (args.outBusinessSignal) {
             *args.outBusinessSignal = true;
         }
         args.outReceiving->write(0);
+
+        // Handle timeout behavior
+        if (args.success) {
+            *args.success = !cancelled;
+        }
+        if (cancelled) {
+            return;
+        }
 
         // Receive packages of data
         const size_t packagesCount = (args.dataToReceiveCount + numberOfPorts - 1) / numberOfPorts;
@@ -165,6 +184,21 @@ public:
         args.dataToReceive = &dataToReceive;
         args.dataToReceiveCount = 1;
         args.outBusinessSignal = outBusinessSignal;
+        receiveArrayImpl(args);
+        return dataToReceive;
+    }
+
+    template <typename DataT, typename DataToSendT = DataT>
+    static inline DataT receiveWithTimeout(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving, size_t timeout, bool &success) {
+        DataT dataToReceive = {};
+        ReceiveArgs<DataT, DataToSendT, 1> args = {};
+        args.inpSending = &inpSending;
+        args.outReceiving = &outReceiving;
+        args.inpData = &inpData;
+        args.dataToReceive = &dataToReceive;
+        args.dataToReceiveCount = 1;
+        args.timeout = &timeout;
+        args.success = &success;
         receiveArrayImpl(args);
         return dataToReceive;
     }
