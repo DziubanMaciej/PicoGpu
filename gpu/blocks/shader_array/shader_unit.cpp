@@ -45,17 +45,18 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     memset(&registers, 0, sizeof(registers));
 
     // Stream-in values for input registers
-    initializeInputRegisters(command.threadCount);
+    const auto threadCount = nonZeroCountToInt(command.threadCount);
+    initializeInputRegisters(threadCount);
 
     // Execute isa
-    profiling.outThreadsStarted = profiling.outThreadsStarted.read() + command.threadCount;
-    executeInstructions(isaMetadata.programLength, command.threadCount);
-    profiling.outThreadsFinished = profiling.outThreadsFinished.read() + command.threadCount;
+    profiling.outThreadsStarted = profiling.outThreadsStarted.read() + threadCount;
+    executeInstructions(isaMetadata.programLength, threadCount);
+    profiling.outThreadsFinished = profiling.outThreadsFinished.read() + threadCount;
 
     // Stream-out values from output registers
     uint32_t outputStream[4 * Isa::outputRegistersCount * Isa::simdSize];
     uint32_t outputStreamSize = {};
-    appendOutputRegistersValues(command.threadCount, outputStream, outputStreamSize);
+    appendOutputRegistersValues(threadCount, outputStream, outputStreamSize);
 
     Handshake::sendArray(response.inpReceiving, response.outSending, response.outData, outputStream, outputStreamSize);
 }

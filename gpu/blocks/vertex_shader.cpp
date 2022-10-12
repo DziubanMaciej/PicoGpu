@@ -27,7 +27,7 @@ void VertexShader::main() {
 
         request.header.dword0.isaAddress = inpShaderAddress.read();
         request.header.dword1.clientToken++;
-        request.header.dword1.threadCount = 3;
+        request.header.dword1.threadCount = intToNonZeroCount(3);
         request.header.dword2.inputsCount = NonZeroCount::One;
         request.header.dword2.inputSize0 = NonZeroCount::Three;
         request.header.dword2.outputsCount = NonZeroCount::One;

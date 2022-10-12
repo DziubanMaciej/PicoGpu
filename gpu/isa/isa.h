@@ -62,7 +62,7 @@ namespace Command {
         struct {
             CommandType commandType : 1; // must be CommandType::Execute
             uint32_t hasNextCommand : 1;
-            uint32_t threadCount : simdExponent;
+            NonZeroCount threadCount : simdExponent;
         };
         uint32_t raw;
     };

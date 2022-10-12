@@ -5,7 +5,7 @@
 #include "gpu/util/math.h"
 
 void FragmentShader::main() {
-    const auto maxThreadsCount = Isa::simdSize - 1; // TODO: dispatching 32 threads doesn't work (only 5 bits storage). Fix it.
+    const auto maxThreadsCount = Isa::simdSize;
 
     const auto componentsPerInputFragment = 4;
     const auto inputDwords = maxThreadsCount * componentsPerInputFragment;
@@ -51,7 +51,7 @@ void FragmentShader::main() {
         // Send the request to the shading units
         request.header.dword0.isaAddress = inpShaderAddress.read();
         request.header.dword1.clientToken++;
-        request.header.dword1.threadCount = fragmentsCount;
+        request.header.dword1.threadCount = intToNonZeroCount(fragmentsCount);
         request.header.dword2.inputsCount = NonZeroCount::One;
         request.header.dword2.inputSize0 = NonZeroCount::Four;
         request.header.dword2.outputsCount = NonZeroCount::One;

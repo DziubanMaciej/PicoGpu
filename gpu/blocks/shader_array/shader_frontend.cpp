@@ -176,7 +176,7 @@ void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, Shad
     }
 }
 
-void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, uint32_t threadCount, uint32_t shaderInputsCount) {
+void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, NonZeroCount threadCount, uint32_t shaderInputsCount) {
     auto &unit = shaderUnitInterface.request;
 
     // Send the command
@@ -216,7 +216,7 @@ size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendReques
         components += nonZeroCountToInt(request.dword2.inputSize3);
     }
 
-    components *= request.dword1.threadCount;
+    components *= nonZeroCountToInt(request.dword1.threadCount);
     return components;
 }
 
@@ -237,7 +237,7 @@ size_t ShaderFrontendBase::calculateShaderOutputsCount(const ShaderFrontendReque
         components += nonZeroCountToInt(request.dword2.outputSize3);
     }
 
-    components *= request.dword1.threadCount;
+    components *= nonZeroCountToInt(request.dword1.threadCount);
     return components;
 }
 

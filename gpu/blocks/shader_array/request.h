@@ -11,7 +11,7 @@ struct ShaderFrontendRequest {
     union {
         struct {
             uint32_t clientToken : 16;
-            uint32_t threadCount : Isa::simdExponent;
+            NonZeroCount threadCount : Isa::simdExponent;
         };
         uint32_t raw;
     } dword1;
