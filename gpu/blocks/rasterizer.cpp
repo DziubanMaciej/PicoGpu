@@ -11,10 +11,8 @@ void Rasterizer::rasterize() {
         const auto componentsPerVertex = 4; // x, y, z
         uint32_t receivedVertices[verticesInPrimitive * componentsPerVertex];
 
-        Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving,
-                                                 previousBlock.inpData, previousBlock.portsCount,
-                                                 receivedVertices, verticesInPrimitive * componentsPerVertex,
-                                                 &profiling.outBusy);
+        Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
+                                                 receivedVertices, verticesInPrimitive * componentsPerVertex, &profiling.outBusy);
 
         // Iterate over pixels
         const auto width = framebuffer.inpWidth.read();

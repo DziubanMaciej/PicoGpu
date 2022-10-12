@@ -22,10 +22,8 @@ void VertexShader::main() {
     while (true) {
         wait();
 
-        Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving,
-                                                 previousBlock.inpData, previousBlock.portsCount,
-                                                 request.vertexData, dwordsPerInputPrimitive,
-                                                 &profiling.outBusy);
+        Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
+                                                 request.vertexData, dwordsPerInputPrimitive, &profiling.outBusy);
 
         request.header.dword0.isaAddress = inpShaderAddress.read();
         request.header.dword1.clientToken++;
@@ -40,7 +38,6 @@ void VertexShader::main() {
         Handshake::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
                                 shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), sizeof(response) / sizeof(uint32_t));
 
-        Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData,
-                                              nextBlock.portsCount, response.vertexData, dwordsPerOutputPrimitive);
+        Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, response.vertexData, dwordsPerOutputPrimitive);
     }
 }

@@ -5,101 +5,167 @@
 #include <systemc.h>
 
 struct Handshake {
-    // TODO add functions to send/receive arrays of data of size known based on the first element
+private:
+    template <typename DataT, typename DataToSendT, size_t numberOfPorts>
+    struct SendArgs {
+        sc_in<bool> *inpReceiving; // control signal, which the receiver uses to tell use that it's ready
+        sc_out<bool> *outSending;  // control signal, which we use to tell the receiver that we're ready
+        sc_out<DataT> *outData;    // array of parallel ports used to send data
+        DataToSendT *dataToSend;   // array of data elements to send
+        size_t dataToSendCount;    // number of data elements to send
+    };
 
-    template <typename DataT, typename DataToSendT>
-    static void sendArrayWithParallelPorts(sc_in<bool> &inpReceiving, sc_out<bool> &outSending,
-                                           sc_out<DataT> *outData, size_t outDataCount,
-                                           DataToSendT *dataToSend, size_t dataToSendCount) {
-        FATAL_ERROR_IF(dataToSendCount == 0, "Cannot send empty array");
-        FATAL_ERROR_IF(outDataCount == 0, "Cannot send through zero ports");
+    template <typename DataT, typename DataToSendT, size_t numberOfPorts>
+    static void sendArrayImpl(SendArgs<DataT, DataToSendT, numberOfPorts> &args) {
+        FATAL_ERROR_IF(args.dataToSendCount == 0, "Cannot send empty array");
+        FATAL_ERROR_IF(numberOfPorts == 0, "Cannot send through zero ports");
 
-        const size_t packagesCount = (dataToSendCount + outDataCount - 1) / outDataCount;
+        const size_t packagesCount = (args.dataToSendCount + numberOfPorts - 1) / numberOfPorts;
 
         size_t dataSent = 0;
 
         // Tell the receiver that we're able to begin transmission and send first package of data
-        outSending = 1;
-        for (; dataSent < dataToSendCount && dataSent < outDataCount; dataSent++) {
-            outData[dataSent] = dataToSend[dataSent];
+        args.outSending->write(1);
+        for (; dataSent < args.dataToSendCount && dataSent < numberOfPorts; dataSent++) {
+            args.outData[dataSent] = args.dataToSend[dataSent];
         }
 
         // Wait for the receiver to acknowledge the transmission
         do {
             wait();
-        } while (!inpReceiving.read());
-        outSending = 0;
+        } while (!args.inpReceiving->read());
+        args.outSending->write(0);
 
         // Send remaining packages
         for (size_t packageIndex = 1; packageIndex < packagesCount; packageIndex++) {
-            for (size_t port = 0; port < outDataCount && dataSent < dataToSendCount; port++, dataSent++) {
-                outData[port] = dataToSend[dataSent];
+            for (size_t port = 0; port < numberOfPorts && dataSent < args.dataToSendCount; port++, dataSent++) {
+                args.outData[port] = args.dataToSend[dataSent];
             }
             wait();
         }
-        for (size_t port = 0; port < outDataCount; port++) {
-            outData[port].write({});
+
+        // Clear the data ports. This is optional, but makes it easier to debug.
+        for (size_t port = 0; port < numberOfPorts; port++) {
+            args.outData[port].write({});
         }
     }
 
-    template <typename DataT, typename DataToSendT>
-    static void receiveArrayWithParallelPorts(sc_in<bool> &inpSending, sc_out<bool> &outReceiving,
-                                              sc_in<DataT> *inpData, size_t inpDataCount,
-                                              DataToSendT *dataToReceive, size_t dataToReceiveCount,
-                                              sc_out<bool> *outBusinessSignal = nullptr) {
-        FATAL_ERROR_IF(dataToReceiveCount == 0, "Cannot receive empty array");
-        FATAL_ERROR_IF(inpDataCount == 0, "Cannot receive through zero ports");
+    template <typename DataT, typename DataToSendT, size_t numberOfPorts>
+    struct ReceiveArgs {
+        sc_in<bool> *inpSending;                   // control signal, which the sender uses to tell use that it's ready
+        sc_out<bool> *outReceiving;                // control signal, which we use to tell the sender that we're ready
+        sc_in<DataT> *inpData;                     // array of parallel ports used to receive data
+        DataToSendT *dataToReceive;                // array of data elements to fill upon receiving
+        size_t dataToReceiveCount;                 // number of data elements to receive
+        sc_out<bool> *outBusinessSignal = nullptr; // control signal, that will be deactivated when receiving is stalled
+    };
+    template <typename DataT, typename DataToSendT, size_t numberOfPorts>
+    static void receiveArrayImpl(ReceiveArgs<DataT, DataToSendT, numberOfPorts> &args) {
+        FATAL_ERROR_IF(args.dataToReceiveCount == 0, "Cannot receive empty array");
+        FATAL_ERROR_IF(numberOfPorts == 0, "Cannot receive through zero ports");
 
         // Tell the sender that we're able to begin transmission
-        outReceiving = 1;
+        args.outReceiving->write(1);
 
         // Wait for the sender to acknowledge the transmission
         wait();
-        while (!inpSending.read()) {
-            if (outBusinessSignal) {
-                *outBusinessSignal = false;
+        while (!args.inpSending->read()) {
+            if (args.outBusinessSignal) {
+                *args.outBusinessSignal = false;
             }
             wait();
         }
-        if (outBusinessSignal) {
-            *outBusinessSignal = true;
+        if (args.outBusinessSignal) {
+            *args.outBusinessSignal = true;
         }
-        outReceiving = 0;
+        args.outReceiving->write(0);
 
         // Receive packages of data
-        const size_t packagesCount = (dataToReceiveCount + inpDataCount - 1) / inpDataCount;
+        const size_t packagesCount = (args.dataToReceiveCount + numberOfPorts - 1) / numberOfPorts;
         size_t dataReceived = 0;
         for (size_t packageIndex = 0; packageIndex < packagesCount; packageIndex++) {
             if (packageIndex > 0) {
                 wait();
             }
-            for (size_t port = 0; port < inpDataCount && dataReceived < dataToReceiveCount; port++, dataReceived++) {
-                dataToReceive[dataReceived] = inpData[port].read();
+            for (size_t port = 0; port < numberOfPorts && dataReceived < args.dataToReceiveCount; port++, dataReceived++) {
+                args.dataToReceive[dataReceived] = args.inpData[port].read();
             }
         }
     }
 
+public:
+    template <typename DataT, typename DataToSendT, size_t numberOfPorts>
+    static void sendArrayWithParallelPorts(sc_in<bool> &inpReceiving, sc_out<bool> &outSending, sc_out<DataT> (&outData)[numberOfPorts],
+                                           DataToSendT *dataToSend, size_t dataToSendCount) {
+        SendArgs<DataT, DataToSendT, numberOfPorts> args = {};
+        args.inpReceiving = &inpReceiving;
+        args.outSending = &outSending;
+        args.outData = outData;
+        args.dataToSend = dataToSend;
+        args.dataToSendCount = dataToSendCount;
+        sendArrayImpl(args);
+    }
+
+    template <typename DataT, typename DataToReceiveT, size_t numberOfPorts>
+    static void receiveArrayWithParallelPorts(sc_in<bool> &inpSending, sc_out<bool> &outReceiving, sc_in<DataT> (&inpData)[numberOfPorts],
+                                              DataToReceiveT *dataToReceive, size_t dataToReceiveCount, sc_out<bool> *outBusinessSignal = nullptr) {
+        ReceiveArgs<DataT, DataToReceiveT, numberOfPorts> args = {};
+        args.inpSending = &inpSending;
+        args.outReceiving = &outReceiving;
+        args.inpData = inpData;
+        args.dataToReceive = dataToReceive;
+        args.dataToReceiveCount = dataToReceiveCount;
+        args.outBusinessSignal = outBusinessSignal;
+        receiveArrayImpl(args);
+    }
+
     template <typename DataT, typename DataToSendT>
     static inline void sendArray(sc_in<bool> &inpReceiving, sc_out<bool> &outSending, sc_out<DataT> &outData, DataToSendT *dataToSend, size_t dataToSendCount) {
-        sendArrayWithParallelPorts(inpReceiving, outSending, &outData, 1, dataToSend, dataToSendCount);
+        SendArgs<DataT, DataToSendT, 1> args = {};
+        args.inpReceiving = &inpReceiving;
+        args.outSending = &outSending;
+        args.outData = &outData;
+        args.dataToSend = dataToSend;
+        args.dataToSendCount = dataToSendCount;
+        sendArrayImpl(args);
     }
 
     template <typename DataT, typename DataToReceiveT>
     static inline void receiveArray(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving,
                                     DataToReceiveT *dataToReceive, size_t dataToReceiveCount,
                                     sc_out<bool> *outBusinessSignal = nullptr) {
-        receiveArrayWithParallelPorts(inpSending, outReceiving, &inpData, 1, dataToReceive, dataToReceiveCount, outBusinessSignal);
+        ReceiveArgs<DataT, DataToReceiveT, 1> args = {};
+        args.inpSending = &inpSending;
+        args.outReceiving = &outReceiving;
+        args.inpData = &inpData;
+        args.dataToReceive = dataToReceive;
+        args.dataToReceiveCount = dataToReceiveCount;
+        args.outBusinessSignal = outBusinessSignal;
+        receiveArrayImpl(args);
     }
 
     template <typename DataT, typename DataToSendT>
     static inline void send(sc_in<bool> &inpReceiving, sc_out<bool> &outSending, sc_out<DataT> &outData, DataToSendT &dataToSend) {
-        sendArrayWithParallelPorts(inpReceiving, outSending, &outData, 1, &dataToSend, 1);
+        SendArgs<DataT, DataToSendT, 1> args = {};
+        args.inpReceiving = &inpReceiving;
+        args.outSending = &outSending;
+        args.outData = &outData;
+        args.dataToSend = &dataToSend;
+        args.dataToSendCount = 1;
+        sendArrayImpl(args);
     }
 
-    template <typename DataT>
+    template <typename DataT, typename DataToSendT = DataT>
     static inline DataT receive(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving, sc_out<bool> *outBusinessSignal = nullptr) {
         DataT dataToReceive = {};
-        receiveArrayWithParallelPorts(inpSending, outReceiving, &inpData, 1, &dataToReceive, 1, outBusinessSignal);
+        ReceiveArgs<DataT, DataToSendT, 1> args = {};
+        args.inpSending = &inpSending;
+        args.outReceiving = &outReceiving;
+        args.inpData = &inpData;
+        args.dataToReceive = &dataToReceive;
+        args.dataToReceiveCount = 1;
+        args.outBusinessSignal = outBusinessSignal;
+        receiveArrayImpl(args);
         return dataToReceive;
     }
 };
