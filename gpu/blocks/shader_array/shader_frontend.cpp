@@ -100,7 +100,7 @@ void ShaderFrontendBase::responseThread() {
         shaderUnitState->request.isActive = false;
 
         // Send results to client
-        auto &client = clientInterface[shaderUnitState->request.clientIndex].response;
+        auto &client = clientInterface->response;
         sc_uint<32> data = shaderOutputs[0];
         Handshake::send(client.inpReceiving, client.outSending, client.outData, data);
         for (int i = 1; i < shaderOutputsCount; i++) {

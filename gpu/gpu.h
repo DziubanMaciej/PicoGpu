@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/blocks/fragment_shader.h"
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
 #include "gpu/blocks/output_merger.h"
@@ -24,12 +25,13 @@ SC_MODULE(Gpu) {
     UserBlitter userBlitter;               // abbreviation: BLT
     MemoryController<4> memoryController;  // abbreviation: MEMCTL
     Memory<memorySize> memory;             // abbreviation: MEM
-    ShaderFrontend<1, 2> shaderFrontend;   // abbreviation: SF
+    ShaderFrontend<2, 2> shaderFrontend;   // abbreviation: SF
     ShaderUnit shaderUnit0;                // abbreviation SU0
     ShaderUnit shaderUnit1;                // abbreviation SU1
     PrimitiveAssembler primitiveAssembler; // abbreviation: PA
     VertexShader vertexShader;             // abbreviation: VS
     Rasterizer rasterizer;                 // abbreviation: RS
+    FragmentShader fragmentShader;         // abbreviation: FS
     OutputMerger outputMerger;             // abbreviation: OM
 
     // This structure represents wirings of individual blocks visible to the
@@ -53,6 +55,10 @@ SC_MODULE(Gpu) {
             sc_signal<VertexPositionFloatType> framebufferWidth{"RS_OM_framebufferWidth"};
             sc_signal<VertexPositionFloatType> framebufferHeight{"RS_OM_framebufferHeight"};
         } RS_OM;
+
+        struct {
+            sc_signal<MemoryAddressType> inpShaderAddress{"FS_inpShaderAddress"};
+        } FS;
 
         struct {
             sc_signal<MemoryAddressType> inpFramebufferAddress{"OM_inpFramebufferAddress"};

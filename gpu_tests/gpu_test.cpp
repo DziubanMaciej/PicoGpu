@@ -33,12 +33,20 @@ int sc_main(int argc, char *argv[]) {
             #input i0.xyz
             #output o0.xyzw
             mov o0.xyz i0
-            finit o0.w 2.f
+            finit o0.w 1.f
 
             finit r0 100.f
             fsub o0.y r0 o0
         )code";
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
+    Isa::PicoGpuBinary fs = {};
+    const char *fsCode = R"code(
+            #input i0.xyzw
+            #output o0.xyzw
+            finit o0.w 1.f
+            fdiv o0.x i0 100.f
+        )code";
+    FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
 
     // Prepare addresses
     printf("Memory layout:\n");
@@ -47,6 +55,7 @@ int sc_main(int argc, char *argv[]) {
     MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4, "frameBuffer");
     MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4, "depthBuffer");
     MemoryAddressType vsAddress = addressAllocator.allocate(vs.getSizeInBytes(), "vertexShaderIsa");
+    MemoryAddressType fsAddress = addressAllocator.allocate(fs.getSizeInBytes(), "fragmentShaderIsa");
     printf("\n");
 
     // Initialize GPU
@@ -59,6 +68,7 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.VS.inpShaderAddress = vsAddress;
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
+    gpu.blocks.FS.inpShaderAddress = fsAddress;
     gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;
     gpu.blocks.OM.inpDepthEnable = 1;
     gpu.blocks.OM.inpDepthBufferAddress = depthBufferAddress;
@@ -69,10 +79,15 @@ int sc_main(int argc, char *argv[]) {
     VcdTrace profilingTrace{TEST_NAME "Profiling"};
     gpu.addProfilingSignalsToVcdTrace(profilingTrace);
 
-    // Upload vertex shader to the memory
+    // Upload shaders ISA to the memory
     {
         RaiiTimer timer{"  Uploaded VS in %s\n"};
         gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
+        gpu.waitForIdle(clock);
+    }
+    {
+        RaiiTimer timer{"  Uploaded FS in %s\n"};
+        gpu.userBlitter.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords());
         gpu.waitForIdle(clock);
     }
 

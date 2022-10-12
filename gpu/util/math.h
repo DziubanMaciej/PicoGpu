@@ -41,3 +41,13 @@ inline int countBits(uint32_t number) {
     }
     return count;
 }
+
+inline float saturate(float f) {
+    if (f < 0) {
+        return 0;
+    } else if (f > 1) {
+        return 1;
+    } else {
+        return f;
+    }
+}

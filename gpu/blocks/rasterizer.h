@@ -22,7 +22,7 @@ SC_MODULE(Rasterizer) {
     struct {
         sc_in<bool> inpReceiving;
         sc_out<bool> outSending;
-        sc_out<ShadedFragment> outData;
+        sc_out<UnshadedFragment> outData;
     } nextBlock;
     struct {
         sc_out<bool> outBusy;
@@ -37,5 +37,4 @@ SC_MODULE(Rasterizer) {
 
 private:
     Point readPoint(const uint32_t *receivedVertices, size_t stride, size_t pointIndex);
-    FragmentColorType randomizeColor();
 };

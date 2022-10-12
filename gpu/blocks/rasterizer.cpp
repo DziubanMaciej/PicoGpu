@@ -23,8 +23,7 @@ void Rasterizer::rasterize() {
         const Point v1 = readPoint(receivedVertices, componentsPerVertex, 0);
         const Point v2 = readPoint(receivedVertices, componentsPerVertex, 1);
         const Point v3 = readPoint(receivedVertices, componentsPerVertex, 2);
-        ShadedFragment currentFragment{};
-        currentFragment.color = randomizeColor();
+        UnshadedFragment currentFragment{};
         for (currentFragment.y = 0; currentFragment.y < height; currentFragment.y++) {
             for (currentFragment.x = 0; currentFragment.x < width; currentFragment.x++) {
                 const Point pixel{static_cast<float>(currentFragment.x), static_cast<float>(currentFragment.y)};
@@ -48,12 +47,4 @@ Point Rasterizer::readPoint(const uint32_t *receivedVertices, size_t stride, siz
     point.z = Conversions::uintBytesToFloat(receivedVertices[pointIndex * stride + 2]) / w;
     point.w = w;
     return point;
-}
-
-FragmentColorType Rasterizer::randomizeColor() {
-    const uint8_t r = (uint8_t)rand();
-    const uint8_t g = (uint8_t)rand();
-    const uint8_t b = (uint8_t)rand();
-    const uint8_t a = 255;
-    return (a << 24) | (b << 16) | (g << 8) | r;
 }

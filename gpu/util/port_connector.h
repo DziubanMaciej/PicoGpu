@@ -188,6 +188,8 @@ private:
             return boolSignals;
         } else if constexpr (std::is_same_v<DataType, ShadedFragment>) {
             return shadedFragmentSignals;
+        } else if constexpr (std::is_same_v<DataType, UnshadedFragment>) {
+            return unshadedFragmentSignals;
         } else {
             staticNoMatch();
         }
@@ -202,4 +204,5 @@ private:
     SignalVector<sc_uint<32>> dwordSignals;
     SignalVector<bool> boolSignals;
     SignalVector<ShadedFragment> shadedFragmentSignals;
+    SignalVector<UnshadedFragment> unshadedFragmentSignals;
 };

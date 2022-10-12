@@ -28,6 +28,7 @@ Gpu::Gpu(sc_module_name name)
       primitiveAssembler("PrimitiveAssembler"),
       vertexShader("VertexShader"),
       rasterizer("Rasterizer"),
+      fragmentShader("FragmentShader"),
       outputMerger("OutputMerger") {
 
     connectClocks();
@@ -51,6 +52,7 @@ void Gpu::connectClocks() {
     primitiveAssembler.inpClock(blocks.GLOBAL.inpClock);
     vertexShader.inpClock(blocks.GLOBAL.inpClock);
     rasterizer.inpClock(blocks.GLOBAL.inpClock);
+    fragmentShader.inpClock(blocks.GLOBAL.inpClock);
     outputMerger.inpClock(blocks.GLOBAL.inpClock);
 }
 
@@ -78,6 +80,8 @@ void Gpu::connectInternalPorts() {
     // SF -> clients
     ports.connectHandshake(vertexShader.shaderFrontend.request, shaderFrontend.clientInterfaces[0].request, "SF_VS_req");
     ports.connectHandshake(shaderFrontend.clientInterfaces[0].response, vertexShader.shaderFrontend.response, "SF_VS_resp");
+    ports.connectHandshake(fragmentShader.shaderFrontend.request, shaderFrontend.clientInterfaces[1].request, "SF_FS_req");
+    ports.connectHandshake(shaderFrontend.clientInterfaces[1].response, fragmentShader.shaderFrontend.response, "SF_FS_resp");
 
     // PA <-> VS
     ports.connectHandshakeWithParallelPorts(primitiveAssembler.nextBlock, vertexShader.previousBlock, "PA_VS");
@@ -85,8 +89,11 @@ void Gpu::connectInternalPorts() {
     // VS <-> RS
     ports.connectHandshakeWithParallelPorts(vertexShader.nextBlock, rasterizer.previousBlock, "VS_RS");
 
-    // RS <-> OM
-    ports.connectHandshake(rasterizer.nextBlock, outputMerger.previousBlock, "RS_OM");
+    // RS <-> FS
+    ports.connectHandshake(rasterizer.nextBlock, fragmentShader.previousBlock, "RS_FS");
+
+    // FS <-> OM
+    ports.connectHandshake(fragmentShader.nextBlock, outputMerger.previousBlock, "FS_OM");
 }
 
 void Gpu::connectPublicPorts() {
@@ -98,6 +105,8 @@ void Gpu::connectPublicPorts() {
 
     rasterizer.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
     rasterizer.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
+
+    fragmentShader.inpShaderAddress(blocks.FS.inpShaderAddress);
 
     outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);
     outputMerger.depth.inpEnable(blocks.OM.inpDepthEnable);
@@ -131,6 +140,8 @@ void Gpu::connectProfilingPorts() {
     profilingPorts.connectPort(rasterizer.profiling.outBusy, "RS_busy");
     profilingPorts.connectPort(rasterizer.profiling.outFragmentsProduced, "RS_fragmentsProduced");
 
+    profilingPorts.connectPort(fragmentShader.profiling.outBusy, "FS_busy");
+
     profilingPorts.connectPort(outputMerger.profiling.outBusy, "OM_busy");
 }
 
@@ -146,6 +157,8 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
 
         trace.trace(blocks.RS_OM.framebufferWidth);
         trace.trace(blocks.RS_OM.framebufferHeight);
+
+        trace.trace(blocks.FS.inpShaderAddress);
 
         trace.trace(blocks.OM.inpFramebufferAddress);
         trace.trace(blocks.OM.inpDepthEnable);
