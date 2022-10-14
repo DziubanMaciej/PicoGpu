@@ -56,7 +56,7 @@ private:
         } shaderFrontendRequest = {};
         shaderFrontendRequest.request.dword0.isaAddress = isaAddress;
         shaderFrontendRequest.request.dword1.clientToken = clientToken;
-        shaderFrontendRequest.request.dword1.threadCount = 3;
+        shaderFrontendRequest.request.dword1.threadCount = intToNonZeroCount(3);
         shaderFrontendRequest.request.dword2.inputsCount = NonZeroCount::One;
         shaderFrontendRequest.request.dword2.inputSize0 = NonZeroCount::Four;
         shaderFrontendRequest.request.dword2.outputsCount = NonZeroCount::One;

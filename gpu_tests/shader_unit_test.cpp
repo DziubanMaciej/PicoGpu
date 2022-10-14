@@ -43,7 +43,7 @@ SC_MODULE(Tester) {
                       &inputDataStream[oldSize]);
         }
 
-        void appendExecuteCommand(uint32_t threadCount) {
+        void appendExecuteCommand(NonZeroCount threadCount) {
             const auto oldSize = inputDataStream.size();
             inputDataStream.resize(inputDataStream.size() + sizeof(Isa::Command::CommandExecuteIsa) / sizeof(uint32_t));
 
@@ -151,7 +151,7 @@ SC_MODULE(Tester) {
         dataStream.isa3.destMask = 0b1111;
 
         dataStream.executeCommand.commandType = Isa::Command::CommandType::ExecuteIsa;
-        dataStream.executeCommand.threadCount = 3;
+        dataStream.executeCommand.threadCount = intToNonZeroCount(3);
 
         dataStream.inputs[0] = 10;
         dataStream.inputs[1] = 20;
@@ -197,7 +197,7 @@ SC_MODULE(Tester) {
 
         TestCase testCase{"simple"};
         testCase.appendStoreCommand(binary);
-        testCase.appendExecuteCommand(3);
+        testCase.appendExecuteCommand(intToNonZeroCount(3));
         testCase.appendShaderInputs({
             10,
             20,
@@ -258,7 +258,7 @@ SC_MODULE(Tester) {
 
         TestCase testCase{"float"};
         testCase.appendStoreCommand(binary);
-        testCase.appendExecuteCommand(3);
+        testCase.appendExecuteCommand(intToNonZeroCount(3));
         testCase.appendShaderInputs({
             Conversions::floatBytesToInt(5.f),
             Conversions::floatBytesToInt(10.f),
@@ -299,7 +299,7 @@ SC_MODULE(Tester) {
 
         TestCase testCase{"negation"};
         testCase.appendStoreCommand(binary);
-        testCase.appendExecuteCommand(1);
+        testCase.appendExecuteCommand(intToNonZeroCount(1));
         testCase.appendShaderInputs({
             13,
             -28,
@@ -339,7 +339,7 @@ SC_MODULE(Tester) {
 
         TestCase testCase{"vector products"};
         testCase.appendStoreCommand(binary);
-        testCase.appendExecuteCommand(1);
+        testCase.appendExecuteCommand(intToNonZeroCount(1));
         testCase.appendShaderInputs({
             Conversions::floatBytesToInt(1),
             Conversions::floatBytesToInt(2),
