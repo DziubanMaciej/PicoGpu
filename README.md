@@ -1,18 +1,26 @@
 # PicoGpu
-This project is an implementation of a simple GPU (*graphics processing unit*) using [SystemC](https://systemc.org/) environment. The GPU has its own memory allowing multiple clients to utilize it. The rendering process is broken down into multiple hardware blocks performing specialized tasks and optionally using the memory. Device can be configured through multiple *SystemC* signals. It also contains programmable stages, which can be used to implement any graphics algorithm on the GPU side.
+This project is an implementation of a simple GPU (*graphics processing unit*) using [SystemC](https://systemc.org/) environment. The GPU has its own memory allowing multiple components to utilize it. The rendering process is broken down into multiple hardware blocks performing specialized tasks and optionally using the memory.
+
+It also contains programmable stages, which can be used to implement any graphics algorithm on the GPU side. More on *PicoGpu* shader programming can be found in [ShaderProgramming](ShaderProgramming.md).
+
+In the following documentation the C++ code running inside *SystemC* processes will be referred to as *gpu-side* and the rest of the code will be referred to as *host-side*. Memory created on stack or heap is also considered *host-side* and has to be copied to *gpu-side* memory using blit operations.
 
 # Architecture
-*PicoGpu* instantiates all its internal blocks, defines signals and connects all the blocks together. Internal blocks include:
-
-- [Memory](gpu/blocks/memory.h) (**MEM**) and [MemoryController](gpu/blocks/memory_controller.h) (**MEMCTL**) - provide storage for various data required by the GPU, such as a vertex buffer or a frame buffer. *MemoryController* is a frontend to *Memory* allowing multiple clients (i.e. blocks, like **PA** and **OM**) to access it in a safe manner. All other blocks in *PicoGpu* have to communicate with *Memory* through the *MemoryController*. There is no direct connection.
-- [ShaderUnit](gpu/blocks/shader_array/shader_unit.h) (**SU**) and [ShaderFrontend](gpu/blocks/shader_array/shader_frontend.h) (**SF**) - provide a means to execute *PicoGpu* shaders for programmable blocks in the graphics pipeline. Blocks only connect to the *ShaderFrontend* which serves as an arbiter and distributes work to individual *ShaderUnits* for execution.
-- [Blitter](gpu/blocks/blitter.h) (**BLT**) - allows communicating between the *PicoGpu* and regular system memory (outside the simulation).
+*PicoGpu* consists of many internal blocks. Most of them have configurable parameters altering their behavior. The device exposes a set of configuration signals, which can be set by the host to configure the blocks. List of internal *PicoGpu* blocks:
+- [CommandStreamer](gpu/blocks/command_streamer.h) (**CS**) - serves as a frontend for the host to interact with the GPU. Allows issuing drawcalls and blit operations.
+- Memory section:
+  - [Memory](gpu/blocks/memory.h) (**MEM**) - provides storage for various data required by the GPU, such as a vertex buffer or a frame buffer. 
+  - [MemoryController](gpu/blocks/memory_controller.h) (**MEMCTL**) - serves as a frontend to *Memory* allowing multiple clients (i.e. blocks, like **PA** and **OM**) to access it in a safe manner.
+  - [Blitter](gpu/blocks/blitter.h) (**BLT**) - performs memory transfers between host memory and GPU memory.
+- Shader array:
+  - [ShaderUnit](gpu/blocks/shader_array/shader_unit.h) (**SU**) - executes programmable shader threads and returns results of the computations.
+  - [ShaderFrontend](gpu/blocks/shader_array/shader_frontend.h) (**SF**) - connects to multiple **SU**s and multiple programmable blocks in the graphics pipeline and arbitrates requests for launching threads.
 - Graphics pipeline:
   - [PrimitiveAssembler](gpu/blocks/primitive_assembler.h) (**PA**) - reads vertex data from specified memory location and streams it to the next block in groups of 9 (three vertices with x,y,z components).
-  - [VertexShader](gpu/blocks/vertex_shader.h) (**VS**) - schedules a programmable shader for execution to the **ShaderFrontend**. The shader receives vertex position and has to output transformed vertex position.
-  - [Rasterizer](gpu/blocks/rasterizer.h) (**RS**) - iterates over all pixels in framebuffer and checks if they are inside triangles streamed from previous block. Pixels that are inside, are then sent to the next block along with their color. Also performs perspective division.
-  - [FragmentShader](gpu/blocks/fragment_shader.h) (**FS**) - schedules a programmable shader for execution to the **ShaderFrontend**. The shader receives interpolated vertex position and has to output 4-component RGBA color of a given pixel.
-  - [Output Merger](gpu/blocks/output_merger.h) (**OM**) - writes color data to the framebuffer. Optionally performs the depth test.
+  - [VertexShader](gpu/blocks/vertex_shader.h) (**VS**) - schedules a programmable shader for execution to the **SF**. The shader receives vertex position and has to output transformed vertex position.
+  - [Rasterizer](gpu/blocks/rasterizer.h) (**RS**) - iterates over all pixels in framebuffer and checks if they are inside triangles streamed from **VS**. Pixels that are inside, are then sent for fragment shading. Also performs perspective division.
+  - [FragmentShader](gpu/blocks/fragment_shader.h) (**FS**) - schedules a programmable shader for execution to the **SF**. The shader receives interpolated vertex position and has to output 4-component RGBA color of a given pixel.
+  - [Output Merger](gpu/blocks/output_merger.h) (**OM**) - writes color data to the framebuffer. Optionally performs a depth test.
 
 
 ![Architecture diagram](img/architecture.png)
@@ -26,29 +34,32 @@ This project is an implementation of a simple GPU (*graphics processing unit*) u
 - [third_party](third_party) - dependencies of the *PicoGpu* project
 
 # Features
-The project is not very mature and it lacks many features. Existing functionalities as well as planned future improvements are presented in the table below
-| Feature                                      | Status                                                                                      |
-|----------------------------------------------|---------------------------------------------------------------------------------------------|
-| Render a triangle                            | :heavy_check_mark:                                                                          |
-| Create vcd trace of all signals              | :heavy_check_mark:                                                                          |
-| Multi-client memory                          | :heavy_check_mark: `MemoryController` arbitrates access of clients to memory                |
-| Read vertex data from memory                 | :heavy_check_mark:                                                                          |
-| Render multiple triangles                    | :heavy_check_mark:                                                                          |
-| Copying between system memory and GPU memory | :heavy_check_mark: Implemented `Blitter`                                                |
-| Depth test                                   | :heavy_check_mark: `OutputMerger` performs depth test                                       |
-| Floating point data                          | :heavy_check_mark: Data flowing through 32-bit wide ports are assumed to be floating point by various blocks. |
-| Programmability                              | :heavy_check_mark: `ShaderUnit` can execute our own *PicoGpu* ISA.                          |
-| Vertex shader                                | :heavy_check_mark: A programmable stage before rasterization. Can alter vertex data         |
-| Signals for profiling                        | :heavy_check_mark:                                                                          |
-| Signals indicating business and completion   | :heavy_check_mark:                                                                          |
-| Customizable vertex layout                   | :x: Currently only 3-component vertices can be passed.                                      |
-| Fragment shader                              | :heavy_check_mark:                                                                          |
-| Passing uniform data to shaders              | :x:                                                                                         |
-| Perspective division in rasterizer           | :heavy_check_mark:                                                                          |
-| Better waiting on completion                 | :x:                                                                                         |
-| Moving additional data from VS to FS         | :x: Rasterizer will have to be aware of it somehow...                                       |
-| Add a real-time visualization                | :x: Currently we dump the framebuffer to a png file                                         |
+Existing functionalities of *PicoGpu* worth noting:
 
+| Feature                                      | Comment                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Rendering multiple triangles in one drawcall | **PA** iterates over triangles.                                                            |
+| VCD traces                                   | Traces are dumped in the binary directory.                                                 |
+| Multi-client memory                          | **MEMCTL** arbitrates access of clients to memory.                                         |
+| Copying between host memory and GPU memory   | **BLT** performs memory transfers.                                                         |
+| Depth testing                                | **OM** performs depth test.                                                                |
+| Floating point data                          | Data flowing through 32-bit wide ports are assumed to be floating point by various blocks. |
+| Programmability                              | **SU** can execute *PicoGpu* ISA.                                                          |
+| Vertex shader                                | Launches threads via **SF**.                                                               |
+| Fragment shader                              | Launches threads via **SF**.                                                               |
+| Signals for profiling                        | All blocks have their own signal indicating, whether they are doing any work.              |
+| Unified frontend for launching tasks         | **CS** is the only block, which the host has to interact with.                             |
+
+Roadmap for features to implement:
+
+| Feature                                    | Comment                                                                                          |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| Customizable vertex layout                 | Currently only 4-component vertices are passed.                                                  |
+| Passing uniform data to shaders            | This will probably require some new instructions.                                                |
+| Optimize data passing                      | Some blocks could use parallel ports for faster data passing.                                    |
+| Better rasterization algorithm             | **RS** blindly iterates over every pixel.                                                        |
+| Moving additional attributes from VS to FS | Rasterizer will have to somehow be aware of it.                                                  |
+| Add a real-time visualization              | Currently we dump the framebuffer to a png file. We could attach it to an OpenGL window instead. |
 
 # Building and running
 Requirements: Linux OS, SystemC environment, CMake and a C++ compiler.
