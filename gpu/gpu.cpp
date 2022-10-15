@@ -19,7 +19,8 @@ std::array<sc_out<bool> *, 10> getBlocksBusySignals(Gpu *gpu) {
 }
 
 Gpu::Gpu(sc_module_name name)
-    : userBlitter("UserBlitter"),
+    : commandStreamer("CommandStreamer"),
+      userBlitter("UserBlitter"),
       memoryController("MemoryController"),
       memory("Memory"),
       shaderFrontend("ShaderFrontend"),
@@ -43,6 +44,7 @@ Gpu::Gpu(sc_module_name name)
 }
 
 void Gpu::connectClocks() {
+    commandStreamer.inpClock(blocks.GLOBAL.inpClock);
     userBlitter.inpClock(blocks.GLOBAL.inpClock);
     memoryController.inpClock(blocks.GLOBAL.inpClock);
     memory.inpClock(blocks.GLOBAL.inpClock);
@@ -57,6 +59,10 @@ void Gpu::connectClocks() {
 }
 
 void Gpu::connectInternalPorts() {
+    // CS
+    ports.connectPorts(primitiveAssembler.inpEnable, commandStreamer.paBlock.outEnable, "CS_PA");
+    commandStreamer.inpGpuBusy(out.busy);
+
     // MEM <-> MEMCTL
     ports.connectMemoryToClient(memoryController.memory, memory, "MEM_MEMCTL");
 
@@ -97,7 +103,6 @@ void Gpu::connectInternalPorts() {
 }
 
 void Gpu::connectPublicPorts() {
-    primitiveAssembler.inpEnable(blocks.PA.inpEnable);
     primitiveAssembler.inpVerticesAddress(blocks.PA.inpVerticesAddress);
     primitiveAssembler.inpVerticesCount(blocks.PA.inpVerticesCount);
 
@@ -149,7 +154,6 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
     if (publicPorts) {
         trace.trace(blocks.GLOBAL.inpClock);
 
-        trace.trace(blocks.PA.inpEnable);
         trace.trace(blocks.PA.inpVerticesAddress);
         trace.trace(blocks.PA.inpVerticesCount);
 

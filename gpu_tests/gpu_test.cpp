@@ -62,7 +62,6 @@ int sc_main(int argc, char *argv[]) {
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     gpu.blocks.GLOBAL.inpClock(clock);
-    gpu.blocks.PA.inpEnable = false;
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 9;
     gpu.blocks.VS.inpShaderAddress = vsAddress;
@@ -125,9 +124,7 @@ int sc_main(int argc, char *argv[]) {
     // Issue a drawcall
     {
         RaiiTimer timer{"  Performed draw in %s\n"};
-        gpu.blocks.PA.inpEnable = true;
-        sc_start({1, SC_NS});
-        gpu.blocks.PA.inpEnable = false;
+        gpu.commandStreamer.draw();
         gpu.waitForIdle(clock);
     }
 

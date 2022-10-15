@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/blocks/command_streamer.h"
 #include "gpu/blocks/fragment_shader.h"
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
@@ -22,6 +23,7 @@ SC_MODULE(Gpu) {
     Gpu(sc_module_name name);
 
     // Blocks of the GPU
+    CommandStreamer commandStreamer;       // abbreviation: CS
     UserBlitter userBlitter;               // abbreviation: BLT
     MemoryController<4> memoryController;  // abbreviation: MEMCTL
     Memory<memorySize> memory;             // abbreviation: MEM
@@ -42,7 +44,6 @@ SC_MODULE(Gpu) {
         } GLOBAL;
 
         struct {
-            sc_signal<bool> inpEnable{"PA_inpEnable"};
             sc_signal<MemoryAddressType> inpVerticesAddress{"PA_inpVerticesAddress"};
             sc_signal<sc_uint<8>> inpVerticesCount{"PA_inpVerticesCount"};
         } PA;
