@@ -1,8 +1,8 @@
 #include "gpu/gpu.h"
 #include "gpu/isa/assembler/assembler.h"
-#include "gpu/util/timer.h"
 #include "gpu/util/vcd_trace.h"
 
+#include <map>
 #include <memory>
 #include <third_party/stb_image_write.h>
 
@@ -58,6 +58,9 @@ int sc_main(int argc, char *argv[]) {
     MemoryAddressType fsAddress = addressAllocator.allocate(fs.getSizeInBytes(), "fragmentShaderIsa");
     printf("\n");
 
+    // Prepare profiling storage
+    std::map<const char *, sc_time> profiling;
+
     // Initialize GPU
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
@@ -79,8 +82,8 @@ int sc_main(int argc, char *argv[]) {
     gpu.addProfilingSignalsToVcdTrace(profilingTrace);
 
     // Upload shaders ISA to the memory
-    gpu.commandStreamer.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
-    gpu.commandStreamer.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords());
+    gpu.commandStreamer.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords(), &profiling["Upload VS"]);
+    gpu.commandStreamer.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords(), &profiling["Upload FS"]);
 
     // Upload vertex data to the memory
     struct Vertex {
@@ -99,21 +102,27 @@ int sc_main(int argc, char *argv[]) {
         Vertex{80, 15, 100},
         Vertex{40, 40, 100},
     };
-    gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
+    gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4, &profiling["Upload VB"]);
 
     // Clear framebuffer
     uint32_t clearColor = 0xffcccccc;
-    gpu.commandStreamer.fillMemory(framebufferAddress, &clearColor, 100 * 100);
+    gpu.commandStreamer.fillMemory(framebufferAddress, &clearColor, 100 * 100, &profiling["Clear screen"]);
 
     // Issue a drawcall
-    gpu.commandStreamer.draw();
+    gpu.commandStreamer.draw(&profiling["Draw"]);
 
     // Blit results to a normal user buffer
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
-    gpu.commandStreamer.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
+    gpu.commandStreamer.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100, &profiling["Read screen"]);
+
+    // Print profiling results
+    gpu.waitForIdle(clock);
+    printf("Profiling data:\n");
+    for (auto it : profiling) {
+        printf("\t%s: %s\n", it.first, it.second.to_string().c_str());
+    }
 
     // Save to a file
-    gpu.waitForIdle(clock);
     stbi_write_png("result.png", 100, 100, 4, pixels.get(), 100 * 4);
 
     return 0;

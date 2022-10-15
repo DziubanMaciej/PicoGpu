@@ -29,18 +29,18 @@ SC_MODULE(CommandStreamer) {
         SC_CTHREAD(main, inpClock.pos());
     }
 
-    void draw();
-    void blit(Blitter::CommandType blitType, MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords);
-    void blitToMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords) { blit(Blitter::CommandType::CopyToMem, memoryPtr, userPtr, sizeInDwords); }
-    void blitFromMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords) { blit(Blitter::CommandType::CopyFromMem, memoryPtr, userPtr, sizeInDwords); }
-    void fillMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords) { blit(Blitter::CommandType::FillMem, memoryPtr, userPtr, sizeInDwords); }
+    void draw(sc_time * outTimeTaken);
+    void blit(Blitter::CommandType blitType, MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken);
+    void blitToMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken) { blit(Blitter::CommandType::CopyToMem, memoryPtr, userPtr, sizeInDwords, outTimeTaken); }
+    void blitFromMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken) { blit(Blitter::CommandType::CopyFromMem, memoryPtr, userPtr, sizeInDwords, outTimeTaken); }
+    void fillMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken) { blit(Blitter::CommandType::FillMem, memoryPtr, userPtr, sizeInDwords, outTimeTaken); }
 
 private:
     void main();
 
     enum class CommandType {
         Draw,
-        Blit, // Currently unused
+        Blit,
     };
     struct BlitData {
         Blitter::CommandType blitType;
@@ -48,9 +48,13 @@ private:
         uint32_t *userPtr;
         size_t sizeInDwords;
     };
+    struct ProfilingData {
+        sc_time *outTimeTaken;
+    };
     struct Command {
         CommandType type;
         BlitData blitData;
+        ProfilingData profilingData;
     };
 
     std::queue<Command> commands;
