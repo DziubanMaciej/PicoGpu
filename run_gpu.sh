@@ -12,5 +12,5 @@ if [ "$debug" == "1" ]; then
 else
     ./GpuTest || exit 1
     read _
-    xdg-open result.png
+    xdg-open result.png >/dev/null 2>&1
 fi
