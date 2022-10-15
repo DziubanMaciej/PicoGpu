@@ -81,12 +81,12 @@ int sc_main(int argc, char *argv[]) {
     // Upload shaders ISA to the memory
     {
         RaiiTimer timer{"  Uploaded VS in %s\n"};
-        gpu.userBlitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
+        gpu.blitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
         gpu.waitForIdle(clock);
     }
     {
         RaiiTimer timer{"  Uploaded FS in %s\n"};
-        gpu.userBlitter.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords());
+        gpu.blitter.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords());
         gpu.waitForIdle(clock);
     }
 
@@ -109,7 +109,7 @@ int sc_main(int argc, char *argv[]) {
             Vertex{80, 15, 100},
             Vertex{40, 40, 100},
         };
-        gpu.userBlitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
+        gpu.blitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
         gpu.waitForIdle(clock);
     }
 
@@ -117,7 +117,7 @@ int sc_main(int argc, char *argv[]) {
     {
         RaiiTimer timer{"  Cleared framebuffer in %s\n"};
         uint32_t clearColor = 0xffcccccc;
-        gpu.userBlitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
+        gpu.blitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
         gpu.waitForIdle(clock);
     }
 
@@ -132,7 +132,7 @@ int sc_main(int argc, char *argv[]) {
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
     {
         RaiiTimer timer{"  Read back framebuffer %s\n"};
-        gpu.userBlitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
+        gpu.blitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
         gpu.waitForIdle(clock);
     }
 

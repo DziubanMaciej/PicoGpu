@@ -6,7 +6,7 @@ This project is an implementation of a simple GPU (*graphics processing unit*) u
 
 - [Memory](gpu/blocks/memory.h) (**MEM**) and [MemoryController](gpu/blocks/memory_controller.h) (**MEMCTL**) - provide storage for various data required by the GPU, such as a vertex buffer or a frame buffer. *MemoryController* is a frontend to *Memory* allowing multiple clients (i.e. blocks, like **PA** and **OM**) to access it in a safe manner. All other blocks in *PicoGpu* have to communicate with *Memory* through the *MemoryController*. There is no direct connection.
 - [ShaderUnit](gpu/blocks/shader_array/shader_unit.h) (**SU**) and [ShaderFrontend](gpu/blocks/shader_array/shader_frontend.h) (**SF**) - provide a means to execute *PicoGpu* shaders for programmable blocks in the graphics pipeline. Blocks only connect to the *ShaderFrontend* which serves as an arbiter and distributes work to individual *ShaderUnits* for execution.
-- [User blitter](gpu/blocks/user_blitter.h) (**BLT**) - allows communicating between the *PicoGpu* and regular system memory (outside the simulation).
+- [Blitter](gpu/blocks/blitter.h) (**BLT**) - allows communicating between the *PicoGpu* and regular system memory (outside the simulation).
 - Graphics pipeline:
   - [PrimitiveAssembler](gpu/blocks/primitive_assembler.h) (**PA**) - reads vertex data from specified memory location and streams it to the next block in groups of 9 (three vertices with x,y,z components).
   - [VertexShader](gpu/blocks/vertex_shader.h) (**VS**) - schedules a programmable shader for execution to the **ShaderFrontend**. The shader receives vertex position and has to output transformed vertex position.
@@ -34,7 +34,7 @@ The project is not very mature and it lacks many features. Existing functionalit
 | Multi-client memory                          | :heavy_check_mark: `MemoryController` arbitrates access of clients to memory                |
 | Read vertex data from memory                 | :heavy_check_mark:                                                                          |
 | Render multiple triangles                    | :heavy_check_mark:                                                                          |
-| Copying between system memory and GPU memory | :heavy_check_mark: Implemented `UserBlitter`                                                |
+| Copying between system memory and GPU memory | :heavy_check_mark: Implemented `Blitter`                                                |
 | Depth test                                   | :heavy_check_mark: `OutputMerger` performs depth test                                       |
 | Floating point data                          | :heavy_check_mark: Data flowing through 32-bit wide ports are assumed to be floating point by various blocks. |
 | Programmability                              | :heavy_check_mark: `ShaderUnit` can execute our own *PicoGpu* ISA.                          |

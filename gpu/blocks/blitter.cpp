@@ -1,9 +1,9 @@
-#include "gpu/blocks/user_blitter.h"
+#include "gpu/blocks/blitter.h"
 #include "gpu/util/error.h"
 #include "gpu/util/raii_boolean_setter.h"
 
-void UserBlitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
+void Blitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
+    FATAL_ERROR_IF(pendingOperation.isValid, "Blitter has to be used sequentially");
 
     pendingOperation.isValid = true;
     pendingOperation.isFill = false;
@@ -13,8 +13,8 @@ void UserBlitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, s
     pendingOperation.sizeInDwords = sizeInDwords;
 }
 
-void UserBlitter::blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
+void Blitter::blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
+    FATAL_ERROR_IF(pendingOperation.isValid, "Blitter has to be used sequentially");
 
     pendingOperation.isValid = true;
     pendingOperation.isFill = false;
@@ -24,8 +24,8 @@ void UserBlitter::blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr,
     pendingOperation.sizeInDwords = sizeInDwords;
 }
 
-void UserBlitter::fillMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    FATAL_ERROR_IF(pendingOperation.isValid, "UserBlitter has to be used sequentially");
+void Blitter::fillMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
+    FATAL_ERROR_IF(pendingOperation.isValid, "Blitter has to be used sequentially");
 
     pendingOperation.isValid = true;
     pendingOperation.isFill = true;
@@ -35,7 +35,7 @@ void UserBlitter::fillMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, siz
     pendingOperation.sizeInDwords = sizeInDwords;
 }
 
-void UserBlitter::main() {
+void Blitter::main() {
     while (true) {
         wait();
 

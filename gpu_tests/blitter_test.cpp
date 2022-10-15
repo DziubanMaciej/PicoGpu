@@ -1,6 +1,6 @@
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
-#include "gpu/blocks/user_blitter.h"
+#include "gpu/blocks/blitter.h"
 #include "gpu/util/port_connector.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/test_utils.h"
@@ -14,9 +14,9 @@ SC_MODULE(Tester) {
 
     TESTER("Test", 2);
 
-    UserBlitter &blitter;
+    Blitter &blitter;
 
-    Tester(::sc_core::sc_module_name, UserBlitter & blitter)
+    Tester(::sc_core::sc_module_name, Blitter & blitter)
         : blitter(blitter) {
         SC_THREAD(main);
         sensitive << inpClock.pos();
@@ -113,7 +113,7 @@ int sc_main(int argc, char *argv[]) {
     if (useMemoryController) {
         memController = std::make_unique<MemoryController<1>>("memController");
     }
-    UserBlitter blitter("blitter");
+    Blitter blitter("blitter");
     Tester tester("tester", blitter);
 
     // Bind mem with memController or blitter

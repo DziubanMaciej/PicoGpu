@@ -4,7 +4,7 @@
 
 #include <systemc.h>
 
-SC_MODULE(UserBlitter) {
+SC_MODULE(Blitter) {
     sc_in_clk inpClock;
     sc_out<bool> outEnable;
     sc_out<bool> outWrite;
@@ -17,7 +17,7 @@ SC_MODULE(UserBlitter) {
         sc_out<bool> outBusy;
     } profiling;
 
-    SC_CTOR(UserBlitter) {
+    SC_CTOR(Blitter) {
         SC_CTHREAD(main, inpClock.pos());
     }
 

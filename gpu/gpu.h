@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/blocks/blitter.h"
 #include "gpu/blocks/command_streamer.h"
 #include "gpu/blocks/fragment_shader.h"
 #include "gpu/blocks/memory.h"
@@ -9,7 +10,6 @@
 #include "gpu/blocks/rasterizer.h"
 #include "gpu/blocks/shader_array/shader_frontend.h"
 #include "gpu/blocks/shader_array/shader_unit.h"
-#include "gpu/blocks/user_blitter.h"
 #include "gpu/blocks/vertex_shader.h"
 #include "gpu/util/port_connector.h"
 
@@ -24,7 +24,7 @@ SC_MODULE(Gpu) {
 
     // Blocks of the GPU
     CommandStreamer commandStreamer;       // abbreviation: CS
-    UserBlitter userBlitter;               // abbreviation: BLT
+    Blitter blitter;                       // abbreviation: BLT
     MemoryController<4> memoryController;  // abbreviation: MEMCTL
     Memory<memorySize> memory;             // abbreviation: MEM
     ShaderFrontend<2, 2> shaderFrontend;   // abbreviation: SF
