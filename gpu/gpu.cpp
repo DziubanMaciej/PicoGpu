@@ -41,6 +41,7 @@ Gpu::Gpu(sc_module_name name)
     for (auto signal : getBlocksBusySignals(this)) {
         sensitive << *signal;
     }
+    sensitive << commandStreamer.profiling.outBusy;
 }
 
 void Gpu::connectClocks() {
@@ -61,19 +62,23 @@ void Gpu::connectClocks() {
 void Gpu::connectInternalPorts() {
     // CS
     ports.connectPorts(primitiveAssembler.inpEnable, commandStreamer.paBlock.outEnable, "CS_PA");
-    commandStreamer.inpGpuBusy(out.busy);
+    ports.connectPorts(blitter.command.inpCommandType, commandStreamer.bltBlock.outCommandType, "CS_BLT_commandType");
+    ports.connectPorts(blitter.command.inpMemoryPtr, commandStreamer.bltBlock.outMemoryPtr, "CS_BLT_memoryPtr");
+    ports.connectPorts(blitter.command.inpUserPtr, commandStreamer.bltBlock.outUserPtr, "CS_BLT_userPtr");
+    ports.connectPorts(blitter.command.inpSizeInDwords, commandStreamer.bltBlock.outSizeInDwords, "CS_BLT_size");
+    commandStreamer.inpGpuBusy(out.busyNoCs);
 
     // MEM <-> MEMCTL
     ports.connectMemoryToClient(memoryController.memory, memory, "MEM_MEMCTL");
 
     // MEMCTL <-> clients
-    sc_in<MemoryDataType> *portsForRead[] = {&blitter.inpData,
+    sc_in<MemoryDataType> *portsForRead[] = {&blitter.memory.inpData,
                                              &primitiveAssembler.memory.inpData,
                                              &outputMerger.memory.inpData,
                                              &shaderFrontend.memory.inpData};
     ports.connectPortsMultiple(portsForRead, memoryController.outData, "MEMCTL_dataForRead");
-    ports.connectMemoryToClient<MemoryClientType::ReadOnly, MemoryServerType::SeparateOutData>(primitiveAssembler.memory, memoryController.clients[0], "MEMCTL_BLT");
-    ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(blitter, memoryController.clients[1], "MEMCTL_PA");
+    ports.connectMemoryToClient<MemoryClientType::ReadOnly, MemoryServerType::SeparateOutData>(primitiveAssembler.memory, memoryController.clients[0], "MEMCTL_PA");
+    ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(blitter.memory, memoryController.clients[1], "MEMCTL_BLT");
     ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(outputMerger.memory, memoryController.clients[2], "MEMCTL_OM");
     ports.connectMemoryToClient<MemoryClientType::ReadOnly, MemoryServerType::SeparateOutData>(shaderFrontend.memory, memoryController.clients[3], "MEMCTL_SF");
 
@@ -121,6 +126,8 @@ void Gpu::connectPublicPorts() {
 }
 
 void Gpu::connectProfilingPorts() {
+    profilingPorts.connectPort(commandStreamer.profiling.outBusy, "CS_busy");
+
     profilingPorts.connectPort(blitter.profiling.outBusy, "BLT_busy");
 
     profilingPorts.connectPort(memoryController.profiling.outBusy, "MEMCTL_busy");
@@ -177,12 +184,13 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
 void Gpu::addProfilingSignalsToVcdTrace(VcdTrace &trace) {
     profilingPorts.addSignalsToTrace(trace);
     trace.trace(blocks.GLOBAL.inpClock);
+    trace.trace(out.busyNoCs);
     trace.trace(out.busy);
 }
 
 void Gpu::waitForIdle(const sc_clock &clock) const {
     do {
-        sc_start(2 * clock.period());
+        sc_start(20 * clock.period());
     } while (out.busy.read());
 }
 
@@ -191,5 +199,6 @@ void Gpu::setBusyValue() {
     for (auto signal : getBlocksBusySignals(this)) {
         value = value || signal->read();
     }
-    out.busy = value;
+    out.busyNoCs = value;
+    out.busy = value || commandStreamer.profiling.outBusy.read();
 }

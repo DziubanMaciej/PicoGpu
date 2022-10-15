@@ -71,6 +71,7 @@ SC_MODULE(Gpu) {
     // This structure represents outputs signals to be read by user. The user
     // should not set any of these signals to any value and treat them as read-only.
     struct {
+        sc_signal<bool> busyNoCs{"busyNoCs"};
         sc_signal<bool> busy{"busy"};
     } out;
 

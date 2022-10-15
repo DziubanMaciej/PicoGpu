@@ -79,64 +79,41 @@ int sc_main(int argc, char *argv[]) {
     gpu.addProfilingSignalsToVcdTrace(profilingTrace);
 
     // Upload shaders ISA to the memory
-    {
-        RaiiTimer timer{"  Uploaded VS in %s\n"};
-        gpu.blitter.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
-        gpu.waitForIdle(clock);
-    }
-    {
-        RaiiTimer timer{"  Uploaded FS in %s\n"};
-        gpu.blitter.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords());
-        gpu.waitForIdle(clock);
-    }
+    gpu.commandStreamer.blitToMemory(vsAddress, vs.getData().data(), vs.getSizeInDwords());
+    gpu.commandStreamer.blitToMemory(fsAddress, fs.getData().data(), fs.getSizeInDwords());
 
     // Upload vertex data to the memory
-    {
-        RaiiTimer timer{"  Uploaded VB in %s\n"};
-        struct Vertex {
-            float x, y, z;
-        };
-        Vertex vertices[] = {
-            Vertex{10, 10, 200},
-            Vertex{10, 20, 200},
-            Vertex{20, 10, 200},
+    struct Vertex {
+        float x, y, z;
+    };
+    Vertex vertices[] = {
+        Vertex{10, 10, 200},
+        Vertex{10, 20, 200},
+        Vertex{20, 10, 200},
 
-            Vertex{40, 10, 200},
-            Vertex{40, 20, 200},
-            Vertex{50, 10, 200},
+        Vertex{40, 10, 200},
+        Vertex{40, 20, 200},
+        Vertex{50, 10, 200},
 
-            Vertex{10, 15, 100},
-            Vertex{80, 15, 100},
-            Vertex{40, 40, 100},
-        };
-        gpu.blitter.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
-        gpu.waitForIdle(clock);
-    }
+        Vertex{10, 15, 100},
+        Vertex{80, 15, 100},
+        Vertex{40, 40, 100},
+    };
+    gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4);
 
     // Clear framebuffer
-    {
-        RaiiTimer timer{"  Cleared framebuffer in %s\n"};
-        uint32_t clearColor = 0xffcccccc;
-        gpu.blitter.fillMemory(framebufferAddress, &clearColor, 100 * 100);
-        gpu.waitForIdle(clock);
-    }
+    uint32_t clearColor = 0xffcccccc;
+    gpu.commandStreamer.fillMemory(framebufferAddress, &clearColor, 100 * 100);
 
     // Issue a drawcall
-    {
-        RaiiTimer timer{"  Performed draw in %s\n"};
-        gpu.commandStreamer.draw();
-        gpu.waitForIdle(clock);
-    }
+    gpu.commandStreamer.draw();
 
     // Blit results to a normal user buffer
     auto pixels = std::make_unique<uint32_t[]>(100 * 100);
-    {
-        RaiiTimer timer{"  Read back framebuffer %s\n"};
-        gpu.blitter.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
-        gpu.waitForIdle(clock);
-    }
+    gpu.commandStreamer.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100);
 
     // Save to a file
+    gpu.waitForIdle(clock);
     stbi_write_png("result.png", 100, 100, 4, pixels.get(), 100 * 4);
 
     return 0;

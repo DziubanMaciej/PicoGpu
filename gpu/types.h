@@ -14,3 +14,5 @@ using FragmentColorType = sc_uint<fragmentColorTypeByteSize * 8>;
 
 constexpr inline size_t depthTypeByteSize = 4;
 using DepthType = sc_uint<depthTypeByteSize * 8>;
+
+using PointerType = sc_uint<sizeof(void*) * 8>;

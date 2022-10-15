@@ -182,8 +182,14 @@ struct PortConnector {
 private:
     template <typename DataType>
     SignalVector<DataType> &signals() {
-        if constexpr (std::is_same_v<DataType, sc_uint<32>>) {
+        if constexpr (std::is_same_v<DataType, sc_uint<64>>) {
+            return owordSignals;
+        } else if constexpr (std::is_same_v<DataType, sc_uint<32>>) {
             return dwordSignals;
+        } else if constexpr (std::is_same_v<DataType, sc_uint<16>>) {
+            return wordSignals;
+        } else if constexpr (std::is_same_v<DataType, sc_uint<2>>) {
+            return twoBitSignals;
         } else if constexpr (std::is_same_v<DataType, bool>) {
             return boolSignals;
         } else if constexpr (std::is_same_v<DataType, ShadedFragment>) {
@@ -201,7 +207,10 @@ private:
     template <bool flag = false>
     static void staticNoMatch() { static_assert(flag, "Invalid datatype"); }
 
+    SignalVector<sc_uint<64>> owordSignals;
+    SignalVector<sc_uint<16>> wordSignals;
     SignalVector<sc_uint<32>> dwordSignals;
+    SignalVector<sc_uint<2>> twoBitSignals;
     SignalVector<bool> boolSignals;
     SignalVector<ShadedFragment> shadedFragmentSignals;
     SignalVector<UnshadedFragment> unshadedFragmentSignals;

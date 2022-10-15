@@ -1,6 +1,6 @@
+#include "gpu/blocks/blitter.h"
 #include "gpu/blocks/memory.h"
 #include "gpu/blocks/memory_controller.h"
-#include "gpu/blocks/blitter.h"
 #include "gpu/util/port_connector.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/test_utils.h"
@@ -9,6 +9,10 @@
 
 SC_MODULE(Tester) {
     sc_in_clk inpClock;
+    sc_out<sc_uint<2>> outCommandType;
+    sc_out<MemoryAddressType> outMemoryPtr;
+    sc_out<PointerType> outUserPtr;
+    sc_out<sc_uint<16>> outSizeInDwords;
 
     SC_HAS_PROCESS(Tester);
 
@@ -20,6 +24,20 @@ SC_MODULE(Tester) {
         : blitter(blitter) {
         SC_THREAD(main);
         sensitive << inpClock.pos();
+    }
+
+    void blit(Blitter::CommandType blitType, MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords) {
+        outCommandType = static_cast<size_t>(blitType);
+        outMemoryPtr = memoryPtr;
+        outUserPtr = reinterpret_cast<uintptr_t>(userPtr);
+        outSizeInDwords = sizeInDwords;
+
+        wait();
+
+        outCommandType = 0;
+        outMemoryPtr = 0;
+        outUserPtr = 0;
+        outSizeInDwords = 0;
     }
 
     void main() {
@@ -38,30 +56,15 @@ SC_MODULE(Tester) {
             0x66666666,
         };
 
-        blitter.blitToMemory(0x04, data1, 3); // Write data1 to locations 0x04, 0x08, 0x0C
-        int cycles = 0;
-        while (blitter.hasPendingOperation()) {
-            wait(1);
-            cycles++;
-        }
-        Log() << "Written " << 3 << " dwords in " << cycles << " cycles";
+        blit(Blitter::CommandType::CopyToMem, 0x04, data1, 3);
+        waitForBlitter("Written 3 dwords");
 
-        blitter.blitToMemory(0x0C, data2, 4); // Write data2 to locations 0x0C, 0x10, 0x14, 0x18
-        cycles = 0;
-        while (blitter.hasPendingOperation()) {
-            wait(1);
-            cycles++;
-        }
-        Log() << "Written " << 4 << " dwords in " << cycles << " cycles";
+        blit(Blitter::CommandType::CopyToMem, 0x0C, data2, 4);
+        waitForBlitter("Written 4 dwords");
 
         uint32_t readData[6] = {};
-        blitter.blitFromMemory(0x04, readData, 6); // Read from locations 0x04 to 0x18
-        cycles = 0;
-        while (blitter.hasPendingOperation()) {
-            wait(1);
-            cycles++;
-        }
-        Log() << "Written " << 6 << " dwords in " << cycles << " cycles";
+        blit(Blitter::CommandType::CopyFromMem, 0x04, readData, 6); // Read from locations 0x04 to 0x18
+        waitForBlitter("Read 6 dwords");
 
         ASSERT_EQ(data1[0], readData[0]);
         ASSERT_EQ(data1[1], readData[1]);
@@ -73,13 +76,13 @@ SC_MODULE(Tester) {
 
         // Fill locations from 0x08 to 0x14
         uint32_t dataForFill = 0x112112;
-        blitter.fillMemory(0x08, &dataForFill, 4);
+        blit(Blitter::CommandType::FillMem, 0x08, &dataForFill, 4);
         waitForBlitter("Filled 4 dwords");
 
         // Read from locations 0x04 to 0x18
         {
             uint32_t readData[6] = {};
-            blitter.blitFromMemory(0x04, readData, 6);
+            blit(Blitter::CommandType::CopyFromMem, 0x04, readData, 6);
             waitForBlitter("Read 6 dwords");
 
             ASSERT_EQ(data1[0], readData[0]);
@@ -94,10 +97,10 @@ SC_MODULE(Tester) {
 
     void waitForBlitter(const char *message) {
         int cycles = 0;
-        while (blitter.hasPendingOperation()) {
+        do {
             wait(1);
             cycles++;
-        }
+        } while (blitter.profiling.outBusy.read());
         Log() << message << " in " << cycles << " cycles";
     }
 };
@@ -119,11 +122,17 @@ int sc_main(int argc, char *argv[]) {
     // Bind mem with memController or blitter
     if (useMemoryController) {
         ports.connectMemoryToClient(memController->memory, mem, "MEMCTL_MEM");
-        ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(blitter, memController->clients[0], "MEMCTL_BLT");
-        ports.connectPorts(blitter.inpData, memController->outData, "MEMCTL_BLT_dataForRead");
+        ports.connectMemoryToClient<MemoryClientType::ReadWrite, MemoryServerType::SeparateOutData>(blitter.memory, memController->clients[0], "MEMCTL_BLT");
+        ports.connectPorts(blitter.memory.inpData, memController->outData, "MEMCTL_BLT_dataForRead");
     } else {
-        ports.connectMemoryToClient(blitter, mem, "MEM_BLT");
+        ports.connectMemoryToClient(blitter.memory, mem, "MEM_BLT");
     }
+
+    // Bind blitter with tester
+    ports.connectPorts(blitter.command.inpCommandType, tester.outCommandType, "commandType");
+    ports.connectPorts(blitter.command.inpMemoryPtr, tester.outMemoryPtr, "memoryPtr");
+    ports.connectPorts(blitter.command.inpUserPtr, tester.outUserPtr, "userPtr");
+    ports.connectPorts(blitter.command.inpSizeInDwords, tester.outSizeInDwords, "size");
 
     // Bind clock for every component
     mem.inpClock(clock);

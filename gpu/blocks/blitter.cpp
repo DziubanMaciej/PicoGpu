@@ -2,75 +2,47 @@
 #include "gpu/util/error.h"
 #include "gpu/util/raii_boolean_setter.h"
 
-void Blitter::blitToMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    FATAL_ERROR_IF(pendingOperation.isValid, "Blitter has to be used sequentially");
-
-    pendingOperation.isValid = true;
-    pendingOperation.isFill = false;
-    pendingOperation.toMemory = true;
-    pendingOperation.memoryPtr = memoryPtr;
-    pendingOperation.userPtr = userPtr;
-    pendingOperation.sizeInDwords = sizeInDwords;
-}
-
-void Blitter::blitFromMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    FATAL_ERROR_IF(pendingOperation.isValid, "Blitter has to be used sequentially");
-
-    pendingOperation.isValid = true;
-    pendingOperation.isFill = false;
-    pendingOperation.toMemory = false;
-    pendingOperation.memoryPtr = memoryPtr;
-    pendingOperation.userPtr = userPtr;
-    pendingOperation.sizeInDwords = sizeInDwords;
-}
-
-void Blitter::fillMemory(MemoryAddressType memoryPtr, uint32_t *userPtr, size_t sizeInDwords) {
-    FATAL_ERROR_IF(pendingOperation.isValid, "Blitter has to be used sequentially");
-
-    pendingOperation.isValid = true;
-    pendingOperation.isFill = true;
-    pendingOperation.toMemory = true;
-    pendingOperation.memoryPtr = memoryPtr;
-    pendingOperation.userPtr = userPtr;
-    pendingOperation.sizeInDwords = sizeInDwords;
-}
-
 void Blitter::main() {
     while (true) {
         wait();
 
-        if (!pendingOperation.isValid) {
+        const CommandType commandType = static_cast<CommandType>(command.inpCommandType.read().to_int());
+        if (commandType == CommandType::None) {
             continue;
         }
 
+        const bool isWrite = commandType == CommandType::CopyToMem || commandType == CommandType::FillMem;
+        const bool isFill = commandType == CommandType::FillMem;
+        const MemoryAddressType memoryPtr = command.inpMemoryPtr.read();
+        const auto userPtr = reinterpret_cast<uint32_t *>(command.inpUserPtr.read().to_uint64());
+        const uint32_t sizeInDwords = command.inpSizeInDwords.read().to_uint();
+
         RaiiBooleanSetter busySetter{profiling.outBusy};
 
-        for (size_t dwordIndex = 0; dwordIndex < pendingOperation.sizeInDwords; dwordIndex++) {
-            outEnable = 1;
-            outWrite = pendingOperation.toMemory;
-            outAddress = pendingOperation.memoryPtr + 4 * dwordIndex;
+        for (size_t dwordIndex = 0; dwordIndex < sizeInDwords; dwordIndex++) {
+            memory.outEnable = 1;
+            memory.outWrite = isWrite;
+            memory.outAddress = memoryPtr + 4 * dwordIndex;
 
-            if (pendingOperation.toMemory) {
-                const size_t userPtrIndex = pendingOperation.isFill ? 0 : dwordIndex;
-                outData = pendingOperation.userPtr[userPtrIndex];
+            if (isWrite) {
+                const size_t userPtrIndex = isFill ? 0 : dwordIndex;
+                memory.outData = userPtr[userPtrIndex];
             }
 
             wait(1);
-            outEnable = 0;
+            memory.outEnable = 0;
 
-            while (!inpCompleted) {
+            while (!memory.inpCompleted) {
                 wait(1);
             }
 
-            outWrite = 0;
-            outAddress = 0;
-            outData = 0;
+            memory.outWrite = 0;
+            memory.outAddress = 0;
+            memory.outData = 0;
 
-            if (!pendingOperation.toMemory) {
-                pendingOperation.userPtr[dwordIndex] = inpData.read();
+            if (!isWrite) {
+                userPtr[dwordIndex] = memory.inpData.read();
             }
         }
-
-        pendingOperation.isValid = false;
     }
 }
