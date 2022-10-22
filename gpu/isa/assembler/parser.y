@@ -49,6 +49,12 @@
     // Error handling
     int yyerror(void *yylval, const char *s);
     #define YYABORT_WITH_ERROR(err) { yyerror(nullptr, err); YYABORT; }
+    #define VALIDATE_BINARY()                                         \
+        do {                                                          \
+            if (outputBinary->hasError()) {                           \
+                YYABORT_WITH_ERROR(outputBinary->getError().c_str()); \
+            }                                                         \
+        } while (false)
 
     // Internal parser definitions
     bool hasDuplicates(std::initializer_list<Isa::SwizzlePatternComponent> values);
@@ -56,19 +62,20 @@
     inline int32_t asint(float arg) { return reinterpret_cast<int32_t&>(arg); }
 %}
 
+// Tokens received from lexer
 %token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS
 %token IINIT IADD ISUB IMUL IDIV INEG
 %token MOV SWIZZLE
 %token HASH_INPUT HASH_OUTPUT DOT
 %token <swizzleComponent> VEC_COMPONENT
-%token <reg> REG_GENERAL REG_INPUT REG_OUTPUT
+%token <reg> REG
 %token <i> NUMBER_INT
 %token <f> NUMBER_FLOAT
 
+// Custom types defined by this parser
 %type <ui> REG_MASK
 %type <dstReg> DST_REG DST_REG_COMPONENT
 %type <fullySwizzledReg> FULLY_SWIZZLED_REG
-%type <reg> REG
 %type <immediateArgs> IMMEDIATE_INTS IMMEDIATE_FLOATS
 
 %parse-param {Isa::PicoGpuBinary *outputBinary}
@@ -90,18 +97,18 @@
 PROGRAM: DIRECTIVE_SECTION INSTRUCTION_SECTION
 
 // ----------------------------- Directives
-DIRECTIVE_SECTION : DIRECTIVES { const char *error; if(!outputBinary->finalizeDirectives(&error)) { YYABORT_WITH_ERROR(error); } }
+DIRECTIVE_SECTION : DIRECTIVES { outputBinary->finalizeDirectives(); VALIDATE_BINARY(); }
 DIRECTIVES:
       DIRECTIVE
     | DIRECTIVES DIRECTIVE
 DIRECTIVE : INPUT_DIRECTIVE | OUTPUT_DIRECTIVE
-INPUT_DIRECTIVE :  HASH_INPUT  REG_INPUT REG_MASK  { outputBinary->encodeDirectiveInput($3); }
-OUTPUT_DIRECTIVE : HASH_OUTPUT REG_OUTPUT REG_MASK { outputBinary->encodeDirectiveOutput($3); }
+INPUT_DIRECTIVE :  HASH_INPUT  REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, true);  VALIDATE_BINARY(); }
+OUTPUT_DIRECTIVE : HASH_OUTPUT REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, false); VALIDATE_BINARY(); }
 
 
 
 // ----------------------------- Instructions
-INSTRUCTION_SECTION : INSTRUCTIONS { const char *error; if(!outputBinary->finalizeInstructions(&error)) { YYABORT_WITH_ERROR(error); } }
+INSTRUCTION_SECTION : INSTRUCTIONS { outputBinary->finalizeInstructions(); VALIDATE_BINARY(); }
 INSTRUCTIONS:
       INSTRUCTION
     | INSTRUCTIONS INSTRUCTION
@@ -140,11 +147,6 @@ DST_REG:
 DST_REG_COMPONENT:
     REG DOT VEC_COMPONENT { $$ = DstRegister{$1, constructMask({$3})}; }
 
-REG:
-      REG_GENERAL
-    | REG_INPUT
-    | REG_OUTPUT
-
 REG_MASK:
       DOT VEC_COMPONENT                                           {                                                                                                       $$ = constructMask({$2});             }
     | DOT VEC_COMPONENT VEC_COMPONENT                             { if (hasDuplicates({$2, $3}))         YYABORT_WITH_ERROR("duplicate components in dst register mask"); $$ = constructMask({$2, $3});         }
@@ -152,7 +154,7 @@ REG_MASK:
     | DOT VEC_COMPONENT VEC_COMPONENT VEC_COMPONENT VEC_COMPONENT { if (hasDuplicates({$2, $3, $4, $5})) YYABORT_WITH_ERROR("duplicate components in dst register mask"); $$ = constructMask({$2, $3, $4, $5}); }
 
 FULLY_SWIZZLED_REG:
-    REG DOT VEC_COMPONENT VEC_COMPONENT VEC_COMPONENT VEC_COMPONENT { $$ = FullySwizzledRegister{$1, $3, $4, $5, $6}; } 
+    REG DOT VEC_COMPONENT VEC_COMPONENT VEC_COMPONENT VEC_COMPONENT { $$ = FullySwizzledRegister{$1, $3, $4, $5, $6}; }
 
 IMMEDIATE_INTS:
       NUMBER_INT                                   { $$ = ImmediateArgs{ 1, {$1,  0,  0,  0}}; }

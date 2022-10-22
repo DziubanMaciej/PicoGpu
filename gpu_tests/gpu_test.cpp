@@ -30,21 +30,21 @@ int sc_main(int argc, char *argv[]) {
     // Compile shaders
     Isa::PicoGpuBinary vs = {};
     const char *vsCode = R"code(
-            #input i0.xyz
-            #output o0.xyzw
-            mov o0.xyz i0
-            finit o0.w 1.f
+            #input r0.xyz
+            #output r12.xyzw
+            mov r12.xyz r0
+            finit r12.w 1.f
 
-            finit r0 100.f
-            fsub o0.y r0 o0
+            finit r1 100.f
+            fsub r12.y r1 r12
         )code";
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
     Isa::PicoGpuBinary fs = {};
     const char *fsCode = R"code(
-            #input i0.xyzw
-            #output o0.xyzw
-            finit o0.w 1.f
-            fdiv o0.x i0 100.f
+            #input r0.xyzw
+            #output r12.xyzw
+            finit r12.w 1.f
+            fdiv r12.x r0 100.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
 

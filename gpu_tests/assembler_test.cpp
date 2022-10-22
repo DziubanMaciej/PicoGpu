@@ -5,61 +5,87 @@
 
 const char *passingPrograms[] = {
     // Program 0 - 1 arg passthrough
-    "#input i0.xyzw\n"
-    "#output o0.xyzw\n"
-    "mov o0 i0\n",
+    "#input r0.xyzw\n"
+    "#output r12.xyzw\n"
+    "mov r12 r0\n",
 
     // Program 1 - 4 arg passthrough, different channels
-    "#input i0.xyzw\n"
-    "#input i1.xyz\n"
-    "#input i2.xzw\n"
-    "#input i3.xyzw\n"
-    "#output o0.yzw\n"
-    "#output o1.xyw\n"
-    "#output o2.xzw\n"
-    "#output o3.z\n"
-    "mov o0 i0\n"
-    "mov o1 i1\n"
-    "mov o2 i2\n"
-    "mov o3 i3\n",
+    "#input r0.xyzw\n"
+    "#input r1.xyz\n"
+    "#input r2.xzw\n"
+    "#input r3.xyzw\n"
+    "#output r12.yzw\n"
+    "#output r13.xyw\n"
+    "#output r14.xzw\n"
+    "#output r15.z\n"
+    "mov r12 r0\n"
+    "mov r13 r1\n"
+    "mov r14 r2\n"
+    "mov r15 r3\n",
 
     // Program 2 - a couple instructions
-    "#input i0.xw\n"
-    "#input i1.yz\n"
-    "#output o0.xyzw\n"
+    "#input r0.xw\n"
+    "#input r1.yz\n"
+    "#output r12.xyzw\n"
     ""
-    "mov r0    i0\n"
-    "mov r0.xw i1\n"
-    "fadd r0 r0 r0\n"
-    "mov o0 r0\n"
-    "swizzle o0 o0.wzyx\n",
+    "mov r2    r0\n"
+    "mov r2.xw r1\n"
+    "fadd r2 r2 r2\n"
+    "mov r12 r2\n"
+    "swizzle r12 r12.wzyx\n",
 };
 
 const char *failingPrograms[] = {
     // Program 0 - no instructions
-    "#input i0.xyzw"
-    "#output o0.xyzw",
+    "#input r0.xyzw"
+    "#output r12.xyzw",
 
     // Program 1 - no inputs
-    "#output o0.xyzw"
-    "mov o0, i0",
+    "#output r12.xyzw"
+    "mov r12 r0",
 
     // Program 2 - no outputs
-    "#input i0.xyzw"
-    "mov o0, i0",
+    "#input r0.xyzw"
+    "mov r12 r0",
 
     // Program 3 - swizzled source
-    "#input i0.xyzw"
-    "#output o0.xyzw"
-    "mov o0, i1.xyz",
+    "#input r0.xyzw"
+    "#output r12.xyzw"
+    "mov r12 r0.xyz",
 
     // Program 4 - non-full swizzle
-    "#input i0.xyzw"
-    "#output o0.xyzw"
-    "swizzle o0, i1.xyw",
+    "#input r0.xyzw"
+    "#output r12.xyzw"
+    "swizzle r12 r0.xyw",
+
+    // Program 5 - non-contiguous inputs
+    "#input r0.xyzw\n"
+    "#input r2.xyzw\n"
+    "#output r12.xyzw\n"
+    "mov r12 r0\n",
+
+    // Program 6 - non-contiguous outputs
+    "#input r0.xyzw\n"
+    "#output r12.xyzw\n"
+    "#output r14.xyzw\n"
+    "mov r12 r0\n",
+
+    // Program 7 - input out of scope
+    "#input r4.xyzw\n"
+    "#output r12.xyzw\n"
+    "mov r12 r4\n",
+
+    // Program 8 - outputs out of scope
+    "#input r0.xyzw\n"
+    "#output r11.xyzw\n"
+    "mov r11 r0\n",
 };
 
 int sc_main(int argc, char *argv[]) {
+    // Isa::PicoGpuBinary binary = {};
+    // int result = Isa::assembly(failingPrograms[7], &binary);
+    // FATAL_ERROR("DUPA");
+
     bool success = true;
     int count = 0;
 
@@ -69,23 +95,24 @@ int sc_main(int argc, char *argv[]) {
 
         const auto name = std::string("Program") + std::to_string(count++);
         if (result != 0) {
-            Log() << name << "(expect pass): FAIL";
+            Log() << name << "(expect pass): FAIL\n";
             success = false;
         } else {
-            Log() << name << "(expect pass): SUCCESS";
+            Log() << name << "(expect pass): SUCCESS\n";
         }
     }
 
+    count = 0;
     for (const char *program : failingPrograms) {
         Isa::PicoGpuBinary binary = {};
         int result = Isa::assembly(program, &binary);
 
         const auto name = std::string("Program") + std::to_string(count++);
         if (result == 0) {
-            Log() << name << "(expect fail): FAIL";
+            Log() << name << "(expect fail): FAIL\n";
             success = false;
         } else {
-            Log() << name << "(expect fail): SUCCESS";
+            Log() << name << "(expect fail): SUCCESS\n";
         }
     }
 

@@ -9,13 +9,18 @@ namespace Isa {
 
 // Define general constants used during further definition of the ISA as well as by
 // components using it.
+constexpr inline size_t opcodeBitsize = 5;
 constexpr inline size_t simdExponent = 5;
 constexpr inline size_t simdSize = 1 << simdExponent;
 constexpr inline size_t maxIsaSizeExponent = 9;
 constexpr inline size_t maxIsaSize = 1 << maxIsaSizeExponent;
-constexpr inline size_t inputRegistersCount = 4;
-constexpr inline size_t outputRegistersCount = 4;
-constexpr inline size_t generalPurposeRegistersCount = 8;
+constexpr inline size_t generalPurposeRegistersCountExponent = 4;
+constexpr inline size_t generalPurposeRegistersCount = 1 << generalPurposeRegistersCountExponent;
+constexpr inline size_t maxInputOutputRegistersExponent = 2;
+constexpr inline size_t maxInputOutputRegisters = 1 << maxInputOutputRegistersExponent;
+constexpr inline size_t inputRegistersOffset = 0;
+constexpr inline size_t outputRegistersOffset = generalPurposeRegistersCount - maxInputOutputRegisters;
+constexpr inline size_t registerComponentsCount = 4;
 
 // Commands are macro-operations issued to the shader units in order to prepare and
 // execute shaders.
@@ -44,9 +49,9 @@ namespace Command {
             uint32_t hasNextCommand : 1;
             uint32_t programLength : maxIsaSizeExponent;
             ProgramType programType : 1;
-            NonZeroCount inputsCount : 2;  // defines valid input registers count from 1 to 4
-            NonZeroCount outputsCount : 2; // defines valid output registers count from 1 to 4
-            NonZeroCount inputSize0 : 2;
+            NonZeroCount inputsCount : 2;  // defines valid input registers count from 1 to 4. Registers r0-r4 will be used
+            NonZeroCount outputsCount : 2; // defines valid output registers count from 1 to 4. Registers r12-r15
+            NonZeroCount inputSize0 : 2; // the number of components of first input register that will have a meaningful value.
             NonZeroCount inputSize1 : 2;
             NonZeroCount inputSize2 : 2;
             NonZeroCount inputSize3 : 2;
@@ -105,7 +110,11 @@ enum class Opcode : uint32_t {
     init,
     swizzle,
     mov,
+
+    // control value
+    COUNT,
 };
+static_assert(static_cast<uint32_t>(Opcode::COUNT) < (1 << opcodeBitsize), "Too many ops for selected opcode bit size");
 
 enum class SwizzlePatternComponent : uint32_t {
     SwizzleX = 0b00,
@@ -114,41 +123,22 @@ enum class SwizzlePatternComponent : uint32_t {
     SwizzleW = 0b11,
 };
 
-enum class RegisterSelection : uint32_t {
-    i0 = 0,
-    i1 = 1,
-    i2 = 2,
-    i3 = 3,
-    o0 = 4,
-    o1 = 5,
-    o2 = 6,
-    o3 = 7,
-    r0 = 8,
-    r1 = 9,
-    r2 = 10,
-    r3 = 11,
-    r4 = 12,
-    r5 = 13,
-    r6 = 14,
-    r7 = 15,
-};
-
-inline RegisterSelection operator+(RegisterSelection base, int offset) { return RegisterSelection((int)base + offset); }
+using RegisterSelection = uint32_t; // TODO rename to GeneralPurposeRegisterIndex
 
 namespace InstructionLayouts {
     // This is not an actual instruction layout, but just some type that can be used to extract
     // the opcode.
     struct Header {
-        Opcode opcode : 5;
+        Opcode opcode : opcodeBitsize;
     };
 
     // Any operation, that can take a register, compute something and output to a register
     // Destination is masked, which means we can select which channels of the vector registers
     // will be affected (1 bit per channel)
     struct UnaryMath {
-        Opcode opcode : 5;
-        RegisterSelection dest : 4;
-        RegisterSelection src : 4;
+        Opcode opcode : opcodeBitsize;
+        RegisterSelection dest : generalPurposeRegistersCountExponent;
+        RegisterSelection src : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
     };
 
@@ -156,10 +146,10 @@ namespace InstructionLayouts {
     // Destination is masked, which means we can select which channels of the vector registers
     // will be affected (1 bit per channel)
     struct BinaryMath {
-        Opcode opcode : 5;
-        RegisterSelection dest : 4;
-        RegisterSelection src1 : 4;
-        RegisterSelection src2 : 4;
+        Opcode opcode : opcodeBitsize;
+        RegisterSelection dest : generalPurposeRegistersCountExponent;
+        RegisterSelection src1 : generalPurposeRegistersCountExponent;
+        RegisterSelection src2 : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
     };
 
@@ -168,8 +158,8 @@ namespace InstructionLayouts {
     // will be affected (1 bit per channel). ImmediateValues field is a one-element array, but the instruction
     // can actually take more bytes if immediateValuesCount is greater than 1.
     struct UnaryMathImm {
-        Opcode opcode : 5;
-        RegisterSelection dest : 4;
+        Opcode opcode : opcodeBitsize;
+        RegisterSelection dest : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
         NonZeroCount immediateValuesCount : 2;
         uint32_t reserved : 17;
@@ -181,9 +171,9 @@ namespace InstructionLayouts {
     // will be affected (1 bit per channel). ImmediateValues field is a one-element array, but the instruction
     // can actually take more bytes if immediateValuesCount is greater than 1.
     struct BinaryMathImm {
-        Opcode opcode : 5;
-        RegisterSelection dest : 4;
-        RegisterSelection src : 4;
+        Opcode opcode : opcodeBitsize;
+        RegisterSelection dest : generalPurposeRegistersCountExponent;
+        RegisterSelection src : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
         NonZeroCount immediateValuesCount : 2;
         uint32_t reserved : 13;
@@ -194,8 +184,8 @@ namespace InstructionLayouts {
     // The swizzle pattern is 8 bit, 2 bits per component to select either x,y,z or w from src.
     struct Swizzle {
         Opcode opcode : 5;
-        RegisterSelection dest : 4;
-        RegisterSelection src : 4;
+        RegisterSelection dest : generalPurposeRegistersCountExponent;
+        RegisterSelection src : generalPurposeRegistersCountExponent;
         SwizzlePatternComponent patternX : 2;
         SwizzlePatternComponent patternY : 2;
         SwizzlePatternComponent patternZ : 2;

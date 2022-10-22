@@ -7,7 +7,7 @@
 
 void ShaderFrontendBase::requestThread() {
     constexpr bool handshakeOnlyOnce = true;
-    constexpr size_t maxShaderInputsCount = 4 * Isa::inputRegistersCount * Isa::simdSize;
+    constexpr size_t maxShaderInputsCount = Isa::registerComponentsCount * Isa::maxInputOutputRegisters * Isa::simdSize;
     uint32_t shaderInput[maxShaderInputsCount] = {};
 
     while (true) {
@@ -66,7 +66,7 @@ void ShaderFrontendBase::requestThread() {
 }
 
 void ShaderFrontendBase::responseThread() {
-    constexpr size_t maxShaderOutputsCount = 4 * Isa::outputRegistersCount * Isa::simdSize + sizeof(ShaderFrontendResponse) / sizeof(uint32_t);
+    constexpr size_t maxShaderOutputsCount = Isa::registerComponentsCount * Isa::maxInputOutputRegisters * Isa::simdSize + sizeof(ShaderFrontendResponse) / sizeof(uint32_t);
     uint32_t shaderOutputs[maxShaderOutputsCount] = {};
 
     while (1) {

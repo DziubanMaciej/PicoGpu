@@ -125,29 +125,29 @@ SC_MODULE(Tester) {
         dataStream.storeCommand.outputSize0 = NonZeroCount::Four;
 
         dataStream.isa0.opcode = Isa::Opcode::iadd_imm;
-        dataStream.isa0.src = Isa::RegisterSelection::i0;
-        dataStream.isa0.dest = Isa::RegisterSelection::r0;
+        dataStream.isa0.src = 0;
+        dataStream.isa0.dest = 4;
         dataStream.isa0.destMask = 0b1100;
         dataStream.isa0.immediateValuesCount = NonZeroCount::One;
         dataStream.isa0.immediateValues[0] = 100;
 
         dataStream.isa1.opcode = Isa::Opcode::iadd_imm;
-        dataStream.isa1.src = Isa::RegisterSelection::i0;
-        dataStream.isa1.dest = Isa::RegisterSelection::r0;
+        dataStream.isa1.src = 0;
+        dataStream.isa1.dest = 4;
         dataStream.isa1.destMask = 0b0010;
         dataStream.isa1.immediateValuesCount = NonZeroCount::One;
         dataStream.isa1.immediateValues[0] = 1000;
 
         dataStream.isa2.opcode = Isa::Opcode::iadd_imm;
-        dataStream.isa2.src = Isa::RegisterSelection::i0;
-        dataStream.isa2.dest = Isa::RegisterSelection::r0;
+        dataStream.isa2.src = 0;
+        dataStream.isa2.dest = 4;
         dataStream.isa2.destMask = 0b0001;
         dataStream.isa2.immediateValuesCount = NonZeroCount::One;
         dataStream.isa2.immediateValues[0] = 10000;
 
         dataStream.isa3.opcode = Isa::Opcode::mov;
-        dataStream.isa3.src = Isa::RegisterSelection::r0;
-        dataStream.isa3.dest = Isa::RegisterSelection::o0;
+        dataStream.isa3.src = 4;
+        dataStream.isa3.dest = 12;
         dataStream.isa3.destMask = 0b1111;
 
         dataStream.executeCommand.commandType = Isa::Command::CommandType::ExecuteIsa;
@@ -183,12 +183,12 @@ SC_MODULE(Tester) {
 
     TestCase createSimpleTestCase() {
         const char *code =
-            "#input i0.xyz\n"
-            "#output o0.xyzw\n"
-            "iadd r0.xy i0 100\n"
-            "iadd r0.z  i0 1000\n"
-            "iadd r0.w  i0 10000\n"
-            "mov o0 r0\n";
+            "#input r0.xyz\n"
+            "#output r12.xyzw\n"
+            "iadd r4.xy r0 100\n"
+            "iadd r4.z  r0 1000\n"
+            "iadd r4.w  r0 10000\n"
+            "mov r12 r4\n";
         Isa::PicoGpuBinary binary = {};
         int result = Isa::assembly(code, &binary);
         FATAL_ERROR_IF(result != 0, "Failed to assemble code");
@@ -228,26 +228,26 @@ SC_MODULE(Tester) {
 
     TestCase createFloatTestCase() {
         const char *code = R"code(
-            #input i0.x
-            #output o0.xyz
+            #input r0.x
+            #output r12.xyz
 
-            swizzle r0 i0.xxxx
+            swizzle r7 r0.xxxx
 
             finit r4 2.f 4.f 8.f
-            fmul  r0 r0 r4
+            fmul  r7 r7 r4
 
-            fadd  r0 r0 r4
+            fadd  r7 r7 r4
 
             finit r4 3.f
-            fsub r0 r0 r4
+            fsub r7 r7 r4
 
             finit r4 2.f
-            fdiv r0 r0 r4
+            fdiv r7 r7 r4
 
             finit r4 0.25
-            fmul r0 r0 r4
+            fmul r7 r7 r4
 
-            mov o0 r0
+            mov r12 r7
         )code";
 
         Isa::PicoGpuBinary binary = {};
@@ -284,11 +284,11 @@ SC_MODULE(Tester) {
 
     TestCase createNegationTestCase() {
         const char *code = R"code(
-            #input i0.xyzw
-            #output o0.xyzw
+            #input r0.xyzw
+            #output r12.xyzw
 
-            ineg o0.xy i0
-            fneg o0.zw i0
+            ineg r12.xy r0
+            fneg r12.zw r0
         )code";
 
         Isa::PicoGpuBinary binary = {};
@@ -319,16 +319,16 @@ SC_MODULE(Tester) {
 
     TestCase createVectorProductsTestCase() {
         const char *code = R"code(
-            #input i0.xyzw
-            #input i0.xyzw
-            #output o0.xyzw
-            #output o1.xyzw
+            #input r0.xyzw
+            #input r1.xyzw
+            #output r12.xyzw
+            #output r13.xyzw
 
-            finit o0 13.f
-            finit o1 13.f
+            finit r12 13.f
+            finit r13 13.f
 
-            fdot   o0.z i0 i1
-            fcross o1   i0 i1
+            fdot   r12.z r0 r1
+            fcross r13   r0 r1
         )code";
 
         Isa::PicoGpuBinary binary = {};

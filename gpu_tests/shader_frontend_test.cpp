@@ -109,26 +109,26 @@ private:
 
         shortShaderAddress = 0;
         std::string code =
-            "#input i0.xyzw\n"
-            "#output o0.xyzw\n"
-            "iadd r0.xz i0 100\n"
-            "iadd r0.yw i0 1000\n"
-            "mov o0 r0\n";
+            "#input r0.xyzw\n"
+            "#output r12.xyzw\n"
+            "iadd r3.xz r0 100\n"
+            "iadd r3.yw r0 1000\n"
+            "mov r12 r3\n";
         int result = Isa::assembly(code.c_str(), &binary);
         FATAL_ERROR_IF(result != 0, "Failed to assemble code");
         memory.blitToMemory(shortShaderAddress, data.data(), data.size());
 
         longShaderAddress = data.size() * sizeof(uint32_t);
         code =
-            "#input i0.xyzw\n"
-            "#output o0.xyzw\n"
-            "iadd r0.xz i0 100\n"
-            "iadd r0.yw i0 1000\n";
+            "#input r0.xyzw\n"
+            "#output r12.xyzw\n"
+            "iadd r3.xz r0 100\n"
+            "iadd r3.yw r0 1000\n";
         for (int i = 0; i < 500; i++) {
             code += "mov r2 r2\n"; // just some garbage instructions that take time
         }
-        code += "mov o0 r0\n";
-        binary = {};
+        code += "mov r12 r3\n";
+        binary.reset();
         result = Isa::assembly(code.c_str(), &binary);
         FATAL_ERROR_IF(result != 0, "Failed to assemble code");
         memory.blitToMemory(longShaderAddress, data.data(), data.size());

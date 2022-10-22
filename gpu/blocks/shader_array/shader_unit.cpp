@@ -54,7 +54,7 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     profiling.outThreadsFinished = profiling.outThreadsFinished.read() + threadCount;
 
     // Stream-out values from output registers
-    uint32_t outputStream[4 * Isa::outputRegistersCount * Isa::simdSize];
+    uint32_t outputStream[Isa::registerComponentsCount * Isa::maxInputOutputRegisters * Isa::simdSize];
     uint32_t outputStreamSize = {};
     appendOutputRegistersValues(threadCount, outputStream, outputStreamSize);
 
@@ -65,9 +65,9 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
     const uint32_t inputsCount = nonZeroCountToInt(isaMetadata.inputsCount);
 
     uint32_t componentsCounts[4] = {};
-    for (int regIndex = 0; regIndex < inputsCount; regIndex++) {
+    for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
         NonZeroCount componentsCountField = {};
-        switch (regIndex) {
+        switch (inputIndex) {
         case 0:
             componentsCountField = isaMetadata.inputSize0;
             break;
@@ -83,13 +83,13 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
         default:
             FATAL_ERROR("Invalid input reg index");
         }
-        componentsCounts[regIndex] = nonZeroCountToInt(componentsCountField);
+        componentsCounts[inputIndex] = nonZeroCountToInt(componentsCountField);
     }
 
     for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-        for (int regIndex = 0; regIndex < inputsCount; regIndex++) {
-            VectorRegister &reg = selectRegister(Isa::RegisterSelection::i0 + regIndex, threadIndex);
-            uint32_t componentsCount = componentsCounts[regIndex];
+        for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+            VectorRegister &reg = registers.gpr[threadIndex][inputIndex + Isa::inputRegistersOffset];
+            uint32_t componentsCount = componentsCounts[inputIndex];
             for (int component = 0; component < componentsCount; component++) {
                 wait();
                 reg[component] = request.inpData.read();
@@ -102,9 +102,9 @@ void ShaderUnit::appendOutputRegistersValues(uint32_t threadCount, uint32_t *out
     const uint32_t outputsCount = nonZeroCountToInt(isaMetadata.outputsCount);
 
     uint32_t componentsCounts[4] = {};
-    for (int regIndex = 0; regIndex < outputsCount; regIndex++) {
+    for (int outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
         NonZeroCount componentsCountField = {};
-        switch (regIndex) {
+        switch (outputIndex) {
         case 0:
             componentsCountField = isaMetadata.outputSize0;
             break;
@@ -120,43 +120,18 @@ void ShaderUnit::appendOutputRegistersValues(uint32_t threadCount, uint32_t *out
         default:
             FATAL_ERROR("Invalid output reg index");
         }
-        componentsCounts[regIndex] = nonZeroCountToInt(componentsCountField);
+        componentsCounts[outputIndex] = nonZeroCountToInt(componentsCountField);
     }
 
     for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-        for (int regIndex = 0; regIndex < outputsCount; regIndex++) {
-            const VectorRegister &reg = selectRegister(Isa::RegisterSelection::o0 + regIndex, threadIndex);
-            uint32_t componentsCount = componentsCounts[regIndex];
+        for (int outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
+            const VectorRegister &reg = registers.gpr[threadIndex][outputIndex + Isa::outputRegistersOffset];
+            uint32_t componentsCount = componentsCounts[outputIndex];
             for (int component = 0; component < componentsCount; component++) {
                 outputStream[outputStreamSize++] = reg[component];
             }
         }
     }
-}
-
-VectorRegister &ShaderUnit::selectRegister(Isa::RegisterSelection selection, uint32_t lane) {
-    // clang-format off
-    switch (selection) {
-    case Isa::RegisterSelection::i0: return registers.lanes[lane].i0;
-    case Isa::RegisterSelection::i1: return registers.lanes[lane].i1;
-    case Isa::RegisterSelection::i2: return registers.lanes[lane].i2;
-    case Isa::RegisterSelection::i3: return registers.lanes[lane].i3;
-    case Isa::RegisterSelection::o0: return registers.lanes[lane].o0;
-    case Isa::RegisterSelection::o1: return registers.lanes[lane].o1;
-    case Isa::RegisterSelection::o2: return registers.lanes[lane].o2;
-    case Isa::RegisterSelection::o3: return registers.lanes[lane].o3;
-    case Isa::RegisterSelection::r0: return registers.lanes[lane].r0;
-    case Isa::RegisterSelection::r1: return registers.lanes[lane].r1;
-    case Isa::RegisterSelection::r2: return registers.lanes[lane].r2;
-    case Isa::RegisterSelection::r3: return registers.lanes[lane].r3;
-    case Isa::RegisterSelection::r4: return registers.lanes[lane].r4;
-    case Isa::RegisterSelection::r5: return registers.lanes[lane].r5;
-    case Isa::RegisterSelection::r6: return registers.lanes[lane].r6;
-    case Isa::RegisterSelection::r7: return registers.lanes[lane].r7;
-    default:
-        FATAL_ERROR("Unknown register selection");
-    }
-    // clang-format on
 }
 
 void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
@@ -260,8 +235,8 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
 }
 
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryFunction function) {
-    VectorRegister &src = selectRegister(inst.src, lane);
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &src = registers.gpr[lane][inst.src];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
     for (int i = 0; i < 4; i++) {
         if (isBitSet(inst.destMask, 3 - i)) {
             dest[i] = function(src[i]);
@@ -271,9 +246,9 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 }
 
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryFunction function) {
-    VectorRegister &src1 = selectRegister(inst.src1, lane);
-    VectorRegister &src2 = selectRegister(inst.src2, lane);
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &src1 = registers.gpr[lane][inst.src1];
+    VectorRegister &src2 = registers.gpr[lane][inst.src2];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
     for (int i = 0; i < 4; i++) {
         if (isBitSet(inst.destMask, 3 - i)) {
             dest[i] = function(src1[i], src2[i]);
@@ -283,9 +258,9 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 }
 
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryVectorScalarFunction function) {
-    VectorRegister &src1 = selectRegister(inst.src1, lane);
-    VectorRegister &src2 = selectRegister(inst.src2, lane);
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &src1 = registers.gpr[lane][inst.src1];
+    VectorRegister &src2 = registers.gpr[lane][inst.src2];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
 
     const uint32_t result = function(src1, src2);
     for (int i = 0; i < 4; i++) {
@@ -297,9 +272,9 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
     return sizeof(inst) / sizeof(uint32_t);
 }
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryVectorVectorFunction function) {
-    VectorRegister &src1 = selectRegister(inst.src1, lane);
-    VectorRegister &src2 = selectRegister(inst.src2, lane);
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &src1 = registers.gpr[lane][inst.src1];
+    VectorRegister &src2 = registers.gpr[lane][inst.src2];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
 
     const VectorRegister result = function(src1, src2);
     for (int i = 0; i < 4; i++) {
@@ -312,7 +287,7 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMathImm &inst, UnaryFunction function) {
     const size_t immCount = nonZeroCountToInt(inst.immediateValuesCount);
 
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
     size_t immediateValueIndex = 0;
     for (int i = 0; i < 4; i++) {
         if (isBitSet(inst.destMask, 3 - i)) {
@@ -330,8 +305,8 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMathImm &inst, BinaryFunction function) {
     const size_t immCount = nonZeroCountToInt(inst.immediateValuesCount);
 
-    VectorRegister &src1 = selectRegister(inst.src, lane);
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &src1 = registers.gpr[lane][inst.src];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
     size_t immediateValueIndex = 0;
     for (int i = 0; i < 4; i++) {
         if (isBitSet(inst.destMask, 3 - i)) {
@@ -347,8 +322,8 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 }
 
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::Swizzle &inst) {
-    VectorRegister &src = selectRegister(inst.src, lane);
-    VectorRegister &dest = selectRegister(inst.dest, lane);
+    VectorRegister &src = registers.gpr[lane][inst.src];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
 
     dest.x = src[static_cast<size_t>(inst.patternX)];
     dest.y = src[static_cast<size_t>(inst.patternY)];

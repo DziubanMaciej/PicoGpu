@@ -44,7 +44,6 @@ private:
 
     void initializeInputRegisters(uint32_t threadCount);
     void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
-    VectorRegister &selectRegister(Isa::RegisterSelection selection, uint32_t lane);
 
     using UnaryFunction = int32_t (*)(int32_t);
     using BinaryFunction = int32_t (*)(int32_t, int32_t);
@@ -71,27 +70,8 @@ private:
     Isa::Command::CommandStoreIsa isaMetadata = {};
     uint32_t isa[Isa::maxIsaSize] = {};
 
-    struct PerLaneRegisters {
-        VectorRegister i0;
-        VectorRegister i1;
-        VectorRegister i2;
-        VectorRegister i3;
-        VectorRegister o0;
-        VectorRegister o1;
-        VectorRegister o2;
-        VectorRegister o3;
-
-        VectorRegister r0;
-        VectorRegister r1;
-        VectorRegister r2;
-        VectorRegister r3;
-        VectorRegister r4;
-        VectorRegister r5;
-        VectorRegister r6;
-        VectorRegister r7;
-    };
     struct Registers {
-        PerLaneRegisters lanes[Isa::simdSize];
+        VectorRegister gpr[Isa::simdSize][Isa::generalPurposeRegistersCount];
         uint32_t pc;
     } registers;
 };
