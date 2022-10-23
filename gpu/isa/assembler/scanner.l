@@ -44,6 +44,8 @@ r1[0-5] { gpuasm_lval.reg = atoi(&yytext[1]); return REG; }
 \.  { return DOT; }
 "#input" { return HASH_INPUT; }
 "#output" { return HASH_OUTPUT; }
+"#vertexShader" { return HASH_VS; }
+"#fragmentShader" { return HASH_FS; }
 
 
 . { return GPUASM_UNDEF; }

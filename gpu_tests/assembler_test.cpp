@@ -5,11 +5,13 @@
 
 const char *passingPrograms[] = {
     // Program 0 - 1 arg passthrough
+    "#vertexShader\n"
     "#input r0.xyzw\n"
     "#output r12.xyzw\n"
     "mov r12 r0\n",
 
     // Program 1 - 4 arg passthrough, different channels
+    "#vertexShader\n"
     "#input r0.xyzw\n"
     "#input r1.xyz\n"
     "#input r2.xzw\n"
@@ -24,6 +26,7 @@ const char *passingPrograms[] = {
     "mov r15 r3\n",
 
     // Program 2 - a couple instructions
+    "#fragmentShader\n"
     "#input r0.xw\n"
     "#input r1.yz\n"
     "#output r12.xyzw\n"
@@ -37,48 +40,69 @@ const char *passingPrograms[] = {
 
 const char *failingPrograms[] = {
     // Program 0 - no instructions
+    "#vertexShader\n"
     "#input r0.xyzw"
     "#output r12.xyzw",
 
     // Program 1 - no inputs
+    "#vertexShader\n"
     "#output r12.xyzw"
     "mov r12 r0",
 
     // Program 2 - no outputs
+    "#vertexShader\n"
     "#input r0.xyzw"
     "mov r12 r0",
 
     // Program 3 - swizzled source
+    "#vertexShader\n"
     "#input r0.xyzw"
     "#output r12.xyzw"
     "mov r12 r0.xyz",
 
     // Program 4 - non-full swizzle
+    "#vertexShader\n"
     "#input r0.xyzw"
     "#output r12.xyzw"
     "swizzle r12 r0.xyw",
 
     // Program 5 - non-contiguous inputs
+    "#vertexShader\n"
     "#input r0.xyzw\n"
     "#input r2.xyzw\n"
     "#output r12.xyzw\n"
     "mov r12 r0\n",
 
     // Program 6 - non-contiguous outputs
+    "#vertexShader\n"
     "#input r0.xyzw\n"
     "#output r12.xyzw\n"
     "#output r14.xyzw\n"
     "mov r12 r0\n",
 
     // Program 7 - input out of scope
+    "#vertexShader\n"
     "#input r4.xyzw\n"
     "#output r12.xyzw\n"
     "mov r12 r4\n",
 
     // Program 8 - outputs out of scope
+    "#vertexShader\n"
     "#input r0.xyzw\n"
     "#output r11.xyzw\n"
     "mov r11 r0\n",
+
+    // Program 9 - no shader type directive
+    "#input r0.xyzw\n"
+    "#output r12.xyzw\n"
+    "mov r12 r0\n",
+
+    // Program 10 - multiple shader type directives
+    "#vertexShader\n"
+    "#vertexShader\n"
+    "#input r0.xyzw\n"
+    "#output r12.xyzw\n"
+    "mov r12 r0\n",
 };
 
 int sc_main(int argc, char *argv[]) {

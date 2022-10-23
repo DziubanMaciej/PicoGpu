@@ -30,6 +30,7 @@ int sc_main(int argc, char *argv[]) {
     // Compile shaders
     Isa::PicoGpuBinary vs = {};
     const char *vsCode = R"code(
+            #vertexShader
             #input r0.xyz
             #output r12.xyzw
             mov r12.xyz r0
@@ -41,6 +42,7 @@ int sc_main(int argc, char *argv[]) {
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
     Isa::PicoGpuBinary fs = {};
     const char *fsCode = R"code(
+            #fragmentShader
             #input r0.xyzw
             #output r12.xyzw
             finit r12.w 1.f

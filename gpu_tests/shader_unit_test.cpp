@@ -183,6 +183,7 @@ SC_MODULE(Tester) {
 
     TestCase createSimpleTestCase() {
         const char *code =
+            "#vertexShader\n"
             "#input r0.xyz\n"
             "#output r12.xyzw\n"
             "iadd r4.xy r0 100\n"
@@ -228,6 +229,7 @@ SC_MODULE(Tester) {
 
     TestCase createFloatTestCase() {
         const char *code = R"code(
+            #vertexShader
             #input r0.x
             #output r12.xyz
 
@@ -284,6 +286,7 @@ SC_MODULE(Tester) {
 
     TestCase createNegationTestCase() {
         const char *code = R"code(
+            #vertexShader
             #input r0.xyzw
             #output r12.xyzw
 
@@ -319,6 +322,7 @@ SC_MODULE(Tester) {
 
     TestCase createVectorProductsTestCase() {
         const char *code = R"code(
+            #vertexShader
             #input r0.xyzw
             #input r1.xyzw
             #output r12.xyzw

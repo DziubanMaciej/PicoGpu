@@ -51,7 +51,7 @@ namespace Command {
             ProgramType programType : 1;
             NonZeroCount inputsCount : 2;  // defines valid input registers count from 1 to 4. Registers r0-r4 will be used
             NonZeroCount outputsCount : 2; // defines valid output registers count from 1 to 4. Registers r12-r15
-            NonZeroCount inputSize0 : 2; // the number of components of first input register that will have a meaningful value.
+            NonZeroCount inputSize0 : 2;   // the number of components of first input register that will have a meaningful value.
             NonZeroCount inputSize1 : 2;
             NonZeroCount inputSize2 : 2;
             NonZeroCount inputSize3 : 2;

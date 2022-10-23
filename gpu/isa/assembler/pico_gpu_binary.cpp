@@ -10,6 +10,7 @@ PicoGpuBinary::PicoGpuBinary() {
 
 void PicoGpuBinary::reset() {
     error.clear();
+    programType = {};
     std::fill(data.begin(), data.end(), 0);
     std::fill_n(inputRegistersComponents, maxInputOutputRegisters, 0);
     std::fill_n(outputRegistersComponents, maxInputOutputRegisters, 0);
@@ -42,9 +43,21 @@ void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, 
     components[reg - indexOffset] = countBits(mask); // TODO should we remember the mask and load it correctly in shader unit? Or return error for masks like .xw?
 }
 
+void PicoGpuBinary::encodeDirectiveShaderType(Isa::Command::ProgramType programType) {
+    if (this->programType.has_value()) {
+        error << "Multiple program type specifications";
+        return;
+    }
+    this->programType = programType;
+}
+
 void PicoGpuBinary::finalizeDirectives() {
     finalizeInputOutputDirectives(false);
     finalizeInputOutputDirectives(true);
+
+    if (!this->programType.has_value()) {
+        error << "No program type specification";
+    }
 }
 
 void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {

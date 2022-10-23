@@ -4,6 +4,7 @@
 #include "gpu/util/error.h"
 
 #include <cstddef>
+#include <optional>
 #include <sstream>
 #include <vector>
 
@@ -14,6 +15,7 @@ public:
     void reset();
 
     void encodeDirectiveInputOutput(RegisterSelection reg, int mask, bool input);
+    void encodeDirectiveShaderType(Isa::Command::ProgramType programType);
     void finalizeDirectives();
 
     void encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask);
@@ -49,6 +51,7 @@ private:
     Command::CommandStoreIsa &getStoreIsaCommand() { return reinterpret_cast<Command::CommandStoreIsa &>(data[0]); }
 
     std::ostringstream error = {};
+    std::optional<Isa::Command::ProgramType> programType = {};
     std::vector<uint32_t> data = {};
 
     // Below two arrays have the same format. Each element is a number from 0 to 4 describing number of

@@ -109,6 +109,7 @@ private:
 
         shortShaderAddress = 0;
         std::string code =
+            "#vertexShader\n"
             "#input r0.xyzw\n"
             "#output r12.xyzw\n"
             "iadd r3.xz r0 100\n"
@@ -120,6 +121,7 @@ private:
 
         longShaderAddress = data.size() * sizeof(uint32_t);
         code =
+            "#vertexShader\n"
             "#input r0.xyzw\n"
             "#output r12.xyzw\n"
             "iadd r3.xz r0 100\n"
