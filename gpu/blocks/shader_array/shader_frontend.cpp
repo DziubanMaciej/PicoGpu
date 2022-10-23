@@ -15,7 +15,7 @@ void ShaderFrontendBase::requestThread() {
         profiling.requestThreadBusy = true;
 
         ClientInterface *clientInterface = {};
-        size_t *clientIndex = {};
+        size_t clientIndex = {};
         if (!findClientMakingRequest(&clientInterface, &clientIndex)) {
             profiling.requestThreadBusy = false;
             continue;
@@ -38,7 +38,7 @@ void ShaderFrontendBase::requestThread() {
 
         // Read shader inputs
         // TODO: this could be done in parallel somehow...
-        const uint32_t shaderInputsCount = calculateShaderInputsCount(request);
+        const size_t shaderInputsCount = calculateShaderInputsCount(request);
         for (int i = 0; i < shaderInputsCount; i++) {
             wait();
             shaderInput[i] = clientInterface->request.inpData.read();
@@ -59,7 +59,7 @@ void ShaderFrontendBase::requestThread() {
 
         // Cache data about this request, so we can use it in responseThread
         shaderUnitState->request.isActive = true;
-        shaderUnitState->request.clientIndex = *clientIndex;
+        shaderUnitState->request.clientIndex = clientIndex;
         shaderUnitState->request.clientToken = request.dword1.clientToken;
         shaderUnitState->request.outputsCount = calculateShaderOutputsCount(request);
     }
@@ -200,24 +200,42 @@ void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bo
 }
 
 size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendRequest &request) {
-    size_t components = 0;
+    const size_t attributesCount = nonZeroCountToInt(request.dword2.inputsCount);
 
-    int registersCount = nonZeroCountToInt(request.dword2.inputsCount);
-    if (registersCount > 0) {
-        components += nonZeroCountToInt(request.dword2.inputSize0);
-    }
-    if (registersCount > 1) {
-        components += nonZeroCountToInt(request.dword2.inputSize1);
-    }
-    if (registersCount > 2) {
-        components += nonZeroCountToInt(request.dword2.inputSize2);
-    }
-    if (registersCount > 3) {
-        components += nonZeroCountToInt(request.dword2.inputSize3);
+    size_t perThreadInputs = 0;
+    size_t perRequestInputs = 0;
+    if (request.dword1.programType == Isa::Command::ProgramType::FragmentShader) {
+        // Receive x,y coordinates per thread
+        perThreadInputs = 2;
+
+        // Receive attributes of triangle's vertices per request
+        perRequestInputs = 3; // position
+        if (attributesCount > 1) {
+            perRequestInputs += nonZeroCountToInt(request.dword2.inputSize1);
+        }
+        if (attributesCount > 2) {
+            perRequestInputs += nonZeroCountToInt(request.dword2.inputSize2);
+        }
+        if (attributesCount > 3) {
+            perRequestInputs += nonZeroCountToInt(request.dword2.inputSize3);
+        }
+        perRequestInputs *= 3; // Above inputs will be placed for each vertex in the triangle
+    } else {
+        if (attributesCount > 0) {
+            perThreadInputs += nonZeroCountToInt(request.dword2.inputSize0);
+        }
+        if (attributesCount > 1) {
+            perThreadInputs += nonZeroCountToInt(request.dword2.inputSize1);
+        }
+        if (attributesCount > 2) {
+            perThreadInputs += nonZeroCountToInt(request.dword2.inputSize2);
+        }
+        if (attributesCount > 3) {
+            perThreadInputs += nonZeroCountToInt(request.dword2.inputSize3);
+        }
     }
 
-    components *= nonZeroCountToInt(request.dword1.threadCount);
-    return components;
+    return perThreadInputs * nonZeroCountToInt(request.dword1.threadCount) + perRequestInputs;
 }
 
 size_t ShaderFrontendBase::calculateShaderOutputsCount(const ShaderFrontendRequest &request) {

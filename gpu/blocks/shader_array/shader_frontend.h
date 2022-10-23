@@ -69,7 +69,7 @@ protected:
 
     // Methods for traversing clients and shader units. Moved to a templated subclass, since this class doesn't know about them.
     virtual bool findFreeShaderUnit(ShaderUnitInterface * *outUnitInterface, ShaderUnitState * *outState) = 0;
-    virtual bool findClientMakingRequest(ClientInterface * *outClientInterface, size_t * *outIndex) = 0;
+    virtual bool findClientMakingRequest(ClientInterface * *outClientInterface, size_t * outIndex) = 0;
     virtual bool findShaderUnitSendingResponse(ShaderUnitInterface * *outUnitInterface, ShaderUnitState * *outState, ClientInterface * *outClientInterface) = 0;
 
 private:
@@ -123,11 +123,11 @@ protected:
         return false;
     }
 
-    bool findClientMakingRequest(ClientInterface **outClientInterface, size_t **outIndex) override {
+    bool findClientMakingRequest(ClientInterface **outClientInterface, size_t *outIndex) override {
         for (size_t clientIndex = 0; clientIndex < clientsCount; clientIndex++) {
             if (clientInterfaces[clientIndex].request.inpSending.read()) {
                 *outClientInterface = &clientInterfaces[clientIndex];
-                *outIndex = &clientIndex;
+                *outIndex = clientIndex;
                 return true;
             }
         }

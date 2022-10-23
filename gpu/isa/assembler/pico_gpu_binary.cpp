@@ -57,6 +57,8 @@ void PicoGpuBinary::finalizeDirectives() {
 
     if (!this->programType.has_value()) {
         error << "No program type specification";
+    } else {
+        getStoreIsaCommand().programType = this->programType.value();
     }
 }
 

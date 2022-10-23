@@ -6,12 +6,13 @@
 
 void FragmentShader::main() {
     const auto maxThreadsCount = Isa::simdSize;
+    const auto verticesInTriangle = 3u;
 
-    const auto componentsPerInputFragment = 4;
-    const auto inputDwords = maxThreadsCount * componentsPerInputFragment;
+    const auto perThreadInputDwords = maxThreadsCount * 2;
+    const auto perRequestInputDwords = verticesInTriangle * Isa::maxInputOutputRegisters * Isa::registerComponentsCount;
     struct {
         ShaderFrontendRequest header = {};
-        uint32_t data[inputDwords];
+        uint32_t data[perThreadInputDwords + perRequestInputDwords];
     } request;
 
     const auto componentsPerOutputFragment = 4;
@@ -29,16 +30,15 @@ void FragmentShader::main() {
         // Receive fragments to shade from previous block. Accumulate them and dispatch together.
         const size_t timeout = 5;
         size_t fragmentsCount = 0;
+        size_t dataDwords = 0;
         for (; fragmentsCount < maxThreadsCount; fragmentsCount++) {
             bool success{};
             UnshadedFragment inputFragment = Handshake::receiveWithTimeout(previousBlock.inpSending, previousBlock.inpData, previousBlock.outReceiving, timeout, success);
             if (!success) {
                 break;
             }
-            request.data[fragmentsCount * componentsPerInputFragment + 0] = Conversions::floatBytesToUint(static_cast<float>(inputFragment.x.to_int()));
-            request.data[fragmentsCount * componentsPerInputFragment + 1] = Conversions::floatBytesToUint(static_cast<float>(inputFragment.y.to_int()));
-            request.data[fragmentsCount * componentsPerInputFragment + 2] = Conversions::floatBytesToUint(inputFragment.z.to_int());
-            request.data[fragmentsCount * componentsPerInputFragment + 3] = Conversions::floatBytesToUint(1.0f); // TODO we could not send it and have the shader unit do it automatically for FS, but we'd need to add a notion of "Shader model"
+            request.data[dataDwords++] = Conversions::floatBytesToUint(static_cast<float>(inputFragment.x.to_int()));
+            request.data[dataDwords++] = Conversions::floatBytesToUint(static_cast<float>(inputFragment.y.to_int()));
 
             shadedFragments[fragmentsCount].x = inputFragment.x;
             shadedFragments[fragmentsCount].y = inputFragment.y;
@@ -48,16 +48,26 @@ void FragmentShader::main() {
             continue;
         }
 
+        // Write per dispatch data to the request
+        for (size_t vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
+            // TODO: hardcoded stuff
+            request.data[dataDwords++] = Conversions::floatBytesToUint(4201);
+            request.data[dataDwords++] = Conversions::floatBytesToUint(4202);
+            request.data[dataDwords++] = Conversions::floatBytesToUint(4203);
+        }
+
         // Send the request to the shading units
         request.header.dword0.isaAddress = inpShaderAddress.read();
         request.header.dword1.clientToken++;
         request.header.dword1.threadCount = intToNonZeroCount(fragmentsCount);
+        request.header.dword1.programType = Isa::Command::ProgramType::FragmentShader;
         request.header.dword2.inputsCount = NonZeroCount::One;
         request.header.dword2.inputSize0 = NonZeroCount::Four;
         request.header.dword2.outputsCount = NonZeroCount::One;
         request.header.dword2.outputSize0 = NonZeroCount::Four;
+        const size_t requestSize = sizeof(ShaderFrontendRequest) + dataDwords;
         Handshake::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
-                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), sizeof(request) / sizeof(uint32_t));
+                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);
 
         Handshake::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
                                 shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), sizeof(response) / sizeof(uint32_t));
