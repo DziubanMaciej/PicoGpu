@@ -4,7 +4,22 @@
 #include "gpu/util/handshake.h"
 #include "gpu/util/math.h"
 
-void FragmentShader::main() {
+void FragmentShader::perTriangleThread() {
+    uint32_t data[maxTriangleAttributesCount];
+    while (true) {
+        wait();
+
+        const size_t dataToReceiveCount = 9; // TODO calculate it based on vs output state
+        Handshake::receiveArrayWithParallelPorts(previousBlock.perTriangle.inpSending, previousBlock.perTriangle.outReceiving,
+                                                 previousBlock.perTriangle.inpData, data, dataToReceiveCount);
+        for (size_t i = 0; i < dataToReceiveCount; i++) {
+            this->triangleAttributes[i] = data[i];
+        }
+        this->triangleAttributesCount = dataToReceiveCount;
+    }
+}
+
+void FragmentShader::perFragmentThread() {
     const auto maxThreadsCount = Isa::simdSize;
     const auto verticesInTriangle = 3u;
 
@@ -33,7 +48,7 @@ void FragmentShader::main() {
         size_t dataDwords = 0;
         for (; fragmentsCount < maxThreadsCount; fragmentsCount++) {
             bool success{};
-            UnshadedFragment inputFragment = Handshake::receiveWithTimeout(previousBlock.inpSending, previousBlock.inpData, previousBlock.outReceiving, timeout, success);
+            UnshadedFragment inputFragment = Handshake::receiveWithTimeout(previousBlock.perFragment.inpSending, previousBlock.perFragment.inpData, previousBlock.perFragment.outReceiving, timeout, success);
             if (!success) {
                 break;
             }
@@ -49,11 +64,9 @@ void FragmentShader::main() {
         }
 
         // Write per dispatch data to the request
-        for (size_t vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
-            // TODO: hardcoded stuff
-            request.data[dataDwords++] = Conversions::floatBytesToUint(4201);
-            request.data[dataDwords++] = Conversions::floatBytesToUint(4202);
-            request.data[dataDwords++] = Conversions::floatBytesToUint(4203);
+        const uint32_t triangleAttributesCount = this->triangleAttributesCount.read().to_int();
+        for (auto i = 0u; i < triangleAttributesCount; i++) {
+            request.data[dataDwords++] = this->triangleAttributes[i].read().to_int();
         }
 
         // Send the request to the shading units

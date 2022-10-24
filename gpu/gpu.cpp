@@ -101,7 +101,8 @@ void Gpu::connectInternalPorts() {
     ports.connectHandshakeWithParallelPorts(vertexShader.nextBlock, rasterizer.previousBlock, "VS_RS");
 
     // RS <-> FS
-    ports.connectHandshake(rasterizer.nextBlock, fragmentShader.previousBlock, "RS_FS");
+    ports.connectHandshakeWithParallelPorts(rasterizer.nextBlock.perTriangle, fragmentShader.previousBlock.perTriangle, "RS_FS_tri");
+    ports.connectHandshake(rasterizer.nextBlock.perFragment, fragmentShader.previousBlock.perFragment, "RS_FS_frag");
 
     // FS <-> OM
     ports.connectHandshake(fragmentShader.nextBlock, outputMerger.previousBlock, "FS_OM");

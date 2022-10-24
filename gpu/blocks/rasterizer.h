@@ -19,10 +19,18 @@ SC_MODULE(Rasterizer) {
         constexpr static inline ssize_t portsCount = 12;
         sc_in<VertexPositionFloatType> inpData[portsCount];
     } previousBlock;
-    struct {
-        sc_in<bool> inpReceiving;
-        sc_out<bool> outSending;
-        sc_out<UnshadedFragment> outData;
+    struct NextBlock {
+        struct PerTriangle {
+            sc_in<bool> inpReceiving;
+            sc_out<bool> outSending;
+            constexpr static inline ssize_t portsCount = 3;
+            sc_out<sc_uint<32>> outData[portsCount];
+        } perTriangle;
+        struct PerFragment {
+            sc_in<bool> inpReceiving;
+            sc_out<bool> outSending;
+            sc_out<UnshadedFragment> outData;
+        } perFragment;
     } nextBlock;
     struct {
         sc_out<bool> outBusy;

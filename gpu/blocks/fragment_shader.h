@@ -1,7 +1,8 @@
 #pragma once
 
-#include "gpu/types.h"
 #include "gpu/fragment.h"
+#include "gpu/isa/isa.h"
+#include "gpu/types.h"
 
 #include <systemc.h>
 
@@ -9,10 +10,18 @@ SC_MODULE(FragmentShader) {
     sc_in_clk inpClock;
     sc_in<MemoryAddressType> inpShaderAddress;
 
-    struct PreviousBlock{
-        sc_out<bool> outReceiving;
-        sc_in<bool> inpSending;
-        sc_in<UnshadedFragment> inpData;
+    struct PreviousBlock {
+        struct PerTriangle {
+            sc_out<bool> outReceiving;
+            sc_in<bool> inpSending;
+            constexpr static inline ssize_t portsCount = 3;
+            sc_in<sc_uint<32>> inpData[portsCount];
+        } perTriangle;
+        struct PerFragment {
+            sc_out<bool> outReceiving;
+            sc_in<bool> inpSending;
+            sc_in<UnshadedFragment> inpData;
+        } perFragment;
     } previousBlock;
 
     struct NextBlock {
@@ -39,10 +48,16 @@ SC_MODULE(FragmentShader) {
     } profiling;
 
     SC_CTOR(FragmentShader) {
-        SC_CTHREAD(main, inpClock.pos());
+        SC_CTHREAD(perTriangleThread, inpClock.pos());
+        SC_CTHREAD(perFragmentThread, inpClock.pos());
     }
 
 private:
-    void main();
+    void perTriangleThread();
+    void perFragmentThread();
     static uint32_t packRgbaToUint(float *rgba);
+
+    constexpr static size_t maxTriangleAttributesCount = Isa::maxInputOutputRegisters * Isa::registerComponentsCount * 3;
+    sc_signal<sc_uint<32>> triangleAttributes[maxTriangleAttributesCount] = {};
+    sc_signal<sc_uint<6>> triangleAttributesCount = {};
 };
