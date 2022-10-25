@@ -246,6 +246,11 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
                 return asi(asf(src1.x) * asf(src2.y) - asf(src1.y) * asf(src2.x));
             });
             break;
+        case Isa::Opcode::fmad:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.ternaryMath, [](int32_t src1, int32_t src2, int32_t src3) {
+                return asi(asf(src1) * asf(src2) + asf(src3));
+            });
+            break;
         case Isa::Opcode::iadd:
             registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 + src2; });
             break;
@@ -310,6 +315,19 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
     for (int i = 0; i < 4; i++) {
         if (isBitSet(inst.destMask, 3 - i)) {
             dest[i] = function(src1[i], src2[i]);
+        }
+    }
+    return sizeof(inst) / sizeof(uint32_t);
+}
+
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::TernaryMath &inst, TernaryFunction function) {
+    VectorRegister &src1 = registers.gpr[lane][inst.src1];
+    VectorRegister &src2 = registers.gpr[lane][inst.src2];
+    VectorRegister &src3 = registers.gpr[lane][inst.src3];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
+    for (int i = 0; i < 4; i++) {
+        if (isBitSet(inst.destMask, 3 - i)) {
+            dest[i] = function(src1[i], src2[i], src3[i]);
         }
     }
     return sizeof(inst) / sizeof(uint32_t);

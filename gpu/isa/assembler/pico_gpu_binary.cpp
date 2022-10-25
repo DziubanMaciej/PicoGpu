@@ -121,6 +121,16 @@ void PicoGpuBinary::encodeBinaryMath(Opcode opcode, RegisterSelection dest, Regi
     inst->destMask = destMask;
 }
 
+void PicoGpuBinary::encodeTernaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, RegisterSelection src3, uint32_t destMask) {
+    auto inst = getSpace<InstructionLayouts::TernaryMath>();
+    inst->opcode = opcode;
+    inst->dest = dest;
+    inst->src1 = src1;
+    inst->src2 = src2;
+    inst->src3 = src3;
+    inst->destMask = destMask;
+}
+
 void PicoGpuBinary::encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
     FATAL_ERROR_IF(immediateValues.empty(), "UnaryMathImm must have at least one immediate value");
     FATAL_ERROR_IF(immediateValues.size() > 4, "UnaryMathImm can have at most 4 immediate values");

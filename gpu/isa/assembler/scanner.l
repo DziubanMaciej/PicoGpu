@@ -25,7 +25,8 @@ static int processVecComponent(char c, GPUASM_STYPE &yyval);
 "fneg"    { return FNEG; }
 "fdot"    { return FDOT; }
 "fcross"  { return FCROSS; }
-"fcross2"  { return FCROSS2; }
+"fcross2" { return FCROSS2; }
+"fmad"    { return FMAD; }
 "iinit"   { return IINIT; }
 "iadd"    { return IADD; }
 "isub"    { return ISUB; }

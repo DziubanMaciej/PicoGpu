@@ -95,6 +95,7 @@ enum class Opcode : uint32_t {
     fdot,
     fcross,
     fcross2,
+    fmad,
 
     // Integer math
     iadd,
@@ -154,6 +155,18 @@ namespace InstructionLayouts {
         uint32_t destMask : 4;
     };
 
+    // Any operation, that can take three registers, compute something and output to a register
+    // Destination is masked, which means we can select which channels of the vector registers
+    // will be affected (1 bit per channel)
+    struct TernaryMath {
+        Opcode opcode : opcodeBitsize;
+        RegisterSelection dest : generalPurposeRegistersCountExponent;
+        RegisterSelection src1 : generalPurposeRegistersCountExponent;
+        RegisterSelection src2 : generalPurposeRegistersCountExponent;
+        RegisterSelection src3 : generalPurposeRegistersCountExponent;
+        uint32_t destMask : 4;
+    };
+
     // Any operation, that can take one or more immediate values, compute something and output
     // to a register. Destination is masked, which means we can select which channels of the vector register
     // will be affected (1 bit per channel). ImmediateValues field is a one-element array, but the instruction
@@ -198,6 +211,7 @@ union Instruction {
     InstructionLayouts::Header header;
     InstructionLayouts::BinaryMath binaryMath;
     InstructionLayouts::UnaryMath unaryMath;
+    InstructionLayouts::TernaryMath ternaryMath;
     InstructionLayouts::UnaryMathImm unaryMathImm;
     InstructionLayouts::BinaryMathImm binaryMathImm;
     InstructionLayouts::Swizzle swizzle;
