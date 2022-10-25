@@ -53,15 +53,15 @@ void PicoGpuBinary::encodeDirectiveShaderType(Isa::Command::ProgramType programT
 }
 
 void PicoGpuBinary::finalizeDirectives() {
-    finalizeInputOutputDirectives(false);
-    finalizeInputOutputDirectives(true);
-
     if (!this->programType.has_value()) {
         error << "No program type specification";
         return;
     } else {
         getStoreIsaCommand().programType = this->programType.value();
     }
+
+    finalizeInputOutputDirectives(false);
+    finalizeInputOutputDirectives(true);
 
     // Insert preamble code if necessary
     if (this->programType.value() == Isa::Command::ProgramType::FragmentShader) {
@@ -72,7 +72,7 @@ void PicoGpuBinary::finalizeDirectives() {
 void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     const char *label = input ? "input" : "output";
     auto components = input ? inputRegistersComponents : outputRegistersComponents;
-    int indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
+    const auto indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
 
     // Count used components (before the first zero in the array)
     size_t usedRegistersCount = 0;
@@ -84,6 +84,17 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     if (usedRegistersCount == 0) {
         error << "At least one " << label << " register is required";
         return;
+    }
+
+    // Ensure that fragment shader only uses one output. Add second internal output for interpolated z-value
+    if (!input && programType.value() == Isa::Command::ProgramType::FragmentShader) {
+        if (usedRegistersCount != 1) {
+            error << "Fragment shader may use only one output register";
+            return;
+        }
+        encodeDirectiveInputOutput(indexOffset + 1, 0b1000, false);
+        components[1] = 1;
+        usedRegistersCount = 2;
     }
 
     // Check for more components after the first zero, which is illegal.
@@ -180,8 +191,15 @@ void PicoGpuBinary::encodeSwizzle(Opcode opcode, RegisterSelection dest, Registe
 }
 
 void PicoGpuBinary::finalizeInstructions() {
+    if (programType.value() == Isa::Command::ProgramType::FragmentShader) {
+        encodeSwizzle(Isa::Opcode::swizzle, Isa::outputRegistersOffset + 1, Isa::inputRegistersOffset,
+                      Isa::SwizzlePatternComponent::SwizzleZ,
+                      Isa::SwizzlePatternComponent::SwizzleZ,
+                      Isa::SwizzlePatternComponent::SwizzleZ,
+                      Isa::SwizzlePatternComponent::SwizzleZ);
+    }
+
     getStoreIsaCommand().programLength = data.size() - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t);
-    printf("Length = %d\n", int(getStoreIsaCommand().programLength));
 }
 
 void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {

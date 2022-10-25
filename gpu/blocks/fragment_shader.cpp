@@ -30,7 +30,7 @@ void FragmentShader::perFragmentThread() {
         uint32_t data[perThreadInputDwords + perRequestInputDwords];
     } request;
 
-    const auto componentsPerOutputFragment = 4;
+    const auto componentsPerOutputFragment = 5; // RGBA + interpolated depth value
     const auto outputDwords = maxThreadsCount * componentsPerOutputFragment;
     struct {
         ShaderFrontendResponse header = {};
@@ -76,8 +76,9 @@ void FragmentShader::perFragmentThread() {
         request.header.dword1.programType = Isa::Command::ProgramType::FragmentShader;
         request.header.dword2.inputsCount = NonZeroCount::One;
         request.header.dword2.inputSize0 = NonZeroCount::Four;
-        request.header.dword2.outputsCount = NonZeroCount::One;
+        request.header.dword2.outputsCount = NonZeroCount::Two;
         request.header.dword2.outputSize0 = NonZeroCount::Four;
+        request.header.dword2.outputSize1 = NonZeroCount::One;
         const size_t requestSize = sizeof(ShaderFrontendRequest) + dataDwords;
         Handshake::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
                              shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);
@@ -88,6 +89,7 @@ void FragmentShader::perFragmentThread() {
         // Send results to the next block
         for (size_t i = 0; i < fragmentsCount; i++) {
             shadedFragments[i].color = packRgbaToUint(response.data + i * componentsPerOutputFragment);
+            shadedFragments[i].z = Conversions::floatBytesToUint(response.data[i * componentsPerOutputFragment + 4]);
             Handshake::send(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, shadedFragments[i]);
         }
     }
