@@ -241,7 +241,11 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
                 };
             });
             break;
-
+        case Isa::Opcode::fcross2:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](VectorRegister src1, VectorRegister src2) {
+                return asi(asf(src1.x) * asf(src2.y) - asf(src1.y) * asf(src2.x));
+            });
+            break;
         case Isa::Opcode::iadd:
             registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 + src2; });
             break;

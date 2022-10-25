@@ -63,7 +63,7 @@
 %}
 
 // Tokens received from lexer
-%token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS
+%token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS FCROSS2
 %token IINIT IADD ISUB IMUL IDIV INEG
 %token MOV SWIZZLE
 %token HASH_INPUT HASH_OUTPUT HASH_VS HASH_FS DOT
@@ -126,8 +126,9 @@ INSTRUCTION:
     | FDIV      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fdiv, $2.reg, $3, $4, $2.mask); }
     | FDIV      DST_REG REG NUMBER_FLOAT  { outputBinary->encodeBinaryMathImm(Isa::Opcode::fdiv_imm, $2.reg, $3, $2.mask, {asint($4)}); }
     | FNEG      DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::fneg, $2.reg, $3, $2.mask); }
-    | FDOT      DST_REG_COMPONENT REG REG { outputBinary->encodeBinaryMath(Isa::Opcode::fdot, $2.reg, $3, $4, $2.mask); }
+    | FDOT      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fdot, $2.reg, $3, $4, $2.mask); }
     | FCROSS    REG REG REG               { outputBinary->encodeBinaryMath(Isa::Opcode::fcross, $2, $3, $4, 0b1111); }
+    | FCROSS2   DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fcross2, $2.reg, $3, $4, $2.mask); }
     | IADD      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::iadd, $2.reg, $3, $4, $2.mask); }
     | IADD      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::iadd_imm, $2.reg, $3, $2.mask, {$4}); }
     | ISUB      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::isub, $2.reg, $3, $4, $2.mask); }

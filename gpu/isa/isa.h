@@ -94,6 +94,7 @@ enum class Opcode : uint32_t {
     fneg,
     fdot,
     fcross,
+    fcross2,
 
     // Integer math
     iadd,
