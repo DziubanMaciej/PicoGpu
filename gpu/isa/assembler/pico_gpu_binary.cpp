@@ -1,4 +1,5 @@
 #include "gpu/isa/assembler/pico_gpu_binary.h"
+#include "gpu/util/conversions.h"
 #include "gpu/util/math.h"
 
 namespace Isa {
@@ -57,8 +58,14 @@ void PicoGpuBinary::finalizeDirectives() {
 
     if (!this->programType.has_value()) {
         error << "No program type specification";
+        return;
     } else {
         getStoreIsaCommand().programType = this->programType.value();
+    }
+
+    // Insert preamble code if necessary
+    if (this->programType.value() == Isa::Command::ProgramType::FragmentShader) {
+        encodeAttributeInterpolationForFragmentShader();
     }
 }
 
@@ -174,6 +181,56 @@ void PicoGpuBinary::encodeSwizzle(Opcode opcode, RegisterSelection dest, Registe
 
 void PicoGpuBinary::finalizeInstructions() {
     getStoreIsaCommand().programLength = data.size() - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t);
+    printf("Length = %d\n", int(getStoreIsaCommand().programLength));
+}
+
+void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
+    /* Notation and assumptions used in this function:
+    A,B,C are vertices of the triangle. Their attributes are stored in the last registers like so:
+        - A: r7 (position), r8, r9
+        - B: r10 (position), r11, r12
+        - C: r13 (position), r14, r15
+
+    P is the point that we will be interpolating. Its x,y position is stored in r0.
+    */
+
+    const RegisterSelection regPositionP = 0;
+    const RegisterSelection regPositionA = 7;
+    const RegisterSelection regPositionB = 10;
+    const RegisterSelection regPositionC = 13;
+
+    // Calculate edges (2 component vectors)
+    const RegisterSelection regEdgeAB = 1;
+    const RegisterSelection regEdgeAC = 2;
+    const RegisterSelection regEdgeAP = 3;
+    encodeBinaryMath(Isa::Opcode::fsub, regEdgeAB, regPositionB, regPositionA, 0b1100);
+    encodeBinaryMath(Isa::Opcode::fsub, regEdgeAC, regPositionC, regPositionA, 0b1100);
+    encodeBinaryMath(Isa::Opcode::fsub, regEdgeAP, regPositionP, regPositionA, 0b1100);
+
+    // Calculate parallelogram areas (store 2D cross product result in all 4 components)
+    const RegisterSelection regAreaABP = 4;
+    const RegisterSelection regAreaACP = 5;
+    const RegisterSelection regAreaABC = 6;
+    encodeBinaryMath(Isa::Opcode::fcross2, regAreaABP, regEdgeAB, regEdgeAP, 0b1111);
+    encodeBinaryMath(Isa::Opcode::fcross2, regAreaACP, regEdgeAP, regEdgeAC, 0b1111);
+    encodeBinaryMath(Isa::Opcode::fcross2, regAreaABC, regEdgeAB, regEdgeAC, 0b1111);
+
+    // Calculate barycentric coordinates - weights (store in all components).
+    // We may reuse registers used for storing area, because they will not be used afterwards.
+    const RegisterSelection regWeightC = regAreaABP;
+    const RegisterSelection regWeightB = regAreaACP;
+    const RegisterSelection regWeightA = regAreaABC;
+    const int32_t floatOne = Conversions::floatBytesToInt(1.0f);
+    encodeBinaryMath(Isa::Opcode::fdiv, regWeightC, regAreaABP, regAreaABC, 0b1111);
+    encodeBinaryMath(Isa::Opcode::fdiv, regWeightB, regAreaACP, regAreaABC, 0b1111);
+    encodeUnaryMathImm(Isa::Opcode::init, regWeightA, 0b1111, {floatOne, floatOne, floatOne, floatOne});
+    encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightB, 0b1111);
+    encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightC, 0b1111);
+
+    // Interpolate depth
+    encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regPositionA, regPositionP, 0b0010);
+    encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regPositionB, regPositionP, 0b0010);
+    encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightC, regPositionC, regPositionP, 0b0010);
 }
 
 void PicoGpuBinary::setHasNextCommand() {

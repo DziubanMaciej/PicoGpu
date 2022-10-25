@@ -45,8 +45,10 @@ int sc_main(int argc, char *argv[]) {
             #fragmentShader
             #input r0.xyzw
             #output r12.xyzw
+            swizzle r10 r0.zzzz
+            fdiv  r12.x r10 100.f
+            finit r12.yz 0.f
             finit r12.w 1.f
-            fdiv r12.x r0 100.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
 
@@ -68,7 +70,7 @@ int sc_main(int argc, char *argv[]) {
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     gpu.blocks.GLOBAL.inpClock(clock);
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
-    gpu.blocks.PA.inpVerticesCount = 9;
+    gpu.blocks.PA.inpVerticesCount = 6;
     gpu.blocks.VS.inpShaderAddress = vsAddress;
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
@@ -92,17 +94,13 @@ int sc_main(int argc, char *argv[]) {
         float x, y, z;
     };
     Vertex vertices[] = {
-        Vertex{10, 10, 200},
-        Vertex{10, 20, 200},
-        Vertex{20, 10, 200},
+        Vertex{10, 10, 30},
+        Vertex{45, 50, 10},
+        Vertex{90, 10, 100},
 
-        Vertex{40, 10, 200},
-        Vertex{40, 20, 200},
-        Vertex{50, 10, 200},
-
-        Vertex{10, 15, 100},
-        Vertex{80, 15, 100},
-        Vertex{40, 40, 100},
+        Vertex{10, 40, 0},
+        Vertex{90, 40, 0},
+        Vertex{45, 20, 130},
     };
     gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4, &profiling["Upload VB"]);
 

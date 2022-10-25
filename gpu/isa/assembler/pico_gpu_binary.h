@@ -35,6 +35,7 @@ public:
     auto getError() const { return error.str(); }
 
 private:
+    void encodeAttributeInterpolationForFragmentShader();
     void finalizeInputOutputDirectives(bool input);
 
     template <typename InstructionLayout>
