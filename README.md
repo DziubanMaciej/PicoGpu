@@ -49,17 +49,18 @@ Existing functionalities of *PicoGpu* worth noting:
 | Fragment shader                              | Launches threads via **SF**.                                                               |
 | Signals for profiling                        | All blocks have their own signal indicating, whether they are doing any work.              |
 | Unified frontend for launching tasks         | **CS** is the only block, which the host has to interact with.                             |
+| Barycentric coordinates calculation          | Special code is injected at the beginning of fragment shaders to calculate weights.        |
 
 Roadmap for features to implement:
 
-| Feature                                    | Comment                                                                                          |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| Customizable vertex layout                 | Currently only 4-component vertices are passed.                                                  |
-| Passing uniform data to shaders            | This will probably require some new instructions.                                                |
-| Optimize data passing                      | Some blocks could use parallel ports for faster data passing.                                    |
-| Better rasterization algorithm             | **RS** blindly iterates over every pixel.                                                        |
-| Moving additional attributes from VS to FS | Rasterizer will have to somehow be aware of it.                                                  |
-| Add a real-time visualization              | Currently we dump the framebuffer to a png file. We could attach it to an OpenGL window instead. |
+| Feature                                    | Comment                                                                                                  |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Moving additional attributes from VS to FS | Rasterizer will have to somehow be aware of it. We will also have to interpolate them (projection aware) |
+| Customizable vertex layout                 | Currently only 4-component vertices are passed.                                                          |
+| Optimize data passing                      | Some blocks could use parallel ports for faster data passing.                                            |
+| Better rasterization algorithm             | **RS** blindly iterates over every pixel.                                                                |
+| Add a real-time visualization              | Currently we dump the framebuffer to a png file. We could attach it to an OpenGL window instead.         |
+| Passing uniform data to shaders            | This will probably require some new instructions.                                                        |
 
 # Building and running
 Requirements: Linux OS, SystemC environment, CMake and a C++ compiler.
