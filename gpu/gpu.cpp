@@ -36,12 +36,7 @@ Gpu::Gpu(sc_module_name name)
     connectInternalPorts();
     connectPublicPorts();
     connectProfilingPorts();
-
-    SC_METHOD(setBusyValue);
-    for (auto signal : getBlocksBusySignals(this)) {
-        sensitive << *signal;
-    }
-    sensitive << commandStreamer.profiling.outBusy;
+    SC_CTHREAD(setBusyValue, blocks.GLOBAL.inpClock.pos());
 }
 
 void Gpu::connectClocks() {
@@ -190,16 +185,33 @@ void Gpu::addProfilingSignalsToVcdTrace(VcdTrace &trace) {
 }
 
 void Gpu::waitForIdle(const sc_clock &clock) const {
+    sc_start(4 * clock.period());
     do {
-        sc_start(20 * clock.period());
+        sc_start(clock.period());
     } while (out.busy.read());
 }
 
 void Gpu::setBusyValue() {
-    bool value = false;
-    for (auto signal : getBlocksBusySignals(this)) {
-        value = value || signal->read();
+    // These fields hold history for the previous busy values. Least significant bit signifies
+    // the current value, bit 1 signifies value for 1 cycle earlier, etc.
+    uint32_t busy = 0;
+    uint32_t busyNoCs = 0;
+
+    while (true) {
+        // Shift bits to the left indicating next timestep
+        busy <<= 1;
+        busyNoCs <<= 1;
+
+        // Calculate new current values
+        for (auto signal : getBlocksBusySignals(this)) {
+            busy |= signal->read();
+        }
+        busyNoCs |= ((busy & 1) | commandStreamer.profiling.outBusy.read());
+
+        // Store smoothed values into the output signals
+        out.busy = (busyNoCs & 7);     // smoothed over 3 cycles
+        out.busyNoCs = (busyNoCs & 1); // no smoothing
+
+        wait();
     }
-    out.busyNoCs = value;
-    out.busy = value || commandStreamer.profiling.outBusy.read();
 }
