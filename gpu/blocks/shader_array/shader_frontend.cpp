@@ -50,8 +50,9 @@ void ShaderFrontendBase::requestThread() {
         // a separate block that would be responsible for loading ISA from memory, caching it and sending to the shader units.
         // However, shader frontend would have to wait for it.
         if (request.dword0.isaAddress != shaderUnitState->loadedIsaAddress) {
-            IsaCacheEntry &isaCacheIndex = getIsa(request.dword0.isaAddress);
-            storeIsa(*shaderUnitInterface, isaCacheIndex, handshakeOnlyOnce);
+            IsaCacheEntry &cachedIsa = getIsa(request.dword0.isaAddress);
+            validateRequest(request, cachedIsa.getMetadata());
+            storeIsa(*shaderUnitInterface, cachedIsa, handshakeOnlyOnce);
         }
 
         // At this point shader unit already know what it has to execute. We only have to issue the command and send the inputs to it.
@@ -165,7 +166,7 @@ ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddres
 void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, ShaderFrontendBase::IsaCacheEntry &cache, bool hasNextCommand) {
     auto &unit = shaderUnitInterface.request;
 
-    reinterpret_cast<Isa::Command::CommandStoreIsa &>(cache.data[0]).hasNextCommand = hasNextCommand;
+    cache.getMetadata().hasNextCommand = hasNextCommand;
 
     sc_uint<32> data = cache.data[0];
     Handshake::send(unit.inpReceiving, unit.outSending, unit.outData, data);
@@ -260,14 +261,30 @@ size_t ShaderFrontendBase::calculateShaderOutputsCount(const ShaderFrontendReque
 }
 
 void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, Isa::Command::CommandStoreIsa &isaCommand) {
+    // Validate inputs
     FATAL_ERROR_IF(isaCommand.inputsCount != request.dword2.inputsCount, "Invalid inputs count");
+    const int inputsCount = nonZeroCountToInt(isaCommand.inputsCount);
     FATAL_ERROR_IF(isaCommand.inputSize0 != request.dword2.inputSize0, "Invalid inputSize0");
-    FATAL_ERROR_IF(isaCommand.inputSize1 != request.dword2.inputSize1, "Invalid inputSize1");
-    FATAL_ERROR_IF(isaCommand.inputSize2 != request.dword2.inputSize2, "Invalid inputSize2");
-    FATAL_ERROR_IF(isaCommand.inputSize3 != request.dword2.inputSize3, "Invalid inputSize3");
+    if (inputsCount > 1) {
+        FATAL_ERROR_IF(isaCommand.inputSize1 != request.dword2.inputSize1, "Invalid inputSize1");
+    }
+    if (inputsCount > 2) {
+        FATAL_ERROR_IF(isaCommand.inputSize2 != request.dword2.inputSize2, "Invalid inputSize2");
+    }
+    if (inputsCount > 3) {
+        FATAL_ERROR_IF(isaCommand.inputSize3 != request.dword2.inputSize3, "Invalid inputSize3");
+    }
+
     FATAL_ERROR_IF(isaCommand.outputsCount != request.dword2.outputsCount, "Invalid outputs count");
+    const int outputsCount = nonZeroCountToInt(isaCommand.outputsCount);
     FATAL_ERROR_IF(isaCommand.outputSize0 != request.dword2.outputSize0, "Invalid outputSize0");
-    FATAL_ERROR_IF(isaCommand.outputSize1 != request.dword2.outputSize1, "Invalid outputSize1");
-    FATAL_ERROR_IF(isaCommand.outputSize2 != request.dword2.outputSize2, "Invalid outputSize2");
-    FATAL_ERROR_IF(isaCommand.outputSize3 != request.dword2.outputSize3, "Invalid outputSize3");
+    if (inputsCount > 1) {
+        FATAL_ERROR_IF(isaCommand.outputSize1 != request.dword2.outputSize1, "Invalid outputSize1");
+    }
+    if (inputsCount > 2) {
+        FATAL_ERROR_IF(isaCommand.outputSize2 != request.dword2.outputSize2, "Invalid outputSize2");
+    }
+    if (inputsCount > 3) {
+        FATAL_ERROR_IF(isaCommand.outputSize3 != request.dword2.outputSize3, "Invalid outputSize3");
+    }
 }

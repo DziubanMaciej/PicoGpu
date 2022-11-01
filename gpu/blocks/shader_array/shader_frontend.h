@@ -87,6 +87,9 @@ private:
             this->dataSize = other.dataSize;
             return *this;
         }
+        Isa::Command::CommandStoreIsa &getMetadata() {
+            return reinterpret_cast<Isa::Command::CommandStoreIsa &>(data[0]);
+        }
         uint32_t data[Isa::maxIsaSize];
         uint32_t dataSize = 0;
     };
