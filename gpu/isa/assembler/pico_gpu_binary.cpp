@@ -76,8 +76,11 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
 
     // Count used components (before the first zero in the array)
     size_t usedRegistersCount = 0;
+    uint32_t usedComponentsCount = 0;
     for (; usedRegistersCount < Isa::maxInputOutputRegisters; usedRegistersCount++) {
-        if (components[usedRegistersCount] == 0) {
+        if (components[usedRegistersCount] > 0) {
+            usedComponentsCount += components[usedRegistersCount];
+        } else {
             break;
         }
     }
@@ -86,14 +89,23 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         return;
     }
 
+    // Ensure that vertex shader returns 4-component vector as first output and fragment shader receives it as first input
+    if ((!input && isVs()) || (input && isFs())) {
+        if (components[0] != 4) {
+            error << getShaderTypeName() << " must " << label << " a 4-component vector in r" << indexOffset;
+            return;
+        }
+    }
+
     // Ensure that fragment shader only uses one output. Add second internal output for interpolated z-value
     if (!input && programType.value() == Isa::Command::ProgramType::FragmentShader) {
         if (usedRegistersCount != 1) {
-            error << "Fragment shader may use only one output register";
+            error << getShaderTypeName() << " may use only one output register";
             return;
         }
         encodeDirectiveInputOutput(indexOffset + 1, 0b1000, false);
         components[1] = 1;
+        usedComponentsCount++;
         usedRegistersCount = 2;
     }
 
@@ -105,7 +117,7 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         }
     }
 
-    // Write the data to ISA
+    // Store the data to ISA
     auto &command = getStoreIsaCommand();
     if (input) {
         command.inputsCount = intToNonZeroCount(usedRegistersCount);
@@ -120,6 +132,40 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         command.outputSize2 = intToNonZeroCount(components[2]);
         command.outputSize3 = intToNonZeroCount(components[3]);
     }
+
+    // Store custom components count
+    if (isVs()) {
+        if (input) {
+            customInputComponentsCount = 0; // currently no custom attributes VB supported
+        } else {
+            customOutputComponentsCount = usedComponentsCount - 4; // Do not count the position
+        }
+    } else if (isFs()) {
+        if (input) {
+            customInputComponentsCount = usedComponentsCount - 4; // Do not count the position
+        } else {
+            customOutputComponentsCount = 0; // Not allowed
+        }
+    }
+}
+
+const char *PicoGpuBinary::getShaderTypeName() {
+    if (!programType.has_value()) {
+        return "UnknownShader";
+    }
+    if (isVs()) {
+        return "VertexShader";
+    }
+    if (isFs()) {
+        return "FragmentShader";
+    }
+    return "UnknownShader";
+}
+
+bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs) {
+    FATAL_ERROR_IF(!vs.isVs(), "Expected a vertex shader");
+    FATAL_ERROR_IF(!fs.isFs(), "Expected a fragment shader");
+    return vs.getCustomOutputComponentsCount() == fs.getCustomInputComponentsCount();
 }
 
 void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask) {

@@ -51,6 +51,7 @@ int sc_main(int argc, char *argv[]) {
             finit r12.w 1.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
+    FATAL_ERROR_IF(!Isa::PicoGpuBinary::areShadersCompatible(vs, fs), "VS is not compatible with FS");
 
     // Prepare addresses
     printf("Memory layout:\n");
