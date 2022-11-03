@@ -231,7 +231,7 @@ SC_MODULE(Tester) {
         const char *code = R"code(
             #vertexShader
             #input r0.x
-            #output r12.xyz
+            #output r12.xyzw
 
             swizzle r7 r0.xxxx
 
@@ -249,7 +249,8 @@ SC_MODULE(Tester) {
             finit r4 0.25
             fmul r7 r7 r4
 
-            mov r12 r7
+            finit r12.w 0.f
+            mov r12.xyz r7
         )code";
 
         Isa::PicoGpuBinary binary = {};
@@ -270,14 +271,17 @@ SC_MODULE(Tester) {
             Conversions::floatBytesToInt((5.f * 2.f + 2.f - 3.f) / 8.f),
             Conversions::floatBytesToInt((5.f * 4.f + 4.f - 3.f) / 8.f),
             Conversions::floatBytesToInt((5.f * 8.f + 8.f - 3.f) / 8.f),
+            Conversions::floatBytesToInt(0.f),
 
             Conversions::floatBytesToInt((10.f * 2.f + 2.f - 3.f) / 8.f),
             Conversions::floatBytesToInt((10.f * 4.f + 4.f - 3.f) / 8.f),
             Conversions::floatBytesToInt((10.f * 8.f + 8.f - 3.f) / 8.f),
+            Conversions::floatBytesToInt(0.f),
 
             Conversions::floatBytesToInt((15.f * 2.f + 2.f - 3.f) / 8.f),
             Conversions::floatBytesToInt((15.f * 4.f + 4.f - 3.f) / 8.f),
             Conversions::floatBytesToInt((15.f * 8.f + 8.f - 3.f) / 8.f),
+            Conversions::floatBytesToInt(0.f),
         });
 
         testCase.floatOutputs = {true, true, true, true, true, true, true, true, true};

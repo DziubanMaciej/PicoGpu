@@ -13,14 +13,15 @@ void PicoGpuBinary::reset() {
     error.clear();
     programType = {};
     std::fill(data.begin(), data.end(), 0);
-    std::fill_n(inputRegistersComponents, maxInputOutputRegisters, 0);
-    std::fill_n(outputRegistersComponents, maxInputOutputRegisters, 0);
+    std::fill_n(inputs, maxInputOutputRegisters, InputOutputRegister{});
+    std::fill_n(outputs, maxInputOutputRegisters, InputOutputRegister{});
 }
 
 void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, bool input) {
     const char *label = input ? "input" : "output";
-    auto components = input ? inputRegistersComponents : outputRegistersComponents;
-    int indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
+    const size_t indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
+    const size_t ioOffset = reg - indexOffset;
+    InputOutputRegister *io = input ? this->inputs : this->outputs;
 
     // Validate mask
     FATAL_ERROR_IF(mask == 0, "Mask must be non zero")
@@ -35,13 +36,14 @@ void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, 
     }
 
     // Validate if this register was already declared as input/output
-    if (components[reg - indexOffset] != 0) {
+    if (io[ioOffset].usage != InputOutputRegisterUsage::Unknown) {
         error << "Multiple " << (input ? "input" : "output") << " directives for r" << reg;
         return;
     }
 
-    // Write the value to the data structure
-    components[reg - indexOffset] = countBits(mask); // TODO should we remember the mask and load it correctly in shader unit? Or return error for masks like .xw?
+    // Store the values
+    io[ioOffset].usage = InputOutputRegisterUsage::Custom; // Mark all registers as custom. This may be overriden later.
+    io[ioOffset].componentsCount = countBits(mask);        // TODO should we remember the mask and load it correctly in shader unit? Or return error for masks like .xw?
 }
 
 void PicoGpuBinary::encodeDirectiveShaderType(Isa::Command::ProgramType programType) {
@@ -71,16 +73,13 @@ void PicoGpuBinary::finalizeDirectives() {
 
 void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     const char *label = input ? "input" : "output";
-    auto components = input ? inputRegistersComponents : outputRegistersComponents;
+    InputOutputRegister *io = input ? this->inputs : this->outputs;
     const auto indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
 
-    // Count used components (before the first zero in the array)
+    // Count used io registers up until the first Unknown register
     size_t usedRegistersCount = 0;
-    uint32_t usedComponentsCount = 0;
     for (; usedRegistersCount < Isa::maxInputOutputRegisters; usedRegistersCount++) {
-        if (components[usedRegistersCount] > 0) {
-            usedComponentsCount += components[usedRegistersCount];
-        } else {
+        if (io[usedRegistersCount].usage == InputOutputRegisterUsage::Unknown) {
             break;
         }
     }
@@ -89,63 +88,53 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         return;
     }
 
-    // Ensure that vertex shader returns 4-component vector as first output and fragment shader receives it as first input
-    if ((!input && isVs()) || (input && isFs())) {
-        if (components[0] != 4) {
-            error << getShaderTypeName() << " must " << label << " a 4-component vector in r" << indexOffset;
+    // Ensure that no other registers after Unknown is used
+    for (size_t i = usedRegistersCount + 1; i < Isa::maxInputOutputRegisters; i++) {
+        if (io[i].usage != InputOutputRegisterUsage::Unknown) {
+            error << "r" << (indexOffset + i) << " register was used as " << label << ". Use r" << (indexOffset + i - 1) << " first";
             return;
         }
     }
 
-    // Ensure that fragment shader only uses one output. Add second internal output for interpolated z-value
+    // Ensure that vertex shader returns 4-component vector as first output and fragment shader receives it as first input.
+    // Mark this input/output register as fixed
+    if ((!input && isVs()) || (input && isFs())) {
+        if (io[0].componentsCount != 4) {
+            error << getShaderTypeName() << " must " << label << " a 4-component vector in r" << indexOffset;
+            return;
+        }
+        FATAL_ERROR_IF(io[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
+        io[0].usage = InputOutputRegisterUsage::Fixed;
+    }
+
+    // Ensure that fragment shader only uses one output and mark it as fixed.
+    // Add a second output for interpolated z-value and mark it as internal.
     if (!input && programType.value() == Isa::Command::ProgramType::FragmentShader) {
         if (usedRegistersCount != 1) {
             error << getShaderTypeName() << " may use only one output register";
             return;
         }
-        encodeDirectiveInputOutput(indexOffset + 1, 0b1000, false);
-        components[1] = 1;
-        usedComponentsCount++;
-        usedRegistersCount = 2;
-    }
+        io[0].usage = InputOutputRegisterUsage::Fixed;
 
-    // Check for more components after the first zero, which is illegal.
-    for (size_t i = usedRegistersCount + 1; i < Isa::maxInputOutputRegisters; i++) {
-        if (components[i] != 0) {
-            error << "r" << (indexOffset + i) << " register was used as " << label << ". Use r" << (indexOffset + i - 1) << " first";
-            return;
-        }
+        encodeDirectiveInputOutput(indexOffset + 1, 0b1000, false);
+        io[1].usage = InputOutputRegisterUsage::Internal;
+        usedRegistersCount++;
     }
 
     // Store the data to ISA
     auto &command = getStoreIsaCommand();
     if (input) {
         command.inputsCount = intToNonZeroCount(usedRegistersCount);
-        command.inputSize0 = intToNonZeroCount(components[0]);
-        command.inputSize1 = intToNonZeroCount(components[1]);
-        command.inputSize2 = intToNonZeroCount(components[2]);
-        command.inputSize3 = intToNonZeroCount(components[3]);
+        command.inputSize0 = intToNonZeroCount(inputs[0].componentsCount);
+        command.inputSize1 = intToNonZeroCount(inputs[1].componentsCount);
+        command.inputSize2 = intToNonZeroCount(inputs[2].componentsCount);
+        command.inputSize3 = intToNonZeroCount(inputs[3].componentsCount);
     } else {
         command.outputsCount = intToNonZeroCount(usedRegistersCount);
-        command.outputSize0 = intToNonZeroCount(components[0]);
-        command.outputSize1 = intToNonZeroCount(components[1]);
-        command.outputSize2 = intToNonZeroCount(components[2]);
-        command.outputSize3 = intToNonZeroCount(components[3]);
-    }
-
-    // Store custom components count
-    if (isVs()) {
-        if (input) {
-            customInputComponentsCount = 0; // currently no custom attributes VB supported
-        } else {
-            customOutputComponentsCount = usedComponentsCount - 4; // Do not count the position
-        }
-    } else if (isFs()) {
-        if (input) {
-            customInputComponentsCount = usedComponentsCount - 4; // Do not count the position
-        } else {
-            customOutputComponentsCount = 0; // Not allowed
-        }
+        command.outputSize0 = intToNonZeroCount(outputs[0].componentsCount);
+        command.outputSize1 = intToNonZeroCount(outputs[1].componentsCount);
+        command.outputSize2 = intToNonZeroCount(outputs[2].componentsCount);
+        command.outputSize3 = intToNonZeroCount(outputs[3].componentsCount);
     }
 }
 
@@ -165,7 +154,7 @@ const char *PicoGpuBinary::getShaderTypeName() {
 bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs) {
     FATAL_ERROR_IF(!vs.isVs(), "Expected a vertex shader");
     FATAL_ERROR_IF(!fs.isFs(), "Expected a fragment shader");
-    return vs.getCustomOutputComponentsCount() == fs.getCustomInputComponentsCount();
+    return memcmp(vs.outputs, fs.inputs, sizeof(vs.outputs)) == 0;
 }
 
 void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask) {

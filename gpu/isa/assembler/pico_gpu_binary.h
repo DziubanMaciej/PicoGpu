@@ -35,15 +35,13 @@ public:
     auto getError() const { return error.str(); }
     auto isVs() const { return programType.value() == Isa::Command::ProgramType::VertexShader; }
     auto isFs() const { return programType.value() == Isa::Command::ProgramType::FragmentShader; }
-    auto getCustomOutputComponentsCount() const { return customOutputComponentsCount; }
-    auto getCustomInputComponentsCount() const { return customInputComponentsCount; }
 
     static bool areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs);
 
 private:
     void encodeAttributeInterpolationForFragmentShader();
     void finalizeInputOutputDirectives(bool input);
-    const char* getShaderTypeName();
+    const char *getShaderTypeName();
 
     template <typename InstructionLayout>
     InstructionLayout *getSpace() {
@@ -63,14 +61,21 @@ private:
     std::optional<Isa::Command::ProgramType> programType = {};
     std::vector<uint32_t> data = {};
 
-    uint32_t customOutputComponentsCount = 0;
-    uint32_t customInputComponentsCount = 0;
-
     // Below two arrays have the same format. Each element is a number from 0 to 4 describing number of
     // components used for a register. For example "#input i0.xy" and "#input i1.yzw" would set the array
     // for input regs to {2, 3, 0, 0}.
-    uint32_t inputRegistersComponents[maxInputOutputRegisters] = {};
-    uint32_t outputRegistersComponents[maxInputOutputRegisters] = {};
+    enum class InputOutputRegisterUsage : uint8_t {
+        Unknown,
+        Fixed,
+        Internal,
+        Custom,
+    };
+    struct InputOutputRegister {
+        InputOutputRegisterUsage usage = InputOutputRegisterUsage::Unknown;
+        uint8_t componentsCount = 0;
+    };
+    InputOutputRegister inputs[maxInputOutputRegisters] = {};
+    InputOutputRegister outputs[maxInputOutputRegisters] = {};
 };
 
 } // namespace Isa

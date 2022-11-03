@@ -16,7 +16,7 @@ const char *passingPrograms[] = {
     "#input r1.xyz\n"
     "#input r2.xzw\n"
     "#input r3.xyzw\n"
-    "#output r12.yzw\n"
+    "#output r12.xyzw\n"
     "#output r13.xyw\n"
     "#output r14.xzw\n"
     "#output r15.z\n"
@@ -27,7 +27,7 @@ const char *passingPrograms[] = {
 
     // Program 2 - a couple instructions
     "#fragmentShader\n"
-    "#input r0.xw\n"
+    "#input r0.xyzw\n"
     "#input r1.yz\n"
     "#output r12.xyzw\n"
     ""
