@@ -276,10 +276,11 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     P is the point that we will be interpolating. Its x,y position is stored in r0.
     */
 
+    constexpr size_t perTriangleAttribsOffset = 7;
     const RegisterSelection regPositionP = 0;
-    const RegisterSelection regPositionA = 7;
-    const RegisterSelection regPositionB = 10;
-    const RegisterSelection regPositionC = 13;
+    const RegisterSelection regPositionA = perTriangleAttribsOffset + 0;
+    const RegisterSelection regPositionB = perTriangleAttribsOffset + 3;
+    const RegisterSelection regPositionC = perTriangleAttribsOffset + 6;
 
     // Calculate edges (2 component vectors)
     const RegisterSelection regEdgeAB = 1;
@@ -313,6 +314,18 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regPositionA, regPositionP, 0b0010);
     encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regPositionB, regPositionP, 0b0010);
     encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightC, regPositionC, regPositionP, 0b0010);
+
+    // Interpolate custom attributes
+    for (uint32_t i = 1; i < Isa::maxInputOutputRegisters; i++) {
+        if (inputs[i].usage == InputOutputRegisterUsage::Custom) {
+            const RegisterSelection regDst = Isa::inputRegistersOffset + i;
+            const RegisterSelection regPerTriangle = perTriangleAttribsOffset + i;
+            encodeUnaryMathImm(Isa::Opcode::init, regDst, 0b1111, {0});
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightA, regPerTriangle + 0, regDst, 0b1111); // TODO mask could be more narrow
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightB, regPerTriangle + 3, regDst, 0b1111);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightC, regPerTriangle + 6, regDst, 0b1111);
+        }
+    }
 }
 
 void PicoGpuBinary::setHasNextCommand() {

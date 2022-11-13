@@ -40,7 +40,7 @@ int sc_main(int argc, char *argv[]) {
             finit r1 100.f
             fsub r12.y r1 r12
 
-            finit r13.x 123.f
+            mov r13.x r0
         )code";
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
     Isa::PicoGpuBinary fs = {};
@@ -49,7 +49,7 @@ int sc_main(int argc, char *argv[]) {
             #input r0.xyzw
             #input r1.x
             #output r12.xyzw
-            swizzle r10 r0.zzzz
+            swizzle r10 r1.xxxx
             fdiv  r12.x r10 100.f
             finit r12.yz 0.f
             finit r12.w 1.f
