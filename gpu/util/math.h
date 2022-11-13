@@ -2,11 +2,13 @@
 
 #include <cstdint>
 
+constexpr static inline size_t maxCustomComponents = (Isa::maxInputOutputRegisters - 1) * Isa::registerComponentsCount;
 struct Point {
     float x;
     float y;
     float z;
     float w;
+    float customComponents[maxCustomComponents];
 };
 
 inline float sign(Point p1, Point p2, Point p3) {

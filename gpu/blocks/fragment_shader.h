@@ -9,6 +9,7 @@
 SC_MODULE(FragmentShader) {
     sc_in_clk inpClock;
     sc_in<MemoryAddressType> inpShaderAddress;
+    sc_in<VsPsCustomComponentsType> inpCustomInputComponents;
 
     struct PreviousBlock {
         struct PerTriangle {
@@ -55,9 +56,11 @@ SC_MODULE(FragmentShader) {
 private:
     void perTriangleThread();
     void perFragmentThread();
-    static uint32_t packRgbaToUint(float *rgba);
 
-    constexpr static size_t maxTriangleAttributesCount = Isa::maxInputOutputRegisters * Isa::registerComponentsCount * 3;
-    sc_signal<sc_uint<32>> triangleAttributes[maxTriangleAttributesCount] = {};
-    sc_signal<sc_uint<6>> triangleAttributesCount = {};
+    static uint32_t packRgbaToUint(float *rgba);
+    static uint32_t calculateTriangleAttributesCount(VsPsCustomComponents customComponents);
+
+    // Passed from perTriangleThread to perFragmentThread
+    constexpr static size_t maxPerTriangleAttribsCount = Isa::maxInputOutputRegisters * Isa::registerComponentsCount * 3;
+    sc_signal<sc_uint<32>> perTriangleAttribs[maxPerTriangleAttribsCount] = {}; // values for all attribs for all 3 vertices of a triangle
 };

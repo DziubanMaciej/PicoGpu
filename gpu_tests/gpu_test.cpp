@@ -33,17 +33,21 @@ int sc_main(int argc, char *argv[]) {
             #vertexShader
             #input r0.xyz
             #output r12.xyzw
+            #output r13.x
             mov r12.xyz r0
             finit r12.w 1.f
 
             finit r1 100.f
             fsub r12.y r1 r12
+
+            finit r13.x 123.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
     Isa::PicoGpuBinary fs = {};
     const char *fsCode = R"code(
             #fragmentShader
             #input r0.xyzw
+            #input r1.x
             #output r12.xyzw
             swizzle r10 r0.zzzz
             fdiv  r12.x r10 100.f
@@ -70,6 +74,7 @@ int sc_main(int argc, char *argv[]) {
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     gpu.blocks.GLOBAL.inpClock(clock);
+    gpu.blocks.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 6;
     gpu.blocks.VS.inpShaderAddress = vsAddress;

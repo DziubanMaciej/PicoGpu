@@ -40,7 +40,8 @@ SC_MODULE(Gpu) {
     // user. Ideally user should set all of the fields to desired values.
     struct {
         struct {
-            sc_in_clk inpClock{"inpClock"};
+            sc_in_clk inpClock{"GLOBAL_clock"};
+            sc_signal<VsPsCustomComponentsType> inpVsPsCustomComponents{"GLOBAL_vsPsCustomComponents"};
         } GLOBAL;
 
         struct {

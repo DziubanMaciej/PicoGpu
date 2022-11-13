@@ -106,10 +106,6 @@ const char *failingPrograms[] = {
 };
 
 int sc_main(int argc, char *argv[]) {
-    // Isa::PicoGpuBinary binary = {};
-    // int result = Isa::assembly(failingPrograms[7], &binary);
-    // FATAL_ERROR("DUPA");
-
     bool success = true;
     int count = 0;
 

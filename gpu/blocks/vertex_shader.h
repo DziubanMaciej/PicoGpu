@@ -7,6 +7,7 @@
 SC_MODULE(VertexShader) {
     sc_in_clk inpClock;
     sc_in<MemoryAddressType> inpShaderAddress;
+    sc_in<VsPsCustomComponentsType> inpCustomOutputComponents;
 
     struct PreviousBlock {
         sc_in<bool> inpSending;

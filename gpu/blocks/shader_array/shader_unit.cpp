@@ -76,25 +76,28 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
 
         // Receive per request custom attributes
         VectorRegister perRequestInputs[verticesInTriangle][Isa::maxInputOutputRegisters] = {};
+        size_t componentsCounts[Isa::maxInputOutputRegisters] = {};
         for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
-            size_t componentsCount = {};
             switch (inputIndex) {
             case 0:
-                componentsCount = 3; // we always pass x,y,z position
+                componentsCounts[inputIndex] = 3; // we always pass x,y,z position
                 break;
             case 1:
-                componentsCount = nonZeroCountToInt(isaMetadata.inputSize1);
+                componentsCounts[inputIndex] = nonZeroCountToInt(isaMetadata.inputSize1);
                 break;
             case 2:
-                componentsCount = nonZeroCountToInt(isaMetadata.inputSize2);
+                componentsCounts[inputIndex] = nonZeroCountToInt(isaMetadata.inputSize2);
                 break;
             case 3:
-                componentsCount = nonZeroCountToInt(isaMetadata.inputSize3);
+                componentsCounts[inputIndex] = nonZeroCountToInt(isaMetadata.inputSize3);
                 break;
             default:
                 FATAL_ERROR("Invalid input reg index");
             }
-            for (int vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
+        }
+        for (int vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
+            for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+                const size_t componentsCount = componentsCounts[inputIndex];
                 for (size_t componentIndex = 0; componentIndex < componentsCount; componentIndex++) {
                     wait();
                     perRequestInputs[vertexIndex][inputIndex][componentIndex] = request.inpData.read();

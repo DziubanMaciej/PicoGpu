@@ -157,6 +157,35 @@ bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuB
     return memcmp(vs.outputs, fs.inputs, sizeof(vs.outputs)) == 0;
 }
 
+VsPsCustomComponents PicoGpuBinary::getVsPsCustomComponents() {
+    InputOutputRegister *io = nullptr;
+    switch (programType.value()) {
+    case Isa::Command::ProgramType::VertexShader:
+        io = this->outputs;
+        break;
+    case Isa::Command::ProgramType::FragmentShader:
+        io = this->inputs;
+        break;
+    default:
+        FATAL_ERROR("Invalid shader type");
+    }
+
+    uint8_t components[Isa::maxInputOutputRegisters] = {};
+    uint8_t registersCount = {};
+    for (uint32_t i = 0; i < Isa::maxInputOutputRegisters; i++) {
+        if (io[i].usage == InputOutputRegisterUsage::Custom) {
+            components[registersCount++] = io[i].componentsCount;
+        }
+    }
+
+    VsPsCustomComponents result = {0};
+    result.registersCount = registersCount;
+    result.comp0 = intToNonZeroCount(components[0]);
+    result.comp1 = intToNonZeroCount(components[1]);
+    result.comp2 = intToNonZeroCount(components[2]);
+    return result;
+}
+
 void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask) {
     auto inst = getSpace<InstructionLayouts::UnaryMath>();
     inst->opcode = opcode;

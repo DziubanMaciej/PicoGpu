@@ -7,8 +7,9 @@
 struct Point;
 
 SC_MODULE(Rasterizer) {
-
     sc_in_clk inpClock;
+    sc_in<VsPsCustomComponentsType> inpCustomVsPsComponents;
+
     struct {
         sc_in<VertexPositionFloatType> inpWidth;
         sc_in<VertexPositionFloatType> inpHeight;
@@ -38,11 +39,14 @@ SC_MODULE(Rasterizer) {
     } profiling;
 
     SC_CTOR(Rasterizer) {
-        SC_CTHREAD(rasterize, inpClock.pos());
+        SC_CTHREAD(main, inpClock.pos());
     }
 
-    void rasterize();
-
 private:
-    Point readPoint(const uint32_t *receivedVertices, size_t stride, size_t pointIndex);
+    void main();
+    void receiveFromVs(uint32_t customComponentsPerVertex, Point * outVertices);
+    void setupPerTriangleFsState(uint32_t customComponentsPerVertex, Point * vertices);
+    void rasterize(Point * vertices);
+
+    Point readPoint(const uint32_t *receivedVertices, size_t stride, size_t customComponentsCount, size_t pointIndex);
 };

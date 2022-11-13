@@ -108,10 +108,13 @@ void Gpu::connectPublicPorts() {
     primitiveAssembler.inpVerticesCount(blocks.PA.inpVerticesCount);
 
     vertexShader.inpShaderAddress(blocks.VS.inpShaderAddress);
+    vertexShader.inpCustomOutputComponents(blocks.GLOBAL.inpVsPsCustomComponents);
 
+    rasterizer.inpCustomVsPsComponents(blocks.GLOBAL.inpVsPsCustomComponents);
     rasterizer.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
     rasterizer.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
 
+    fragmentShader.inpCustomInputComponents(blocks.GLOBAL.inpVsPsCustomComponents);
     fragmentShader.inpShaderAddress(blocks.FS.inpShaderAddress);
 
     outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);

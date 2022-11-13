@@ -5,17 +5,16 @@
 #include "gpu/util/math.h"
 
 void FragmentShader::perTriangleThread() {
-    uint32_t data[maxTriangleAttributesCount];
+    uint32_t data[maxPerTriangleAttribsCount];
     while (true) {
         wait();
 
-        const size_t dataToReceiveCount = 9; // TODO calculate it based on vs output state
+        const uint32_t dataToReceiveCount = calculateTriangleAttributesCount(VsPsCustomComponents(inpCustomInputComponents.read().to_int()));
         Handshake::receiveArrayWithParallelPorts(previousBlock.perTriangle.inpSending, previousBlock.perTriangle.outReceiving,
                                                  previousBlock.perTriangle.inpData, data, dataToReceiveCount);
         for (size_t i = 0; i < dataToReceiveCount; i++) {
-            this->triangleAttributes[i] = data[i];
+            this->perTriangleAttribs[i] = data[i];
         }
-        this->triangleAttributesCount = dataToReceiveCount;
     }
 }
 
@@ -42,6 +41,11 @@ void FragmentShader::perFragmentThread() {
     while (true) {
         wait();
 
+        // Prepare some info about the request
+        VsPsCustomComponents customInputComponents{inpCustomInputComponents.read().to_uint()};
+        const size_t customInputRegistersCount = customInputComponents.registersCount;
+        const uint32_t triangleAttributesCount = calculateTriangleAttributesCount(customInputComponents);
+
         // Receive fragments to shade from previous block. Accumulate them and dispatch together.
         const size_t timeout = 5;
         size_t fragmentsCount = 0;
@@ -57,16 +61,14 @@ void FragmentShader::perFragmentThread() {
 
             shadedFragments[fragmentsCount].x = inputFragment.x;
             shadedFragments[fragmentsCount].y = inputFragment.y;
-            shadedFragments[fragmentsCount].z = inputFragment.z;
         }
         if (fragmentsCount == 0) {
             continue;
         }
 
         // Write per dispatch data to the request
-        const uint32_t triangleAttributesCount = this->triangleAttributesCount.read().to_int();
         for (auto i = 0u; i < triangleAttributesCount; i++) {
-            request.data[dataDwords++] = this->triangleAttributes[i].read().to_int();
+            request.data[dataDwords++] = this->perTriangleAttribs[i].read().to_int();
         }
 
         // Send the request to the shading units
@@ -74,12 +76,21 @@ void FragmentShader::perFragmentThread() {
         request.header.dword1.clientToken++;
         request.header.dword1.threadCount = intToNonZeroCount(fragmentsCount);
         request.header.dword1.programType = Isa::Command::ProgramType::FragmentShader;
-        request.header.dword2.inputsCount = NonZeroCount::One;
-        request.header.dword2.inputSize0 = NonZeroCount::Four;
+        request.header.dword2.inputsCount = NonZeroCount::One + intToNonZeroCount(customInputRegistersCount);
+        request.header.dword2.inputSize0 = NonZeroCount::Two; // First input is always x,y position
+        if (customInputRegistersCount > 0) {
+            request.header.dword2.inputSize1 = customInputComponents.comp0;
+        }
+        if (customInputRegistersCount > 1) {
+            request.header.dword2.inputSize2 = customInputComponents.comp1;
+        }
+        if (customInputRegistersCount > 2) {
+            request.header.dword2.inputSize3 = customInputComponents.comp2;
+        }
         request.header.dword2.outputsCount = NonZeroCount::Two;
-        request.header.dword2.outputSize0 = NonZeroCount::Four;
-        request.header.dword2.outputSize1 = NonZeroCount::One;
-        const size_t requestSize = sizeof(ShaderFrontendRequest) + dataDwords;
+        request.header.dword2.outputSize0 = NonZeroCount::Four; // color data r,g,b,a
+        request.header.dword2.outputSize1 = NonZeroCount::One;  // interpolated z
+        const size_t requestSize = sizeof(ShaderFrontendRequest) / sizeof(uint32_t) + dataDwords;
         Handshake::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
                              shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);
 
@@ -102,4 +113,11 @@ uint32_t FragmentShader::packRgbaToUint(float *rgba) {
     result |= static_cast<uint32_t>(saturate(rgba[2]) * 255) << 16;
     result |= static_cast<uint32_t>(saturate(rgba[3]) * 255) << 24;
     return result;
+}
+
+uint32_t FragmentShader::calculateTriangleAttributesCount(VsPsCustomComponents customComponents) {
+    const uint32_t fixedComponentsPerVertex = 3; // x,y,z
+    const uint32_t customComponentsPerVertex = customComponents.getCustomComponentsCount();
+    const uint32_t componentsPerVertex = fixedComponentsPerVertex + customComponentsPerVertex;
+    return componentsPerVertex * verticesInPrimitive;
 }

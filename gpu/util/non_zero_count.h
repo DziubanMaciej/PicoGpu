@@ -11,3 +11,6 @@ enum class NonZeroCount : uint32_t {
 
 constexpr inline NonZeroCount intToNonZeroCount(int arg) { return NonZeroCount(arg - 1); }
 constexpr inline int nonZeroCountToInt(NonZeroCount arg) { return int(arg) + 1; }
+constexpr inline NonZeroCount operator+(NonZeroCount a, NonZeroCount b) {
+    return intToNonZeroCount(nonZeroCountToInt(a) + nonZeroCountToInt(b));
+}

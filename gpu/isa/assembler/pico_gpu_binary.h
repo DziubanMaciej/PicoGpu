@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpu/isa/isa.h"
+#include "gpu/types.h"
 #include "gpu/util/error.h"
 
 #include <cstddef>
@@ -37,6 +38,7 @@ public:
     auto isFs() const { return programType.value() == Isa::Command::ProgramType::FragmentShader; }
 
     static bool areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs);
+    VsPsCustomComponents getVsPsCustomComponents();
 
 private:
     void encodeAttributeInterpolationForFragmentShader();

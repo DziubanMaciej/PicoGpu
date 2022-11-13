@@ -20,7 +20,8 @@ constexpr inline size_t maxInputOutputRegistersExponent = 2;
 constexpr inline size_t maxInputOutputRegisters = 1 << maxInputOutputRegistersExponent;
 constexpr inline size_t inputRegistersOffset = 0;
 constexpr inline size_t outputRegistersOffset = generalPurposeRegistersCount - maxInputOutputRegisters;
-constexpr inline size_t registerComponentsCount = 4;
+constexpr inline size_t registerComponentsCountExponent = 2;
+constexpr inline size_t registerComponentsCount = 1 << 2;
 
 // Commands are macro-operations issued to the shader units in order to prepare and
 // execute shaders.

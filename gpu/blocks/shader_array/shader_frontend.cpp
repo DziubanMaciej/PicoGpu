@@ -261,10 +261,14 @@ size_t ShaderFrontendBase::calculateShaderOutputsCount(const ShaderFrontendReque
 }
 
 void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, Isa::Command::CommandStoreIsa &isaCommand) {
-    // Validate inputs
     FATAL_ERROR_IF(isaCommand.inputsCount != request.dword2.inputsCount, "Invalid inputs count");
     const int inputsCount = nonZeroCountToInt(isaCommand.inputsCount);
-    FATAL_ERROR_IF(isaCommand.inputSize0 != request.dword2.inputSize0, "Invalid inputSize0");
+    if (request.dword1.programType == Isa::Command::ProgramType::FragmentShader) {
+        FATAL_ERROR_IF(NonZeroCount::Two != request.dword2.inputSize0, "Invalid inputSize0 in FS request");
+        FATAL_ERROR_IF(NonZeroCount::Four != isaCommand.inputSize0, "Invalid inputSize0 in FS binary");
+    } else {
+        FATAL_ERROR_IF(isaCommand.inputSize0 != request.dword2.inputSize0, "Invalid inputSize0");
+    }
     if (inputsCount > 1) {
         FATAL_ERROR_IF(isaCommand.inputSize1 != request.dword2.inputSize1, "Invalid inputSize1");
     }
@@ -278,13 +282,13 @@ void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, I
     FATAL_ERROR_IF(isaCommand.outputsCount != request.dword2.outputsCount, "Invalid outputs count");
     const int outputsCount = nonZeroCountToInt(isaCommand.outputsCount);
     FATAL_ERROR_IF(isaCommand.outputSize0 != request.dword2.outputSize0, "Invalid outputSize0");
-    if (inputsCount > 1) {
+    if (outputsCount > 1) {
         FATAL_ERROR_IF(isaCommand.outputSize1 != request.dword2.outputSize1, "Invalid outputSize1");
     }
-    if (inputsCount > 2) {
+    if (outputsCount > 2) {
         FATAL_ERROR_IF(isaCommand.outputSize2 != request.dword2.outputSize2, "Invalid outputSize2");
     }
-    if (inputsCount > 3) {
+    if (outputsCount > 3) {
         FATAL_ERROR_IF(isaCommand.outputSize3 != request.dword2.outputSize3, "Invalid outputSize3");
     }
 }
