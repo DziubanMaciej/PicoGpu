@@ -8,6 +8,7 @@
 SC_MODULE(VertexShader) {
     sc_in_clk inpClock;
     sc_in<MemoryAddressType> inpShaderAddress;
+    sc_in<CustomShaderComponentsType> inpCustomInputComponents;
     sc_in<CustomShaderComponentsType> inpCustomOutputComponents;
 
     struct PreviousBlock {

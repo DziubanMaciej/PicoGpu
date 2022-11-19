@@ -41,6 +41,7 @@ SC_MODULE(Gpu) {
     struct {
         struct {
             sc_in_clk inpClock{"GLOBAL_clock"};
+            sc_signal<CustomShaderComponentsType> inpVsCustomInputComponents{"GLOBAL_inpVsCustomInputComponents"};
             sc_signal<CustomShaderComponentsType> inpVsPsCustomComponents{"GLOBAL_vsPsCustomComponents"};
         } GLOBAL;
 

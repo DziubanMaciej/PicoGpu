@@ -106,8 +106,10 @@ void Gpu::connectInternalPorts() {
 void Gpu::connectPublicPorts() {
     primitiveAssembler.inpVerticesAddress(blocks.PA.inpVerticesAddress);
     primitiveAssembler.inpVerticesCount(blocks.PA.inpVerticesCount);
+    primitiveAssembler.inpCustomInputComponents(blocks.GLOBAL.inpVsCustomInputComponents);
 
     vertexShader.inpShaderAddress(blocks.VS.inpShaderAddress);
+    vertexShader.inpCustomInputComponents(blocks.GLOBAL.inpVsCustomInputComponents);
     vertexShader.inpCustomOutputComponents(blocks.GLOBAL.inpVsPsCustomComponents);
 
     rasterizer.inpCustomVsPsComponents(blocks.GLOBAL.inpVsPsCustomComponents);
@@ -159,6 +161,8 @@ void Gpu::connectProfilingPorts() {
 void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalPorts) {
     if (publicPorts) {
         trace.trace(blocks.GLOBAL.inpClock);
+        trace.trace(blocks.GLOBAL.inpVsCustomInputComponents);
+        trace.trace(blocks.GLOBAL.inpVsPsCustomComponents);
 
         trace.trace(blocks.PA.inpVerticesAddress);
         trace.trace(blocks.PA.inpVerticesCount);

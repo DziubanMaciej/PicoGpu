@@ -32,26 +32,28 @@ int sc_main(int argc, char *argv[]) {
     const char *vsCode = R"code(
             #vertexShader
             #input r0.xyz
+            #input r1.xyz
             #output r12.xyzw
-            #output r13.x
-            mov r12.xyz r0
+            #output r13.xyz
+
+            // Passthrough attributes
+            mov r12 r0
+            mov r13 r1
             finit r12.w 1.f
 
+            // y-flip
             finit r1 100.f
             fsub r12.y r1 r12
-
-            mov r13.x r0
         )code";
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
     Isa::PicoGpuBinary fs = {};
     const char *fsCode = R"code(
             #fragmentShader
             #input r0.xyzw
-            #input r1.x
+            #input r1.xyz
             #output r12.xyzw
-            swizzle r10 r1.xxxx
-            fdiv  r12.x r10 100.f
-            finit r12.yz 0.f
+
+            mov r12.xyz r1
             finit r12.w 1.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
@@ -60,7 +62,7 @@ int sc_main(int argc, char *argv[]) {
     // Prepare addresses
     printf("Memory layout:\n");
     AddressAllocator addressAllocator{Gpu::memorySize * 4};
-    MemoryAddressType vertexBufferAddress = addressAllocator.allocate(27 * 4, "vertexBuffer");
+    MemoryAddressType vertexBufferAddress = addressAllocator.allocate(54 * 4, "vertexBuffer");
     MemoryAddressType framebufferAddress = addressAllocator.allocate(100 * 100 * 4, "frameBuffer");
     MemoryAddressType depthBufferAddress = addressAllocator.allocate(100 * 100 * 4, "depthBuffer");
     MemoryAddressType vsAddress = addressAllocator.allocate(vs.getSizeInBytes(), "vertexShaderIsa");
@@ -74,6 +76,7 @@ int sc_main(int argc, char *argv[]) {
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
     gpu.blocks.GLOBAL.inpClock(clock);
+    gpu.blocks.GLOBAL.inpVsCustomInputComponents = vs.getVsCustomInputComponents().raw;
     gpu.blocks.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 6;
@@ -97,16 +100,16 @@ int sc_main(int argc, char *argv[]) {
 
     // Upload vertex data to the memory
     struct Vertex {
-        float x, y, z;
+        float x, y, z, r, g, b;
     };
     Vertex vertices[] = {
-        Vertex{10, 10, 30},
-        Vertex{45, 50, 10},
-        Vertex{90, 10, 100},
+        Vertex{10, 10, 10,   1.0, 0.0, 0.0 },
+        Vertex{45, 80, 80,   0.0, 0.0, 1.0 },
+        Vertex{90, 10, 10,   0.0, 1.0, 0.0 },
 
-        Vertex{10, 40, 0},
-        Vertex{90, 40, 0},
-        Vertex{45, 20, 130},
+        Vertex{10, 40, 0,    0.2, 0.2, 0.2 },
+        Vertex{90, 40, 0,    1.0, 1.0, 1.0 },
+        Vertex{45, 20, 130,  0.0, 0.0, 0.0 },
     };
     gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4, &profiling["Upload VB"]);
 

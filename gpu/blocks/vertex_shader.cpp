@@ -3,16 +3,13 @@
 #include "gpu/util/handshake.h"
 
 void VertexShader::main() {
-    const auto verticesPerPrimitive = 3; // only triangles
-
-    const auto componentsPerInputVertex = 3;
-    const auto dwordsPerInputPrimitive = verticesPerPrimitive * componentsPerInputVertex;
+    const auto maxDwordsPerInputPrimitive = verticesInPrimitive * Isa::registerComponentsCount * Isa::maxInputOutputRegisters;
     struct {
         ShaderFrontendRequest header = {};
-        uint32_t vertexData[dwordsPerInputPrimitive];
+        uint32_t vertexData[maxDwordsPerInputPrimitive];
     } request;
 
-    const auto maxDwordsPerOutputPrimitive = verticesPerPrimitive * Isa::registerComponentsCount * Isa::maxInputOutputRegisters;
+    const auto maxDwordsPerOutputPrimitive = verticesInPrimitive * Isa::registerComponentsCount * Isa::maxInputOutputRegisters;
     struct {
         ShaderFrontendResponse header = {};
         uint32_t vertexData[maxDwordsPerOutputPrimitive];
@@ -21,9 +18,14 @@ void VertexShader::main() {
     while (true) {
         wait();
 
+        // Prepare some info about our input
+        CustomShaderComponents inputComponentsInfo{this->inpCustomInputComponents.read().to_uint()};
+        const size_t totalInputComponents = verticesInPrimitive * inputComponentsInfo.getCustomComponentsCount();
+        const size_t inputRegistersCount = inputComponentsInfo.registersCount;
+
         // Receive triangle data
         Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
-                                                 request.vertexData, dwordsPerInputPrimitive, &profiling.outBusy);
+                                                 request.vertexData, totalInputComponents, &profiling.outBusy);
 
         // Prepare some info about the request
         CustomShaderComponents customOutputComponents{this->inpCustomOutputComponents.read().to_uint()};
@@ -34,8 +36,19 @@ void VertexShader::main() {
         request.header.dword0.isaAddress = inpShaderAddress.read();
         request.header.dword1.clientToken++;
         request.header.dword1.threadCount = intToNonZeroCount(threadCount);
-        request.header.dword2.inputsCount = NonZeroCount::One;
-        request.header.dword2.inputSize0 = NonZeroCount::Three;
+        request.header.dword2.inputsCount = intToNonZeroCount(inputComponentsInfo.registersCount);
+        if (inputRegistersCount > 0) {
+            request.header.dword2.inputSize0 = inputComponentsInfo.comp0;
+        }
+        if (inputRegistersCount > 1) {
+            request.header.dword2.inputSize1 = inputComponentsInfo.comp1;
+        }
+        if (inputRegistersCount > 2) {
+            request.header.dword2.inputSize2 = inputComponentsInfo.comp2;
+        }
+        if (inputRegistersCount > 3) {
+            request.header.dword2.inputSize3 = inputComponentsInfo.comp3;
+        }
         request.header.dword2.outputsCount = NonZeroCount::One + intToNonZeroCount(customOutputRegistersCount);
         request.header.dword2.outputSize0 = NonZeroCount::Four;
         if (customOutputRegistersCount > 0) {

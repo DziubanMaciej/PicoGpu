@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gpu/custom_components.h"
 #include "gpu/types.h"
 
 #include <systemc.h>
@@ -9,6 +10,7 @@ SC_MODULE(PrimitiveAssembler) {
     sc_in<bool> inpEnable;
     sc_in<MemoryAddressType> inpVerticesAddress;
     sc_in<sc_uint<8>> inpVerticesCount;
+    sc_in<CustomShaderComponentsType> inpCustomInputComponents;
 
     struct {
         sc_out<bool> outEnable;
@@ -33,5 +35,7 @@ SC_MODULE(PrimitiveAssembler) {
         SC_CTHREAD(assemble, inpClock.pos());
     }
 
+private:
     void assemble();
+    uint32_t fetchComponentFromMemory(uint32_t address);
 };

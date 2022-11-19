@@ -40,6 +40,7 @@ public:
     auto isFs() const { return programType.value() == Isa::Command::ProgramType::FragmentShader; }
 
     static bool areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs);
+    CustomShaderComponents getVsCustomInputComponents();
     CustomShaderComponents getVsPsCustomComponents();
 
 private:

@@ -97,6 +97,15 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         }
     }
 
+    // Ensure that vertex shader has at least one input. There are no enforced size of any inputs, so all VS inputs are
+    // considered custom - there are no fixed inputs.
+    if (input && isVs()) {
+        if (usedRegistersCount == 0) {
+            error << getShaderTypeName() << " must use at least one input register";
+            return;
+        }
+    }
+
     // Ensure that vertex shader returns 4-component vector as first output and fragment shader receives it as first input.
     // Mark this input/output register as fixed
     if ((!input && isVs()) || (input && isFs())) {
@@ -158,6 +167,26 @@ bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuB
     return memcmp(vs.outputs, fs.inputs, sizeof(vs.outputs)) == 0;
 }
 
+CustomShaderComponents PicoGpuBinary::getVsCustomInputComponents() {
+    FATAL_ERROR_IF(programType.value() != Isa::Command::ProgramType::VertexShader, "Invalid shader type");
+
+    uint8_t components[Isa::maxInputOutputRegisters] = {};
+    uint8_t registersCount = {};
+    for (uint32_t i = 0; i < Isa::maxInputOutputRegisters; i++) {
+        if (inputs[i].usage == InputOutputRegisterUsage::Custom) {
+            components[registersCount++] = inputs[i].componentsCount;
+        }
+    }
+
+    CustomShaderComponents result = {0};
+    result.registersCount = registersCount;
+    result.comp0 = intToNonZeroCount(components[0]);
+    result.comp1 = intToNonZeroCount(components[1]);
+    result.comp2 = intToNonZeroCount(components[2]);
+    result.comp3 = intToNonZeroCount(components[3]);
+    return result;
+}
+
 CustomShaderComponents PicoGpuBinary::getVsPsCustomComponents() {
     InputOutputRegister *io = nullptr;
     switch (programType.value()) {
@@ -178,6 +207,8 @@ CustomShaderComponents PicoGpuBinary::getVsPsCustomComponents() {
             components[registersCount++] = io[i].componentsCount;
         }
     }
+
+    FATAL_ERROR_IF(registersCount > Isa::maxInputOutputRegisters - 1, "Too many VsPs custom components (one component is reserved for Fixed position input");
 
     CustomShaderComponents result = {0};
     result.registersCount = registersCount;

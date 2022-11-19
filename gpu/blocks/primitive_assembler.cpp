@@ -4,46 +4,49 @@
 #include "gpu/util/raii_boolean_setter.h"
 
 void PrimitiveAssembler::assemble() {
+    const size_t maxInputComponents = verticesInPrimitive * Isa::maxInputOutputRegisters * Isa::registerComponentsCount;
+    uint32_t readVertices[maxInputComponents];
+
     while (1) {
         wait();
-
         if (!inpEnable) {
             continue;
         }
+
         RaiiBooleanSetter busySetter{profiling.outBusy};
 
-        const auto verticesAddress = inpVerticesAddress.read().to_int();
-        const auto verticesInPrimitive = 3; // only triangles
+        const uint32_t vertexBufferAddress = inpVerticesAddress.read().to_int();
         const auto primitiveCount = inpVerticesCount.read().to_int() / verticesInPrimitive;
-        const auto componentsPerVertex = 3; // x, y, z
-
-        uint32_t readVertices[verticesInPrimitive * componentsPerVertex] = {};
+        const CustomShaderComponents componentsInfo{this->inpCustomInputComponents.read().to_uint()};
+        const size_t componentsToTransfer = verticesInPrimitive * componentsInfo.getCustomComponentsCount();
 
         for (int triangleIndex = 0; triangleIndex < primitiveCount; triangleIndex++) {
             if (triangleIndex != 0) {
                 wait();
             }
 
-            // Read all vertices of the triangle to local memory
-            for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
-                for (int componentIndex = 0; componentIndex < componentsPerVertex; componentIndex++) {
-                    memory.outEnable = 1;
-                    memory.outAddress = verticesAddress + sizeof(uint32_t) * (triangleIndex * verticesInPrimitive * componentsPerVertex + componentsPerVertex * vertexIndex + componentIndex);
-                    wait(1);
-                    memory.outEnable = 0;
-
-                    while (!memory.inpCompleted) {
-                        wait(1);
-                    }
-
-                    memory.outAddress = 0;
-                    readVertices[vertexIndex * componentsPerVertex + componentIndex] = memory.inpData.read();
-                }
+            const uint32_t triangleAddress = vertexBufferAddress + triangleIndex * componentsToTransfer * sizeof(uint32_t);
+            for (size_t componentIndex = 0; componentIndex < componentsToTransfer; componentIndex++) {
+                readVertices[componentIndex] = fetchComponentFromMemory(triangleAddress + componentIndex * sizeof(uint32_t));
             }
 
             // Output the triangle to the next block
-            Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, readVertices, verticesInPrimitive * componentsPerVertex);
+            Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, readVertices, componentsToTransfer);
             profiling.outPrimitivesProduced = profiling.outPrimitivesProduced.read() + 1;
         }
     }
+}
+
+uint32_t PrimitiveAssembler::fetchComponentFromMemory(uint32_t address) {
+    memory.outEnable = 1;
+    memory.outAddress = address;
+    wait(1);
+    memory.outEnable = 0;
+
+    while (!memory.inpCompleted) {
+        wait(1);
+    }
+
+    memory.outAddress = 0;
+    return memory.inpData.read();
 }
