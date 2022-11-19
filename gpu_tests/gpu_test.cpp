@@ -55,6 +55,11 @@ int sc_main(int argc, char *argv[]) {
 
             mov r12.xyz r1
             finit r12.w 1.f
+
+            // finit r12 0.f
+            // finit r12.w 1.f
+            // mov r12.z r0
+            // fdiv r12.z r12 100.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
     FATAL_ERROR_IF(!Isa::PicoGpuBinary::areShadersCompatible(vs, fs), "VS is not compatible with FS");
@@ -107,9 +112,9 @@ int sc_main(int argc, char *argv[]) {
         Vertex{45, 80, 80,   0.0, 0.0, 1.0 },
         Vertex{90, 10, 10,   0.0, 1.0, 0.0 },
 
-        Vertex{10, 40, 0,    0.2, 0.2, 0.2 },
-        Vertex{90, 40, 0,    1.0, 1.0, 1.0 },
-        Vertex{45, 20, 130,  0.0, 0.0, 0.0 },
+        Vertex{10, 40, 10,    0.2, 0.2, 0.2 },
+        Vertex{90, 40, 10,    1.0, 1.0, 1.0 },
+        Vertex{45, 20, 100,  0.0, 0.0, 0.0 },
     };
     gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4, &profiling["Upload VB"]);
 
