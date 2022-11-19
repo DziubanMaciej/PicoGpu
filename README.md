@@ -55,8 +55,7 @@ Roadmap for features to implement:
 
 | Feature                                    | Comment                                                                                                  |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Moving additional attributes from VS to FS | Rasterizer will have to somehow be aware of it. We will also have to interpolate them (projection aware) |
-| Customizable vertex layout                 | Currently only 4-component vertices are passed.                                                          |
+| Implement perspective aware interpolation  | Currently we do it in screen space, which is not perspective-correct                                     |
 | Optimize data passing                      | Some blocks could use parallel ports for faster data passing.                                            |
 | Better rasterization algorithm             | **RS** blindly iterates over every pixel.                                                                |
 | Add a real-time visualization              | Currently we dump the framebuffer to a png file. We could attach it to an OpenGL window instead.         |
