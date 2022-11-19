@@ -299,6 +299,8 @@ void PicoGpuBinary::finalizeInstructions() {
 }
 
 void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
+    constexpr static size_t perspectiveAware = true;
+
     /* Notation and assumptions used in this function:
     A,B,C are vertices of the triangle. Their attributes are stored in the last registers like so:
         - A: r7 (position), r8, r9
@@ -343,9 +345,26 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightC, 0b1111);
 
     // Interpolate depth
-    encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regPositionA, regPositionP, 0b0010);
-    encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regPositionB, regPositionP, 0b0010);
-    encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightC, regPositionC, regPositionP, 0b0010);
+    if (perspectiveAware) {
+        // Calculate inverse depth. We may reuse registers used for storing edge vectors,
+        // because they will not be used anymore.
+        const RegisterSelection regInvDepthA = regEdgeAB;
+        const RegisterSelection regInvDepthB = regEdgeAC;
+        const RegisterSelection regInvDepthC = regEdgeAP;
+        encodeUnaryMath(Isa::Opcode::frcp, regInvDepthA, regPositionA, 0b0010);
+        encodeUnaryMath(Isa::Opcode::frcp, regInvDepthB, regPositionB, 0b0010);
+        encodeUnaryMath(Isa::Opcode::frcp, regInvDepthC, regPositionC, 0b0010);
+
+        // Calculate inverse of interpolation of inverse Z
+        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regInvDepthA, regPositionP, 0b0010);
+        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regInvDepthB, regPositionP, 0b0010);
+        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightC, regInvDepthC, regPositionP, 0b0010);
+        encodeUnaryMath(Isa::Opcode::frcp, regPositionP, regPositionP, 0b0010);
+    } else {
+        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regPositionA, regPositionP, 0b0010);
+        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regPositionB, regPositionP, 0b0010);
+        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightC, regPositionC, regPositionP, 0b0010);
+    }
 
     // Interpolate custom attributes
     for (uint32_t i = 1; i < Isa::maxInputOutputRegisters; i++) {

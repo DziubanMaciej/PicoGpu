@@ -76,6 +76,7 @@ Instructions with immediate arguments (`{int}` or `{float}`) all take between 1 
 | fdot    {reg}.{mask} {reg} {reg}                                           | Calculates a 4-dimensional dot product and stores result in all components                                        |
 | fcross2 {reg}.{mask} {reg} {reg}                                           | Calculates a 2-dimensional cross product being `Ax*By - Ay*Bx` and stores result in all components                |
 | fmad    {reg}.{mask} {reg} {reg} {reg}                                     | Multiplies first two src values together and adds the third src value                                             |
+| frcp    {reg}.{mask} {reg}                                                 | Calculates a reciprocal                                                                                           |
 
 ## Miscellaneous
 | Instruction                                                              | Description                                                         |
