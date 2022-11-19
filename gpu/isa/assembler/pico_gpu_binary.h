@@ -9,7 +9,7 @@
 #include <sstream>
 #include <vector>
 
-union VsPsCustomComponents;
+union CustomShaderComponents;
 
 namespace Isa {
 class PicoGpuBinary {
@@ -40,7 +40,7 @@ public:
     auto isFs() const { return programType.value() == Isa::Command::ProgramType::FragmentShader; }
 
     static bool areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs);
-    VsPsCustomComponents getVsPsCustomComponents();
+    CustomShaderComponents getVsPsCustomComponents();
 
 private:
     void encodeAttributeInterpolationForFragmentShader();

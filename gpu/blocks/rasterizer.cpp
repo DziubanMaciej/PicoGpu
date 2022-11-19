@@ -56,7 +56,7 @@ void Rasterizer::main() {
     while (true) {
         wait();
 
-        const uint32_t customComponentsPerVertex = VsPsCustomComponents(this->inpCustomVsPsComponents.read().to_uint()).getCustomComponentsCount();
+        const uint32_t customComponentsPerVertex = CustomShaderComponents(this->inpCustomVsPsComponents.read().to_uint()).getCustomComponentsCount();
         receiveFromVs(customComponentsPerVertex, vertices);
         setupPerTriangleFsState(customComponentsPerVertex, vertices);
         rasterize(vertices);

@@ -158,7 +158,7 @@ bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuB
     return memcmp(vs.outputs, fs.inputs, sizeof(vs.outputs)) == 0;
 }
 
-VsPsCustomComponents PicoGpuBinary::getVsPsCustomComponents() {
+CustomShaderComponents PicoGpuBinary::getVsPsCustomComponents() {
     InputOutputRegister *io = nullptr;
     switch (programType.value()) {
     case Isa::Command::ProgramType::VertexShader:
@@ -179,7 +179,7 @@ VsPsCustomComponents PicoGpuBinary::getVsPsCustomComponents() {
         }
     }
 
-    VsPsCustomComponents result = {0};
+    CustomShaderComponents result = {0};
     result.registersCount = registersCount;
     result.comp0 = intToNonZeroCount(components[0]);
     result.comp1 = intToNonZeroCount(components[1]);

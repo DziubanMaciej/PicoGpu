@@ -9,7 +9,7 @@ struct Point;
 
 SC_MODULE(Rasterizer) {
     sc_in_clk inpClock;
-    sc_in<VsPsCustomComponentsType> inpCustomVsPsComponents;
+    sc_in<CustomShaderComponentsType> inpCustomVsPsComponents;
 
     struct {
         sc_in<VertexPositionFloatType> inpWidth;

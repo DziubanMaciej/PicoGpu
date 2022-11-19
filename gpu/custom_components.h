@@ -4,7 +4,7 @@
 
 #include <systemc.h>
 
-union VsPsCustomComponents {
+union CustomShaderComponents {
     struct {
         uint32_t registersCount : 2;
         NonZeroCount comp0 : Isa::registerComponentsCountExponent;
@@ -13,7 +13,7 @@ union VsPsCustomComponents {
     };
     uint32_t raw;
 
-    VsPsCustomComponents(uint32_t raw) : raw(raw) {}
+    CustomShaderComponents(uint32_t raw) : raw(raw) {}
 
     uint32_t getCustomComponentsCount() const {
         const uint32_t registersCount = this->registersCount;
@@ -30,6 +30,6 @@ union VsPsCustomComponents {
         return result;
     }
 };
-static_assert(sizeof(VsPsCustomComponents) == sizeof(uint32_t));
-constexpr inline size_t vsPsCustomComponentsBits = 2 + 3 * Isa::registerComponentsCountExponent;
-using VsPsCustomComponentsType = sc_uint<vsPsCustomComponentsBits>;
+static_assert(sizeof(CustomShaderComponents) == sizeof(uint32_t));
+constexpr inline size_t customShaderComponentsBits = 2 + 3 * Isa::registerComponentsCountExponent;
+using CustomShaderComponentsType = sc_uint<customShaderComponentsBits>;

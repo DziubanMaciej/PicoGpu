@@ -26,7 +26,7 @@ void VertexShader::main() {
                                                  request.vertexData, dwordsPerInputPrimitive, &profiling.outBusy);
 
         // Prepare some info about the request
-        VsPsCustomComponents customOutputComponents{this->inpCustomOutputComponents.read().to_uint()};
+        CustomShaderComponents customOutputComponents{this->inpCustomOutputComponents.read().to_uint()};
         const size_t customOutputRegistersCount = customOutputComponents.registersCount;
         const size_t threadCount = 3;
 

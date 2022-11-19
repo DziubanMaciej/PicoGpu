@@ -9,7 +9,7 @@ void FragmentShader::perTriangleThread() {
     while (true) {
         wait();
 
-        const uint32_t dataToReceiveCount = calculateTriangleAttributesCount(VsPsCustomComponents(inpCustomInputComponents.read().to_int()));
+        const uint32_t dataToReceiveCount = calculateTriangleAttributesCount(CustomShaderComponents(inpCustomInputComponents.read().to_int()));
         Handshake::receiveArrayWithParallelPorts(previousBlock.perTriangle.inpSending, previousBlock.perTriangle.outReceiving,
                                                  previousBlock.perTriangle.inpData, data, dataToReceiveCount);
         for (size_t i = 0; i < dataToReceiveCount; i++) {
@@ -42,7 +42,7 @@ void FragmentShader::perFragmentThread() {
         wait();
 
         // Prepare some info about the request
-        VsPsCustomComponents customInputComponents{inpCustomInputComponents.read().to_uint()};
+        CustomShaderComponents customInputComponents{inpCustomInputComponents.read().to_uint()};
         const size_t customInputRegistersCount = customInputComponents.registersCount;
         const uint32_t triangleAttributesCount = calculateTriangleAttributesCount(customInputComponents);
 
@@ -115,7 +115,7 @@ uint32_t FragmentShader::packRgbaToUint(float *rgba) {
     return result;
 }
 
-uint32_t FragmentShader::calculateTriangleAttributesCount(VsPsCustomComponents customComponents) {
+uint32_t FragmentShader::calculateTriangleAttributesCount(CustomShaderComponents customComponents) {
     const uint32_t fixedComponentsPerVertex = 3; // x,y,z
     const uint32_t customComponentsPerVertex = customComponents.getCustomComponentsCount();
     const uint32_t componentsPerVertex = fixedComponentsPerVertex + customComponentsPerVertex;
