@@ -1,3 +1,4 @@
+#include "gpu/custom_components.h"
 #include "gpu/isa/assembler/pico_gpu_binary.h"
 #include "gpu/util/conversions.h"
 #include "gpu/util/math.h"

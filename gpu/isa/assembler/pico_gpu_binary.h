@@ -9,6 +9,8 @@
 #include <sstream>
 #include <vector>
 
+union VsPsCustomComponents;
+
 namespace Isa {
 class PicoGpuBinary {
 public:
