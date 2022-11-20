@@ -108,19 +108,22 @@ int sc_main(int argc, char *argv[]) {
         float x, y, z, r, g, b;
     };
     Vertex vertices[] = {
-        Vertex{10, 10, 10,   1.0, 0.0, 0.0 },
-        Vertex{45, 80, 80,   0.0, 0.0, 1.0 },
-        Vertex{90, 10, 10,   0.0, 1.0, 0.0 },
+        Vertex{10, 10, 40,   1.0, 0.0, 0.0 },
+        Vertex{45, 80, 90,   0.0, 0.0, 1.0 },
+        Vertex{90, 10, 40,   0.0, 1.0, 0.0 },
 
-        Vertex{10, 40, 10,    0.2, 0.2, 0.2 },
-        Vertex{90, 40, 10,    1.0, 1.0, 1.0 },
-        Vertex{45, 20, 100,  0.0, 0.0, 0.0 },
+        Vertex{10, 60, 50,    0.5, 0.5, 0.5 },
+        Vertex{90, 40, 50,    1.0, 1.0, 1.0 },
+        Vertex{45, 20, 50,    0.0, 0.0, 0.0 },
     };
     gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4, &profiling["Upload VB"]);
 
     // Clear framebuffer
     uint32_t clearColor = 0xffcccccc;
     gpu.commandStreamer.fillMemory(framebufferAddress, &clearColor, 100 * 100, &profiling["Clear screen"]);
+    const float infinity = std::numeric_limits<float>::infinity();
+    uint32_t clearDepth = *reinterpret_cast<const uint32_t*>(&infinity);
+    gpu.commandStreamer.fillMemory(depthBufferAddress, &clearDepth, 100 * 100, &profiling["Clear depth buffer"]);
 
     // Issue a drawcall
     gpu.commandStreamer.draw(&profiling["Draw"]);

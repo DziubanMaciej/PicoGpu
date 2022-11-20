@@ -27,7 +27,7 @@ void OutputMerger::main() {
 
             // Actual depth test. Discard fragment if not passed
             const float currentDepth = Conversions::readFloat(memory.inpData);
-            if (currentDepth > fragmentZ) {
+            if (fragmentZ >= currentDepth) {
                 continue;
             }
 
