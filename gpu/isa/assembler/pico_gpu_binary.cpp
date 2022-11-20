@@ -302,12 +302,27 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     constexpr static size_t perspectiveAware = true;
 
     /* Notation and assumptions used in this function:
-    A,B,C are vertices of the triangle. Their attributes are stored in the last registers like so:
+    A,B,C are vertices of the triangle. When this code runs, their attributes have already been
+    stored in the last registers like so:
         - A: r7 (position), r8, r9
         - B: r10 (position), r11, r12
         - C: r13 (position), r14, r15
 
-    P is the point that we will be interpolating. Its x,y position is stored in r0.
+    P is the point that we will be interpolating. Its x,y position is stored in r0. We have to
+    interpolate Z coordinate and store it in r0.z. We also interpolate custom attributes and
+    store them in r1,r2,r3.
+
+    Registers r4-r6 have no fixed roles and are used for temporary calculations. Other registers
+    can also be reused, e.g. after calculating weight and interpolating depth, we don't need
+    positions of vertices (r7,r10,r13) anymore.
+
+    Formulas for depth interpolation:
+        - perspective-unaware: Z = (w0*z0) + (w1*z1) + (w2*z2)
+        - perspective-aware:   Z = 1 / ((w0/z0) + (w1/z1) + (w2/z2))
+
+    Formulas for custom attributes interpolation:
+        - perspective-unaware: C = (w0*c0) + (w1*c1) + (w2*c2)
+        - perspective-aware:   C = Z * (C0*w0/z0 + C1*w1/z1 + C2*w2/z2)
     */
 
     constexpr size_t perTriangleAttribsOffset = 7;
@@ -344,7 +359,7 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightB, 0b1111);
     encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightC, 0b1111);
 
-    // Correct the weights to be pespective aware - divide by Z
+    // Correct the weights to be pespective aware - divide all components by Z
     if (perspectiveAware) {
         encodeBinaryMath(Isa::Opcode::fdiv, regWeightA, regWeightA, regPositionA, 0b0010);
         encodeBinaryMath(Isa::Opcode::fdiv, regWeightB, regWeightB, regPositionB, 0b0010);
@@ -357,7 +372,6 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     // Interpolate depth
     const RegisterSelection regZ = regPositionA; // we may reuse this slot after interpolating depth
     if (perspectiveAware) {
-        // Calculate Z = 1 / ((w0/z0) + (w1/z1) + (w2/z2))
         encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightA, 0b0010);
         encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightB, 0b0010);
         encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightC, 0b0010);
