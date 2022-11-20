@@ -5,9 +5,18 @@
 
 #include <systemc.h>
 
-struct Point;
-
 SC_MODULE(Rasterizer) {
+private:
+    constexpr static inline size_t maxCustomVsPsComponents = (Isa::maxInputOutputRegisters - 1) * Isa::registerComponentsCount;
+    struct Point {
+        float x;
+        float y;
+        float z;
+        float w;
+        float customComponents[maxCustomVsPsComponents];
+    };
+
+public:
     sc_in_clk inpClock;
     sc_in<CustomShaderComponentsType> inpCustomVsPsComponents;
 
@@ -49,5 +58,7 @@ private:
     void setupPerTriangleFsState(uint32_t customComponentsPerVertex, Point * vertices);
     void rasterize(Point * vertices);
 
+    static bool isPointInTriangle(Point pt, Point v1, Point v2, Point v3);
+    static float sign(Point p1, Point p2, Point p3);
     Point readPoint(const uint32_t *receivedVertices, size_t stride, size_t customComponentsCount, size_t pointIndex);
 };

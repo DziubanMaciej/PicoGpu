@@ -2,7 +2,6 @@
 #include "gpu/isa/isa.h"
 #include "gpu/util/conversions.h"
 #include "gpu/util/handshake.h"
-#include "gpu/util/math.h"
 
 void Rasterizer::receiveFromVs(uint32_t customComponentsPerVertex, Point *outVertices) {
     const uint32_t componentsPerVertex = 4 + customComponentsPerVertex; // x,y,z,w position + custom attributes
@@ -63,7 +62,25 @@ void Rasterizer::main() {
     }
 }
 
-Point Rasterizer::readPoint(const uint32_t *receivedVertices, size_t stride, size_t customComponentsCount, size_t pointIndex) {
+float Rasterizer::sign(Point p1, Point p2, Point p3) {
+    return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+
+bool Rasterizer::isPointInTriangle(Point pt, Point v1, Point v2, Point v3) {
+    float d1, d2, d3;
+    bool has_neg, has_pos;
+
+    d1 = sign(pt, v1, v2);
+    d2 = sign(pt, v2, v3);
+    d3 = sign(pt, v3, v1);
+
+    has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+    has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+    return !(has_neg && has_pos);
+}
+
+Rasterizer::Point Rasterizer::readPoint(const uint32_t *receivedVertices, size_t stride, size_t customComponentsCount, size_t pointIndex) {
     Point point;
     const float w = Conversions::uintBytesToFloat(receivedVertices[pointIndex * stride + 3]);
     FATAL_ERROR_IF(w == 0, "Homogeneous coordinate is 0");
