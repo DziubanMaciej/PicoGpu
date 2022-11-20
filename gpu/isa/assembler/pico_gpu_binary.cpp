@@ -325,7 +325,8 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
         - perspective-aware:   C = Z * (C0*w0/z0 + C1*w1/z1 + C2*w2/z2)
     */
 
-    constexpr size_t perTriangleAttribsOffset = 7;
+    constexpr size_t maxCustomAttributes = Isa::maxInputOutputRegisters - 1; // 1 is reserved for position
+    const RegisterSelection perTriangleAttribsOffset = Isa::generalPurposeRegistersCount - maxCustomAttributes * verticesInPrimitive;
     const RegisterSelection regPositionP = 0;
     const RegisterSelection regPositionA = perTriangleAttribsOffset + 0;
     const RegisterSelection regPositionB = perTriangleAttribsOffset + 3;

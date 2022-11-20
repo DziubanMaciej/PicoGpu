@@ -106,7 +106,8 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
         }
 
         // Write per request custom attributes to registers
-        const Isa::RegisterSelection basePerConfigRegister = 7; // TODO calculate this instead of hardcoding: (15 - 3*3)
+        constexpr size_t maxCustomAttributes = Isa::maxInputOutputRegisters - 1; // 1 is reserved for position
+        const Isa::RegisterSelection basePerConfigRegister = Isa::generalPurposeRegistersCount - maxCustomAttributes * verticesInPrimitive;
         for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
             for (int vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
                 for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
