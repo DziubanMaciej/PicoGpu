@@ -344,22 +344,27 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightB, 0b1111);
     encodeBinaryMath(Isa::Opcode::fsub, regWeightA, regWeightA, regWeightC, 0b1111);
 
-    // Interpolate depth
+    // Correct the weights to be pespective aware - divide by Z
     if (perspectiveAware) {
-        // Calculate inverse depth. We may reuse registers used for storing edge vectors,
-        // because they will not be used anymore.
-        const RegisterSelection regInvDepthA = regEdgeAB;
-        const RegisterSelection regInvDepthB = regEdgeAC;
-        const RegisterSelection regInvDepthC = regEdgeAP;
-        encodeUnaryMath(Isa::Opcode::frcp, regInvDepthA, regPositionA, 0b0010);
-        encodeUnaryMath(Isa::Opcode::frcp, regInvDepthB, regPositionB, 0b0010);
-        encodeUnaryMath(Isa::Opcode::frcp, regInvDepthC, regPositionC, 0b0010);
+        encodeBinaryMath(Isa::Opcode::fdiv, regWeightA, regWeightA, regPositionA, 0b0010);
+        encodeBinaryMath(Isa::Opcode::fdiv, regWeightB, regWeightB, regPositionB, 0b0010);
+        encodeBinaryMath(Isa::Opcode::fdiv, regWeightC, regWeightC, regPositionC, 0b0010);
+        encodeSwizzle(Isa::Opcode::swizzle, regWeightA, regWeightA, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ);
+        encodeSwizzle(Isa::Opcode::swizzle, regWeightB, regWeightB, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ);
+        encodeSwizzle(Isa::Opcode::swizzle, regWeightC, regWeightC, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ);
+    }
 
-        // Calculate inverse of interpolation of inverse Z
-        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regInvDepthA, regPositionP, 0b0010);
-        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regInvDepthB, regPositionP, 0b0010);
-        encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightC, regInvDepthC, regPositionP, 0b0010);
+    // Interpolate depth
+    const RegisterSelection regZ = regPositionA; // we may reuse this slot after interpolating depth
+    if (perspectiveAware) {
+        // Calculate Z = 1 / ((w0/z0) + (w1/z1) + (w2/z2))
+        encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightA, 0b0010);
+        encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightB, 0b0010);
+        encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightC, 0b0010);
         encodeUnaryMath(Isa::Opcode::frcp, regPositionP, regPositionP, 0b0010);
+
+        // Prepare a register with all components set to interpolated Z for future
+        encodeSwizzle(Isa::Opcode::swizzle, regZ, regPositionP, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ, Isa::SwizzlePatternComponent::SwizzleZ);
     } else {
         encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightA, regPositionA, regPositionP, 0b0010);
         encodeTernaryMath(Isa::Opcode::fmad, regPositionP, regWeightB, regPositionB, regPositionP, 0b0010);
@@ -375,6 +380,10 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
             encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightA, regPerTriangle + 0, regDst, 0b1111); // TODO mask could be more narrow
             encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightB, regPerTriangle + 3, regDst, 0b1111);
             encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightC, regPerTriangle + 6, regDst, 0b1111);
+
+            if (perspectiveAware) {
+                encodeBinaryMath(Isa::Opcode::fmul, regDst, regDst, regZ, 0b1111);
+            }
         }
     }
 }

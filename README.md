@@ -55,7 +55,6 @@ Roadmap for features to implement:
 
 | Feature                                    | Comment                                                                                                  |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| Implement perspective aware interpolation  | Currently we do it in screen space, which is not perspective-correct                                     |
 | Optimize data passing                      | Some blocks could use parallel ports for faster data passing.                                            |
 | Better rasterization algorithm             | **RS** blindly iterates over every pixel.                                                                |
 | Add a real-time visualization              | Currently we dump the framebuffer to a png file. We could attach it to an OpenGL window instead.         |
