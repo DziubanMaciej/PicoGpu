@@ -77,6 +77,7 @@ private:
     };
     struct InputOutputRegister {
         InputOutputRegisterUsage usage = InputOutputRegisterUsage::Unknown;
+        uint8_t mask = 0;
         uint8_t componentsCount = 0;
     };
     InputOutputRegister inputs[maxInputOutputRegisters] = {};

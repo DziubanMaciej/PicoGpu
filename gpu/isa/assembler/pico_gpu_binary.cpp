@@ -27,6 +27,10 @@ void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, 
     // Validate mask
     FATAL_ERROR_IF(mask == 0, "Mask must be non zero")
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
+    if (mask != 0b1000 && mask != 0b1100 && mask != 0b1110 && mask != 0b1111) {
+        error << "Components for " << input << " directive must be used in order: x,y,z,w";
+        return;
+    }
 
     // Validate if register index is correct
     const auto minReg = indexOffset;
@@ -44,7 +48,8 @@ void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, 
 
     // Store the values
     io[ioOffset].usage = InputOutputRegisterUsage::Custom; // Mark all registers as custom. This may be overriden later.
-    io[ioOffset].componentsCount = countBits(mask);        // TODO should we remember the mask and load it correctly in shader unit? Or return error for masks like .xw?
+    io[ioOffset].mask = mask;
+    io[ioOffset].componentsCount = countBits(mask);
 }
 
 void PicoGpuBinary::encodeDirectiveShaderType(Isa::Command::ProgramType programType) {
@@ -392,9 +397,9 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
             const RegisterSelection regDst = Isa::inputRegistersOffset + i;
             const RegisterSelection regPerTriangle = perTriangleAttribsOffset + i;
             encodeUnaryMathImm(Isa::Opcode::init, regDst, 0b1111, {0});
-            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightA, regPerTriangle + 0, regDst, 0b1111); // TODO mask could be more narrow
-            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightB, regPerTriangle + 3, regDst, 0b1111);
-            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightC, regPerTriangle + 6, regDst, 0b1111);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightA, regPerTriangle + 0, regDst, inputs[i].mask);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightB, regPerTriangle + 3, regDst, inputs[i].mask);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightC, regPerTriangle + 6, regDst, inputs[i].mask);
 
             if (perspectiveAware) {
                 encodeBinaryMath(Isa::Opcode::fmul, regDst, regDst, regZ, 0b1111);
