@@ -1,9 +1,10 @@
 #pragma once
 
-#include "gpu/custom_components.h"
-#include "gpu/fragment.h"
+#include "gpu/definitions/custom_components.h"
+#include "gpu/definitions/shaded_fragment.h"
+#include "gpu/definitions/types.h"
+#include "gpu/definitions/unshaded_fragment.h"
 #include "gpu/isa/isa.h"
-#include "gpu/types.h"
 
 #include <systemc.h>
 

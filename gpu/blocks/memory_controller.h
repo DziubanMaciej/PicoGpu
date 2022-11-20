@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gpu/types.h"
+#include "gpu/definitions/types.h"
 
 #include <systemc.h>
 

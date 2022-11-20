@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gpu/isa/isa.h"
-#include "gpu/types.h"
+#include "gpu/definitions/types.h"
 #include "gpu/util/error.h"
 
 #include <cstddef>

@@ -2,7 +2,7 @@
 
 #include "gpu/blocks/shader_array/request.h"
 #include "gpu/isa/isa.h"
-#include "gpu/types.h"
+#include "gpu/definitions/types.h"
 #include "gpu/util/entry_cache.h"
 
 #include <systemc.h>

@@ -2,7 +2,7 @@
 
 #include "gpu/isa/isa.h"
 #include "gpu/isa/vector_register.h"
-#include "gpu/types.h"
+#include "gpu/definitions/types.h"
 
 #include <systemc.h>
 

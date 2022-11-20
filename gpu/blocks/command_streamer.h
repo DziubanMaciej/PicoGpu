@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gpu/blocks/blitter.h"
-#include "gpu/types.h"
+#include "gpu/definitions/types.h"
 
 #include <queue>
 #include <systemc.h>

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "gpu/fragment.h"
+#include "gpu/definitions/shaded_fragment.h"
+#include "gpu/definitions/unshaded_fragment.h"
 #include "gpu/util/error.h"
 #include "gpu/util/vcd_trace.h"
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gpu/custom_components.h"
-#include "gpu/fragment.h"
+#include "gpu/definitions/custom_components.h"
+#include "gpu/definitions/unshaded_fragment.h"
 
 #include <systemc.h>
 
