@@ -98,10 +98,6 @@ void PicoGpuBinary::finalizeDirectives() {
     if (!this->undefinedRegs) {
         encodeNullary(Isa::Opcode::initregs);
     }
-    if (isFs()) {
-
-    encodeNullary(Isa::Opcode::trap);
-    }
 }
 
 void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {
