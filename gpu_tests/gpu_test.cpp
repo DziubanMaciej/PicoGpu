@@ -31,35 +31,28 @@ int sc_main(int argc, char *argv[]) {
     Isa::PicoGpuBinary vs = {};
     const char *vsCode = R"code(
             #vertexShader
-            #input r0.xyz
-            #input r1.xyz
-            #output r12.xyzw
-            #output r13.xyz
+            #input r10.xyz
+            #input r11.xyz
+            #output r10.xyzw
+            #output r11.xyz
 
-            // Passthrough attributes
-            mov r12 r0
-            mov r13 r1
-            finit r12.w 1.f
+            // Set homogeneous coordinate to 1
+            finit r10.w 1.f
 
             // y-flip
             finit r1 100.f
-            fsub r12.y r1 r12
+            fsub r10.y r1 r10
         )code";
     FATAL_ERROR_IF(Isa::assembly(vsCode, &vs), "Failed to assemble VS");
     Isa::PicoGpuBinary fs = {};
     const char *fsCode = R"code(
             #fragmentShader
-            #input r0.xyzw
-            #input r1.xyz
-            #output r12.xyzw
+            #input r15.xyzw
+            #input r14.xyz
+            #output r13.xyzw
 
-            mov r12.xyz r1
-            finit r12.w 1.f
-
-            // finit r12 0.f
-            // finit r12.w 1.f
-            // mov r12.z r0
-            // fdiv r12.z r12 100.f
+            mov r13.xyz r14
+            finit r13.w 1.f
         )code";
     FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
     FATAL_ERROR_IF(!Isa::PicoGpuBinary::areShadersCompatible(vs, fs), "VS is not compatible with FS");

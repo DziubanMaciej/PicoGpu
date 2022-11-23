@@ -110,9 +110,9 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
         // Receive per thread x,y coordinates and write them to registers
         for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
             wait();
-            registers.gpr[threadIndex][0].x = request.inpData.read();
+            registers.gpr[threadIndex][registerIndices[0]].x = request.inpData.read();
             wait();
-            registers.gpr[threadIndex][0].y = request.inpData.read();
+            registers.gpr[threadIndex][registerIndices[0]].y = request.inpData.read();
         }
 
         // Receive per request attributes and store them in temporary array
