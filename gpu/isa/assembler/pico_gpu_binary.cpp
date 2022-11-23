@@ -1,4 +1,5 @@
 #include "gpu/definitions/custom_components.h"
+#include "gpu/definitions/register_allocator.h"
 #include "gpu/isa/assembler/pico_gpu_binary.h"
 #include "gpu/util/conversions.h"
 #include "gpu/util/math.h"
@@ -14,42 +15,41 @@ void PicoGpuBinary::reset() {
     error.clear();
     programType = {};
     std::fill(data.begin(), data.end(), 0);
-    std::fill_n(inputs, maxInputOutputRegisters, InputOutputRegister{});
-    std::fill_n(outputs, maxInputOutputRegisters, InputOutputRegister{});
+    std::memset(&inputs, 0, sizeof(inputs));
+    std::memset(&outputs, 0, sizeof(outputs));
 }
 
 void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, bool input) {
     const char *label = input ? "input" : "output";
-    const size_t indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
-    const size_t ioOffset = reg - indexOffset;
-    InputOutputRegister *io = input ? this->inputs : this->outputs;
+    InputOutputRegisters &io = input ? this->inputs : this->outputs;
 
-    // Validate mask
+    // Validate component mask
     FATAL_ERROR_IF(mask == 0, "Mask must be non zero")
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
     if (mask != 0b1000 && mask != 0b1100 && mask != 0b1110 && mask != 0b1111) {
-        error << "Components for " << input << " directive must be used in order: x,y,z,w";
+        error << "Components for " << label << " directive must be used in order: x,y,z,w. Mask is " << mask;
         return;
     }
 
-    // Validate if register index is correct
-    const auto minReg = indexOffset;
-    const auto maxReg = indexOffset + Isa::maxInputOutputRegisters - 1;
-    if (maxReg < reg || reg < minReg) {
-        error << "Invalid " << label << " register: r" << reg << ". Must be between r" << minReg << " and r" << maxReg;
+    // Validate if register is not already used
+    if (isBitSet(io.usedRegsMask, reg)) {
+        error << "Multiple " << label << " directives for r" << reg;
         return;
     }
 
-    // Validate if this register was already declared as input/output
-    if (io[ioOffset].usage != InputOutputRegisterUsage::Unknown) {
-        error << "Multiple " << (input ? "input" : "output") << " directives for r" << reg;
+    // Validate if we exceeded max number of io regisers
+    if (io.usedRegsCount == Isa::maxInputOutputRegisters) {
+        error << "Too many " << label << " directives. Max is " << Isa::maxInputOutputRegisters;
         return;
     }
 
     // Store the values
-    io[ioOffset].usage = InputOutputRegisterUsage::Custom; // Mark all registers as custom. This may be overriden later.
-    io[ioOffset].mask = mask;
-    io[ioOffset].componentsCount = countBits(mask);
+    io.regs[io.usedRegsCount].index = reg;
+    io.regs[io.usedRegsCount].usage = InputOutputRegisterUsage::Custom; // Mark all registers as custom. This may be overriden later.
+    io.regs[io.usedRegsCount].mask = mask;
+    io.regs[io.usedRegsCount].componentsCount = countBits(mask);
+    io.usedRegsCount++;
+    setBit(io.usedRegsMask, reg);
 }
 
 void PicoGpuBinary::encodeDirectiveShaderType(Isa::Command::ProgramType programType) {
@@ -79,33 +79,12 @@ void PicoGpuBinary::finalizeDirectives() {
 
 void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     const char *label = input ? "input" : "output";
-    InputOutputRegister *io = input ? this->inputs : this->outputs;
-    const auto indexOffset = input ? Isa::inputRegistersOffset : Isa::outputRegistersOffset;
-
-    // Count used io registers up until the first Unknown register
-    size_t usedRegistersCount = 0;
-    for (; usedRegistersCount < Isa::maxInputOutputRegisters; usedRegistersCount++) {
-        if (io[usedRegistersCount].usage == InputOutputRegisterUsage::Unknown) {
-            break;
-        }
-    }
-    if (usedRegistersCount == 0) {
-        error << "At least one " << label << " register is required";
-        return;
-    }
-
-    // Ensure that no other registers after Unknown is used
-    for (size_t i = usedRegistersCount + 1; i < Isa::maxInputOutputRegisters; i++) {
-        if (io[i].usage != InputOutputRegisterUsage::Unknown) {
-            error << "r" << (indexOffset + i) << " register was used as " << label << ". Use r" << (indexOffset + i - 1) << " first";
-            return;
-        }
-    }
+    InputOutputRegisters &io = input ? this->inputs : this->outputs;
 
     // Ensure that vertex shader has at least one input. There are no enforced size of any inputs, so all VS inputs are
-    // considered custom - there are no fixed inputs.
+    // considered custom - there are no fixed inputs. But we require at least one.
     if (input && isVs()) {
-        if (usedRegistersCount == 0) {
+        if (io.usedRegsCount == 0) {
             error << getShaderTypeName() << " must use at least one input register";
             return;
         }
@@ -114,42 +93,55 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     // Ensure that vertex shader returns 4-component vector as first output and fragment shader receives it as first input.
     // Mark this input/output register as fixed
     if ((!input && isVs()) || (input && isFs())) {
-        if (io[0].componentsCount != 4) {
-            error << getShaderTypeName() << " must " << label << " a 4-component vector in r" << indexOffset;
+        if (io.usedRegsCount == 0) {
+            error << getShaderTypeName() << " must have at least 1 " << label;
             return;
         }
-        FATAL_ERROR_IF(io[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
-        io[0].usage = InputOutputRegisterUsage::Fixed;
+        if (io.regs[0].componentsCount != 4) {
+            error << getShaderTypeName() << " must have a 4-component position vector as its first " << label;
+            return;
+        }
+        FATAL_ERROR_IF(io.regs[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
+        io.regs[0].usage = InputOutputRegisterUsage::Fixed;
     }
 
     // Ensure that fragment shader only uses one output and mark it as fixed.
     // Add a second output for interpolated z-value and mark it as internal.
     if (!input && programType.value() == Isa::Command::ProgramType::FragmentShader) {
-        if (usedRegistersCount != 1) {
-            error << getShaderTypeName() << " may use only one output register";
+        if (io.usedRegsCount != 1) {
+            error << getShaderTypeName() << " must use one output register";
             return;
         }
-        io[0].usage = InputOutputRegisterUsage::Fixed;
+        FATAL_ERROR_IF(io.regs[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
+        io.regs[0].usage = InputOutputRegisterUsage::Fixed;
 
-        encodeDirectiveInputOutput(indexOffset + 1, 0b1000, false);
-        io[1].usage = InputOutputRegisterUsage::Internal;
-        usedRegistersCount++;
+        // TODO we should allocate some free register and use it instead. Current code will create conflict, if user defines input0 as output too.
+        encodeDirectiveInputOutput(inputs.regs[0].index, 0b1000, false);
+        io.regs[1].usage = InputOutputRegisterUsage::Internal;
     }
 
     // Store the data to ISA
     auto &command = getStoreIsaCommand();
     if (input) {
-        command.inputsCount = intToNonZeroCount(usedRegistersCount);
-        command.inputSize0 = intToNonZeroCount(inputs[0].componentsCount);
-        command.inputSize1 = intToNonZeroCount(inputs[1].componentsCount);
-        command.inputSize2 = intToNonZeroCount(inputs[2].componentsCount);
-        command.inputSize3 = intToNonZeroCount(inputs[3].componentsCount);
+        command.inputsCount = intToNonZeroCount(io.usedRegsCount);
+        command.inputSize0 = intToNonZeroCount(io.regs[0].componentsCount);
+        command.inputSize1 = intToNonZeroCount(io.regs[1].componentsCount);
+        command.inputSize2 = intToNonZeroCount(io.regs[2].componentsCount);
+        command.inputSize3 = intToNonZeroCount(io.regs[3].componentsCount);
+        command.inputRegister0 = io.regs[0].index;
+        command.inputRegister1 = io.regs[1].index;
+        command.inputRegister2 = io.regs[2].index;
+        command.inputRegister3 = io.regs[3].index;
     } else {
-        command.outputsCount = intToNonZeroCount(usedRegistersCount);
-        command.outputSize0 = intToNonZeroCount(outputs[0].componentsCount);
-        command.outputSize1 = intToNonZeroCount(outputs[1].componentsCount);
-        command.outputSize2 = intToNonZeroCount(outputs[2].componentsCount);
-        command.outputSize3 = intToNonZeroCount(outputs[3].componentsCount);
+        command.outputsCount = intToNonZeroCount(io.usedRegsCount);
+        command.outputSize0 = intToNonZeroCount(io.regs[0].componentsCount);
+        command.outputSize1 = intToNonZeroCount(io.regs[1].componentsCount);
+        command.outputSize2 = intToNonZeroCount(io.regs[2].componentsCount);
+        command.outputSize3 = intToNonZeroCount(io.regs[3].componentsCount);
+        command.outputRegister0 = io.regs[0].index;
+        command.outputRegister1 = io.regs[1].index;
+        command.outputRegister2 = io.regs[2].index;
+        command.outputRegister3 = io.regs[3].index;
     }
 }
 
@@ -169,54 +161,56 @@ const char *PicoGpuBinary::getShaderTypeName() {
 bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs) {
     FATAL_ERROR_IF(!vs.isVs(), "Expected a vertex shader");
     FATAL_ERROR_IF(!fs.isFs(), "Expected a fragment shader");
-    return memcmp(vs.outputs, fs.inputs, sizeof(vs.outputs)) == 0;
+
+    if (vs.outputs.usedRegsCount != vs.inputs.usedRegsCount) {
+        return false;
+    }
+
+    for (auto regIndex = 0u; regIndex < vs.outputs.usedRegsCount; regIndex++) {
+        if (vs.outputs.regs[regIndex].componentsCount != fs.inputs.regs[regIndex].componentsCount) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 CustomShaderComponents PicoGpuBinary::getVsCustomInputComponents() {
     FATAL_ERROR_IF(programType.value() != Isa::Command::ProgramType::VertexShader, "Invalid shader type");
 
-    uint8_t components[Isa::maxInputOutputRegisters] = {};
-    uint8_t registersCount = {};
-    for (uint32_t i = 0; i < Isa::maxInputOutputRegisters; i++) {
-        if (inputs[i].usage == InputOutputRegisterUsage::Custom) {
-            components[registersCount++] = inputs[i].componentsCount;
-        }
-    }
-
     CustomShaderComponents result = {0};
-    result.registersCount = registersCount;
-    result.comp0 = intToNonZeroCount(components[0]);
-    result.comp1 = intToNonZeroCount(components[1]);
-    result.comp2 = intToNonZeroCount(components[2]);
-    result.comp3 = intToNonZeroCount(components[3]);
+    result.registersCount = inputs.usedRegsCount;
+    result.comp0 = intToNonZeroCount(inputs.regs[0].componentsCount);
+    result.comp1 = intToNonZeroCount(inputs.regs[1].componentsCount);
+    result.comp2 = intToNonZeroCount(inputs.regs[2].componentsCount);
+    result.comp3 = intToNonZeroCount(inputs.regs[3].componentsCount);
     return result;
 }
 
 CustomShaderComponents PicoGpuBinary::getVsPsCustomComponents() {
-    InputOutputRegister *io = nullptr;
+    InputOutputRegisters *io = nullptr;
     switch (programType.value()) {
     case Isa::Command::ProgramType::VertexShader:
-        io = this->outputs;
+        io = &this->outputs;
         break;
     case Isa::Command::ProgramType::FragmentShader:
-        io = this->inputs;
+        io = &this->inputs;
         break;
     default:
         FATAL_ERROR("Invalid shader type");
     }
 
     uint8_t components[Isa::maxInputOutputRegisters] = {};
-    uint8_t registersCount = {};
+    uint8_t customRegsCount = {};
     for (uint32_t i = 0; i < Isa::maxInputOutputRegisters; i++) {
-        if (io[i].usage == InputOutputRegisterUsage::Custom) {
-            components[registersCount++] = io[i].componentsCount;
+        if (io->regs[i].usage == InputOutputRegisterUsage::Custom) {
+            components[customRegsCount++] = io->regs[i].componentsCount;
         }
     }
-
-    FATAL_ERROR_IF(registersCount > Isa::maxInputOutputRegisters - 1, "Too many VsPs custom components (one component is reserved for Fixed position input");
+    FATAL_ERROR_IF(customRegsCount > Isa::maxInputOutputRegisters - 1, "Too many VsPs custom components (one component is reserved for Fixed position input");
 
     CustomShaderComponents result = {0};
-    result.registersCount = registersCount;
+    result.registersCount = customRegsCount;
     result.comp0 = intToNonZeroCount(components[0]);
     result.comp1 = intToNonZeroCount(components[1]);
     result.comp2 = intToNonZeroCount(components[2]);
@@ -293,7 +287,8 @@ void PicoGpuBinary::encodeSwizzle(Opcode opcode, RegisterSelection dest, Registe
 
 void PicoGpuBinary::finalizeInstructions() {
     if (programType.value() == Isa::Command::ProgramType::FragmentShader) {
-        encodeSwizzle(Isa::Opcode::swizzle, Isa::outputRegistersOffset + 1, Isa::inputRegistersOffset,
+        // Put Z coordinate as a first component, so it can be exported
+        encodeSwizzle(Isa::Opcode::swizzle, inputs.regs[0].index, inputs.regs[0].index,
                       Isa::SwizzlePatternComponent::SwizzleZ,
                       Isa::SwizzlePatternComponent::SwizzleZ,
                       Isa::SwizzlePatternComponent::SwizzleZ,
@@ -308,18 +303,12 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
 
     /* Notation and assumptions used in this function:
     A,B,C are vertices of the triangle. When this code runs, their attributes have already been
-    stored in the last registers like so:
-        - A: r7 (position), r8, r9
-        - B: r10 (position), r11, r12
-        - C: r13 (position), r14, r15
+    stored in some registers. We use RegisterAllocator to determine which ones. This depends on
+    ShaderUnit performing the same logic
 
-    P is the point that we will be interpolating. Its x,y position is stored in r0. We have to
-    interpolate Z coordinate and store it in r0.z. We also interpolate custom attributes and
-    store them in r1,r2,r3.
-
-    Registers r4-r6 have no fixed roles and are used for temporary calculations. Other registers
-    can also be reused, e.g. after calculating weight and interpolating depth, we don't need
-    positions of vertices (r7,r10,r13) anymore.
+    P is the point that we will be interpolating. Its x,y position is stored in first input
+    register. We have to interpolate Z coordinate and store it in this input. We also interpolate
+    custom attributes and store them in subsequent input registers.
 
     Formulas for depth interpolation:
         - perspective-unaware: Z = (w0*z0) + (w1*z1) + (w2*z2)
@@ -330,25 +319,33 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
         - perspective-aware:   C = Z * (C0*w0/z0 + C1*w1/z1 + C2*w2/z2)
     */
 
-    constexpr size_t maxCustomAttributes = Isa::maxInputOutputRegisters - 1; // 1 is reserved for position
-    const RegisterSelection perTriangleAttribsOffset = Isa::generalPurposeRegistersCount - maxCustomAttributes * verticesInPrimitive;
-    const RegisterSelection regPositionP = 0;
-    const RegisterSelection regPositionA = perTriangleAttribsOffset + 0;
-    const RegisterSelection regPositionB = perTriangleAttribsOffset + 3;
-    const RegisterSelection regPositionC = perTriangleAttribsOffset + 6;
+    // Prepare register indices to operate on
+    RegisterAllocator registerAllocator{inputs.usedRegsMask};
+    size_t maxInputOutputRegisters = 3; // TODO remove it and make Isa::maxInputOutputRegisters=3
+    RegisterSelection regPerTriangleAttrib[verticesInPrimitive][maxInputOutputRegisters] = {};
+    for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
+        for (int inputIndex = 0; inputIndex < inputs.usedRegsCount; inputIndex++) {
+            regPerTriangleAttrib[vertexIndex][inputIndex] = registerAllocator.allocate(); // this has to be in sync with how SU lays out these attributes
+        }
+    }
+    const RegisterSelection regPositionP = inputs.regs[0].index;
+    const RegisterSelection regPositionA = regPerTriangleAttrib[0][0];
+    const RegisterSelection regPositionB = regPerTriangleAttrib[1][0];
+    const RegisterSelection regPositionC = regPerTriangleAttrib[2][0];
 
-    // Calculate edges (2 component vectors)
-    const RegisterSelection regEdgeAB = 1;
-    const RegisterSelection regEdgeAC = 2;
-    const RegisterSelection regEdgeAP = 3;
+    // Calculate edges (2 component vectors). We may temporarily store them at the future
+    // location of inputs  we're interpolating here.
+    const RegisterSelection regEdgeAB = inputs.usedRegsCount > 1 ? inputs.regs[1].index : registerAllocator.allocate();
+    const RegisterSelection regEdgeAC = inputs.usedRegsCount > 2 ? inputs.regs[2].index : registerAllocator.allocate();
+    const RegisterSelection regEdgeAP = inputs.usedRegsCount > 3 ? inputs.regs[3].index : registerAllocator.allocate();
     encodeBinaryMath(Isa::Opcode::fsub, regEdgeAB, regPositionB, regPositionA, 0b1100);
     encodeBinaryMath(Isa::Opcode::fsub, regEdgeAC, regPositionC, regPositionA, 0b1100);
     encodeBinaryMath(Isa::Opcode::fsub, regEdgeAP, regPositionP, regPositionA, 0b1100);
 
     // Calculate parallelogram areas (store 2D cross product result in all 4 components)
-    const RegisterSelection regAreaABP = 4;
-    const RegisterSelection regAreaACP = 5;
-    const RegisterSelection regAreaABC = 6;
+    const RegisterSelection regAreaABP = registerAllocator.allocate();
+    const RegisterSelection regAreaACP = registerAllocator.allocate();
+    const RegisterSelection regAreaABC = registerAllocator.allocate();
     encodeBinaryMath(Isa::Opcode::fcross2, regAreaABP, regEdgeAB, regEdgeAP, 0b1111);
     encodeBinaryMath(Isa::Opcode::fcross2, regAreaACP, regEdgeAP, regEdgeAC, 0b1111);
     encodeBinaryMath(Isa::Opcode::fcross2, regAreaABC, regEdgeAB, regEdgeAC, 0b1111);
@@ -392,14 +389,14 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     }
 
     // Interpolate custom attributes
-    for (uint32_t i = 1; i < Isa::maxInputOutputRegisters; i++) {
-        if (inputs[i].usage == InputOutputRegisterUsage::Custom) {
-            const RegisterSelection regDst = Isa::inputRegistersOffset + i;
-            const RegisterSelection regPerTriangle = perTriangleAttribsOffset + i;
+    for (uint32_t i = 1; i < maxInputOutputRegisters; i++) {
+        if (inputs.regs[i].usage == InputOutputRegisterUsage::Custom) {
+            const auto regDst = inputs.regs[i].index;
+            const auto mask = inputs.regs[i].mask;
             encodeUnaryMathImm(Isa::Opcode::init, regDst, 0b1111, {0});
-            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightA, regPerTriangle + 0, regDst, inputs[i].mask);
-            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightB, regPerTriangle + 3, regDst, inputs[i].mask);
-            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightC, regPerTriangle + 6, regDst, inputs[i].mask);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightA, regPerTriangleAttrib[0][i], regDst, mask);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightB, regPerTriangleAttrib[1][i], regDst, mask);
+            encodeTernaryMath(Isa::Opcode::fmad, regDst, regWeightC, regPerTriangleAttrib[2][i], regDst, mask);
 
             if (perspectiveAware) {
                 encodeBinaryMath(Isa::Opcode::fmul, regDst, regDst, regZ, 0b1111);

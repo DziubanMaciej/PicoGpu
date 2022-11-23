@@ -18,10 +18,11 @@ constexpr inline size_t generalPurposeRegistersCountExponent = 4;
 constexpr inline size_t generalPurposeRegistersCount = 1 << generalPurposeRegistersCountExponent;
 constexpr inline size_t maxInputOutputRegistersExponent = 2;
 constexpr inline size_t maxInputOutputRegisters = 1 << maxInputOutputRegistersExponent;
-constexpr inline size_t inputRegistersOffset = 0;
-constexpr inline size_t outputRegistersOffset = generalPurposeRegistersCount - maxInputOutputRegisters;
 constexpr inline size_t registerComponentsCountExponent = 2;
 constexpr inline size_t registerComponentsCount = 1 << 2;
+constexpr inline size_t commandSizeInDwords = 2;
+
+using RegisterSelection = uint32_t; // TODO rename to GeneralPurposeRegisterIndex
 
 // Commands are macro-operations issued to the shader units in order to prepare and
 // execute shaders.
@@ -41,7 +42,7 @@ namespace Command {
             CommandType commandType : 1;
             uint32_t hasNextCommand : 1;
         };
-        uint32_t raw;
+        uint32_t raw[commandSizeInDwords];
     };
 
     union CommandStoreIsa {
@@ -50,18 +51,28 @@ namespace Command {
             uint32_t hasNextCommand : 1;
             uint32_t programLength : maxIsaSizeExponent;
             ProgramType programType : 1;
-            NonZeroCount inputsCount : 2;  // defines valid input registers count from 1 to 4. Registers r0-r4 will be used
-            NonZeroCount outputsCount : 2; // defines valid output registers count from 1 to 4. Registers r12-r15
-            NonZeroCount inputSize0 : 2;   // the number of components of first input register that will have a meaningful value.
-            NonZeroCount inputSize1 : 2;
-            NonZeroCount inputSize2 : 2;
-            NonZeroCount inputSize3 : 2;
-            NonZeroCount outputSize0 : 2;
-            NonZeroCount outputSize1 : 2;
-            NonZeroCount outputSize2 : 2;
-            NonZeroCount outputSize3 : 2;
+
+            NonZeroCount inputsCount : maxInputOutputRegistersExponent;              // the number valid input registers from 1 to 4.
+            NonZeroCount inputSize0 : registerComponentsCountExponent;               // the number of components of first input register that will have a meaningful value.
+            RegisterSelection inputRegister0 : generalPurposeRegistersCountExponent; // the register index of first input register
+            NonZeroCount inputSize1 : registerComponentsCountExponent;
+            RegisterSelection inputRegister1 : generalPurposeRegistersCountExponent;
+            NonZeroCount inputSize2 : registerComponentsCountExponent;
+            RegisterSelection inputRegister2 : generalPurposeRegistersCountExponent;
+            NonZeroCount inputSize3 : registerComponentsCountExponent;
+            RegisterSelection inputRegister3 : generalPurposeRegistersCountExponent;
+
+            NonZeroCount outputsCount : maxInputOutputRegistersExponent;
+            NonZeroCount outputSize0 : registerComponentsCountExponent;
+            RegisterSelection outputRegister0 : generalPurposeRegistersCountExponent;
+            NonZeroCount outputSize1 : registerComponentsCountExponent;
+            RegisterSelection outputRegister1 : generalPurposeRegistersCountExponent;
+            NonZeroCount outputSize2 : registerComponentsCountExponent;
+            RegisterSelection outputRegister2 : generalPurposeRegistersCountExponent;
+            NonZeroCount outputSize3 : registerComponentsCountExponent;
+            RegisterSelection outputRegister3 : generalPurposeRegistersCountExponent;
         };
-        uint32_t raw;
+        uint32_t raw[commandSizeInDwords];
     };
 
     union CommandExecuteIsa {
@@ -70,7 +81,7 @@ namespace Command {
             uint32_t hasNextCommand : 1;
             NonZeroCount threadCount : simdExponent;
         };
-        uint32_t raw;
+        uint32_t raw[commandSizeInDwords];
     };
 
     union Command {
@@ -78,7 +89,7 @@ namespace Command {
         CommandStoreIsa storeIsa;
         CommandExecuteIsa executeIsa;
     };
-    static_assert(sizeof(Command) == 4);
+    static_assert(sizeof(Command) == commandSizeInDwords * sizeof(uint32_t));
 
 } // namespace Command
 
@@ -126,8 +137,6 @@ enum class SwizzlePatternComponent : uint32_t {
     SwizzleZ = 0b10,
     SwizzleW = 0b11,
 };
-
-using RegisterSelection = uint32_t; // TODO rename to GeneralPurposeRegisterIndex
 
 namespace InstructionLayouts {
     // This is not an actual instruction layout, but just some type that can be used to extract

@@ -151,7 +151,7 @@ ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddres
             auto command = reinterpret_cast<Isa::Command::CommandStoreIsa &>(dword);
             FATAL_ERROR_IF(command.commandType != Isa::Command::CommandType::StoreIsa, "Invalid command header");
             FATAL_ERROR_IF(command.programLength == 0, "Invalid program length");
-            dwordsToLoad = command.programLength;
+            dwordsToLoad = command.programLength + Isa::commandSizeInDwords - 1;
         }
     }
 
@@ -164,17 +164,10 @@ ShaderFrontendBase::IsaCacheEntry &ShaderFrontendBase::getIsa(uint32_t isaAddres
 }
 
 void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, ShaderFrontendBase::IsaCacheEntry &cache, bool hasNextCommand) {
-    auto &unit = shaderUnitInterface.request;
-
     cache.getMetadata().hasNextCommand = hasNextCommand;
 
-    sc_uint<32> data = cache.data[0];
-    Handshake::send(unit.inpReceiving, unit.outSending, unit.outData, data);
-    for (int i = 1; i < cache.dataSize; i++) {
-        data = cache.data[i];
-        unit.outData = data;
-        wait();
-    }
+    auto &unit = shaderUnitInterface.request;
+    Handshake::sendArray(unit.inpReceiving, unit.outSending, unit.outData, cache.data, cache.dataSize);
 }
 
 void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, NonZeroCount threadCount, uint32_t shaderInputsCount) {
@@ -186,11 +179,12 @@ void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bo
     command.hasNextCommand = 0;
     command.threadCount = threadCount;
     if (handshakeAlreadyDone) {
-        unit.outData = command.raw;
-        wait();
+        for (size_t i=0; i < Isa::commandSizeInDwords; i++) {
+            unit.outData = command.raw[i];
+            wait();
+        }
     } else {
-        sc_uint<32> data = command.raw;
-        Handshake::send(unit.inpReceiving, unit.outSending, unit.outData, data);
+        Handshake::sendArray(unit.inpReceiving, unit.outSending, unit.outData, command.raw, Isa::commandSizeInDwords);
     }
 
     // Send the shader inputs

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "gpu/isa/isa.h"
 #include "gpu/definitions/types.h"
+#include "gpu/isa/isa.h"
 #include "gpu/util/error.h"
 
 #include <cstddef>
@@ -70,18 +70,24 @@ private:
     // components used for a register. For example "#input i0.xy" and "#input i1.yzw" would set the array
     // for input regs to {2, 3, 0, 0}.
     enum class InputOutputRegisterUsage : uint8_t {
-        Unknown,
-        Fixed,
-        Internal,
-        Custom,
+        Unknown,  // not used
+        Fixed,    // defined in a shader and mandatory (e.g. input position in FS)
+        Custom,   // defined in a shader and optional (e.g. custom inputs in FS)
+        Internal, // not defined in a shader, added by the compiler
     };
     struct InputOutputRegister {
+        Isa::RegisterSelection index = 0;
         InputOutputRegisterUsage usage = InputOutputRegisterUsage::Unknown;
-        uint8_t mask = 0;
-        uint8_t componentsCount = 0;
+        uint8_t mask = 0;            // mask of components used, e.g 0b1100 means xy
+        uint8_t componentsCount = 0; // cached number of bits set in mask
     };
-    InputOutputRegister inputs[maxInputOutputRegisters] = {};
-    InputOutputRegister outputs[maxInputOutputRegisters] = {};
+    struct InputOutputRegisters {
+        InputOutputRegister regs[maxInputOutputRegisters] = {};
+        uint16_t usedRegsMask = {};
+        uint16_t usedRegsCount = {};
+    };
+    InputOutputRegisters inputs = {};
+    InputOutputRegisters outputs = {};
 };
 
 } // namespace Isa

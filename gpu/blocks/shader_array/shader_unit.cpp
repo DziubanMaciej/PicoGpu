@@ -1,4 +1,5 @@
 #include "gpu/blocks/shader_array/shader_unit.h"
+#include "gpu/definitions/register_allocator.h"
 #include "gpu/util/conversions.h"
 #include "gpu/util/handshake.h"
 #include "gpu/util/math.h"
@@ -10,10 +11,12 @@ void ShaderUnit::main() {
         // Read ISA header
         Isa::Command::Command command = {};
         if (handshakeAlreadyEstablished) {
-            wait();
-            command.dummy.raw = request.inpData.read();
+            for (size_t i = 0u; i < Isa::commandSizeInDwords; i++) {
+                wait();
+                command.dummy.raw[i] = request.inpData.read();
+            }
         } else {
-            command.dummy.raw = Handshake::receive(request.inpSending, request.inpData, request.outReceiving, &profiling.outBusy).to_int();
+            Handshake::receiveArray(request.inpSending, request.inpData, request.outReceiving, command.dummy.raw, Isa::commandSizeInDwords, &profiling.outBusy);
         }
         handshakeAlreadyEstablished = command.dummy.hasNextCommand;
 
@@ -63,9 +66,47 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
 
 void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
     const uint32_t inputsCount = nonZeroCountToInt(isaMetadata.inputsCount);
-    const uint32_t verticesInTriangle = 3;
 
-    if (isaMetadata.programType == Isa::Command::ProgramType::FragmentShader) {
+    if (isaMetadata.programType == Isa::Command::ProgramType::VertexShader) {
+        // Get info about components
+        Isa::RegisterSelection registerIndices[4] = {};
+        uint32_t componentsCounts[4] = {};
+        for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+            registerIndices[inputIndex] = getInputOutputRegisterIndex(true, inputIndex);
+            componentsCounts[inputIndex] = nonZeroCountToInt(getInputOutputSize(true, inputIndex));
+        }
+
+        // Read per thread inputs and store in registers
+        for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+            for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+                const auto componentsCount = componentsCounts[inputIndex];
+                const auto registerIndex = registerIndices[inputIndex];
+
+                VectorRegister &reg = registers.gpr[threadIndex][registerIndex];
+                for (int component = 0; component < componentsCount; component++) {
+                    wait();
+                    reg[component] = request.inpData.read();
+                }
+            }
+        }
+    } else if (isaMetadata.programType == Isa::Command::ProgramType::FragmentShader) {
+        // Fragment shaders are handled differently. First, per thread x,y position coordinates
+        // are stored to the first input register. Then, per request triangle attributes are
+        // stored to some other registers, NOT inputs defined in the shader code. They will be
+        // interpolated and results will be stored to actual input registers later.
+
+        // Get info about components
+        Isa::RegisterSelection registerIndices[Isa::maxInputOutputRegisters] = {}; // registers defined by the user. We will only populate the first one with xy position.
+        size_t componentsCounts[Isa::maxInputOutputRegisters] = {};                // component counts of per-request triangle attributes
+        for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+            registerIndices[inputIndex] = getInputOutputRegisterIndex(true, inputIndex);
+            if (inputIndex == 0) {
+                componentsCounts[inputIndex] = 3; // we always pass x,y,z position per request. It is hardcoded in FS and SF blocks.
+            } else {
+                componentsCounts[inputIndex] = nonZeroCountToInt(getInputOutputSize(true, inputIndex));
+            }
+        }
+
         // Receive per thread x,y coordinates and write them to registers
         for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
             wait();
@@ -74,121 +115,96 @@ void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {
             registers.gpr[threadIndex][0].y = request.inpData.read();
         }
 
-        // Receive per request custom attributes
-        VectorRegister perRequestInputs[verticesInTriangle][Isa::maxInputOutputRegisters] = {};
-        size_t componentsCounts[Isa::maxInputOutputRegisters] = {};
-        for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
-            switch (inputIndex) {
-            case 0:
-                componentsCounts[inputIndex] = 3; // we always pass x,y,z position
-                break;
-            case 1:
-                componentsCounts[inputIndex] = nonZeroCountToInt(isaMetadata.inputSize1);
-                break;
-            case 2:
-                componentsCounts[inputIndex] = nonZeroCountToInt(isaMetadata.inputSize2);
-                break;
-            case 3:
-                componentsCounts[inputIndex] = nonZeroCountToInt(isaMetadata.inputSize3);
-                break;
-            default:
-                FATAL_ERROR("Invalid input reg index");
-            }
-        }
-        for (int vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
+        // Receive per request attributes and store them in temporary array
+        RegisterAllocator registerAllocator{isaMetadata};
+        struct PerRequestReg {
+            Isa::RegisterSelection index;
+            VectorRegister value;
+        };
+        PerRequestReg perRequestInputs[verticesInPrimitive][Isa::maxInputOutputRegisters] = {};
+        for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
             for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+                PerRequestReg &reg = perRequestInputs[vertexIndex][inputIndex];
+
+                // Determine where to put the per-request attribute value. It doesn't matter to the shade code,
+                // but it has to be in sync with the interpolation code generated by the compiler, which will
+                // expect the values to be in particular registers.
+                reg.index = registerAllocator.allocate();
+
+                // Receive register value and store it in a temporary array
                 const size_t componentsCount = componentsCounts[inputIndex];
                 for (size_t componentIndex = 0; componentIndex < componentsCount; componentIndex++) {
                     wait();
-                    perRequestInputs[vertexIndex][inputIndex][componentIndex] = request.inpData.read();
+                    reg.value[componentIndex] = request.inpData.read();
                 }
             }
         }
 
-        // Write per request custom attributes to registers
-        constexpr size_t maxCustomAttributes = Isa::maxInputOutputRegisters - 1; // 1 is reserved for position
-        const Isa::RegisterSelection basePerConfigRegister = Isa::generalPurposeRegistersCount - maxCustomAttributes * verticesInPrimitive;
+        // Write per request attributes to registers
         for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-            for (int vertexIndex = 0; vertexIndex < verticesInTriangle; vertexIndex++) {
+            for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
                 for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
-                    for (size_t componentIndex = 0; componentIndex < Isa::registerComponentsCount; componentIndex++) {
-                        const Isa::RegisterSelection reg = basePerConfigRegister + vertexIndex * verticesInTriangle + inputIndex;
-                        registers.gpr[threadIndex][reg][componentIndex] = perRequestInputs[vertexIndex][inputIndex][componentIndex];
-                    }
+                    const PerRequestReg &reg = perRequestInputs[vertexIndex][inputIndex];
+                    registers.gpr[threadIndex][reg.index] = reg.value;
                 }
             }
         }
     } else {
-        // Get how many components of each input has been passed
-        uint32_t componentsCounts[4] = {};
-        for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
-            NonZeroCount componentsCountField = {};
-            switch (inputIndex) {
-            case 0:
-                componentsCountField = isaMetadata.inputSize0;
-                break;
-            case 1:
-                componentsCountField = isaMetadata.inputSize1;
-                break;
-            case 2:
-                componentsCountField = isaMetadata.inputSize2;
-                break;
-            case 3:
-                componentsCountField = isaMetadata.inputSize3;
-                break;
-            default:
-                FATAL_ERROR("Invalid input reg index");
-            }
-            componentsCounts[inputIndex] = nonZeroCountToInt(componentsCountField);
-        }
-
-        // Read per thread inputs and store in registers
-        for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
-            for (int inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
-                VectorRegister &reg = registers.gpr[threadIndex][inputIndex + Isa::inputRegistersOffset];
-                uint32_t componentsCount = componentsCounts[inputIndex];
-                for (int component = 0; component < componentsCount; component++) {
-                    wait();
-                    reg[component] = request.inpData.read();
-                }
-            }
-        }
+        FATAL_ERROR("Unknown shader type");
     }
 }
 
 void ShaderUnit::appendOutputRegistersValues(uint32_t threadCount, uint32_t *outputStream, uint32_t &outputStreamSize) {
     const uint32_t outputsCount = nonZeroCountToInt(isaMetadata.outputsCount);
 
+    // Get info about components
+    Isa::RegisterSelection registerIndices[4] = {};
     uint32_t componentsCounts[4] = {};
     for (int outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
-        NonZeroCount componentsCountField = {};
-        switch (outputIndex) {
-        case 0:
-            componentsCountField = isaMetadata.outputSize0;
-            break;
-        case 1:
-            componentsCountField = isaMetadata.outputSize1;
-            break;
-        case 2:
-            componentsCountField = isaMetadata.outputSize2;
-            break;
-        case 3:
-            componentsCountField = isaMetadata.outputSize3;
-            break;
-        default:
-            FATAL_ERROR("Invalid output reg index");
-        }
-        componentsCounts[outputIndex] = nonZeroCountToInt(componentsCountField);
+        registerIndices[outputIndex] = getInputOutputRegisterIndex(false, outputIndex);
+        componentsCounts[outputIndex] = nonZeroCountToInt(getInputOutputSize(false, outputIndex));
     }
 
     for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
         for (int outputIndex = 0; outputIndex < outputsCount; outputIndex++) {
-            const VectorRegister &reg = registers.gpr[threadIndex][outputIndex + Isa::outputRegistersOffset];
-            uint32_t componentsCount = componentsCounts[outputIndex];
+            const auto registerIndex = registerIndices[outputIndex];
+            const auto componentsCount = componentsCounts[outputIndex];
+
+            const VectorRegister &reg = registers.gpr[threadIndex][registerIndex];
             for (int component = 0; component < componentsCount; component++) {
                 outputStream[outputStreamSize++] = reg[component];
             }
         }
+    }
+}
+
+NonZeroCount ShaderUnit::getInputOutputSize(bool input, uint32_t index) const {
+    switch (index) {
+    case 0:
+        return input ? isaMetadata.inputSize0 : isaMetadata.outputSize0;
+    case 1:
+        return input ? isaMetadata.inputSize1 : isaMetadata.outputSize1;
+    case 2:
+        return input ? isaMetadata.inputSize2 : isaMetadata.outputSize2;
+    case 3:
+        return input ? isaMetadata.inputSize3 : isaMetadata.outputSize3;
+    default:
+        FATAL_ERROR("Invalid index for ", __FUNCTION__);
+    }
+}
+
+Isa::RegisterSelection ShaderUnit::getInputOutputRegisterIndex(bool input, uint32_t index) const {
+    switch (index) {
+    case 0:
+        return input ? isaMetadata.inputRegister0 : isaMetadata.outputRegister0;
+    case 1:
+        return input ? isaMetadata.inputRegister1 : isaMetadata.outputRegister1;
+    case 2:
+        return input ? isaMetadata.inputRegister2 : isaMetadata.outputRegister2;
+    case 3:
+        return input ? isaMetadata.inputRegister3 : isaMetadata.outputRegister3;
+    default:
+        FATAL_ERROR("Invalid index for ", __FUNCTION__);
     }
 }
 

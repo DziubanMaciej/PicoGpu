@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gpu/blocks/shader_array/request.h"
-#include "gpu/isa/isa.h"
 #include "gpu/definitions/types.h"
+#include "gpu/isa/isa.h"
 #include "gpu/util/entry_cache.h"
 
 #include <systemc.h>
@@ -90,7 +90,7 @@ private:
         Isa::Command::CommandStoreIsa &getMetadata() {
             return reinterpret_cast<Isa::Command::CommandStoreIsa &>(data[0]);
         }
-        uint32_t data[Isa::maxIsaSize];
+        uint32_t data[Isa::commandSizeInDwords + Isa::maxIsaSize];
         uint32_t dataSize = 0;
     };
     constexpr static inline size_t isaCacheSize = 2;

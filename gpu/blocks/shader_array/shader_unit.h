@@ -1,8 +1,9 @@
 #pragma once
 
+#include "gpu/definitions/types.h"
 #include "gpu/isa/isa.h"
 #include "gpu/isa/vector_register.h"
-#include "gpu/definitions/types.h"
+#include "gpu/util/non_zero_count.h"
 
 #include <systemc.h>
 
@@ -44,6 +45,9 @@ private:
 
     void initializeInputRegisters(uint32_t threadCount);
     void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
+
+    NonZeroCount getInputOutputSize(bool input, uint32_t index) const;
+    Isa::RegisterSelection getInputOutputRegisterIndex(bool input, uint32_t index) const;
 
     using UnaryFunction = int32_t (*)(int32_t);
     using BinaryFunction = int32_t (*)(int32_t, int32_t);
