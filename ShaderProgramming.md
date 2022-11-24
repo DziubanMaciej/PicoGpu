@@ -12,14 +12,13 @@ All instructions can utilize the following registers:
 
 | Register type         | Symbol      | Size                       | Count              | Description                                                                                                                             |
 | --------------------- | ----------- | -------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| General purpose (GPR) | r0, r1, ... | 4 components, 32 bits each | 16 per thread      | Can be used for any operation. Can be defined as an input or output parameter.                                                          |
+| General purpose (GPR) | r0, r1, ... | 4 components, 32 bits each | 16 per thread      | Can be used for any operation. Can be defined as an input or output parameters.                                                          |
 | Program counter (PC)  | N/A         | 32 bits                    | 1 per shading unit | Defines current position within the instruction buffer for all threads. It is advanced automatically and cannot be manipulated directly |
 
 The following symbols will be used to describe parameters to directives and instructions:
-- {ireg} - any valid input register. Input registers can be `r0`, `r1` or `r2` in that order (i.e. using only `r0` and `r2` is forbidden).
-- {oreg} - any output register. Output registers can be `r12`, `r13` or `r14` in that order.
 - {reg} - any general purpose register
 - {mask} - a combination of 1-4 components x,y,z or w. Each component can be used only once,
+- {iomask} - a combination of 1-4 components x,y,z or w. Each component can be used only once. Components must be used in order, e.g. `xy` or `xyz`, but not `xyw`.
 - {srcmask} - a combination of 4 components x,y,z or w. Each component can be used multiple times,
 - {int} - integer constant,
 - {float} - floating point constant,
@@ -30,12 +29,12 @@ The following symbols will be used to describe parameters to directives and inst
 # Directives
 The prologue of *PicoGpu* assembly is a number of directives. All directives start with a `#` sign.
 
-| Directive             | Description                                                                                                                                                                                      |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| #input {ireg}.{mask}  | Defines an input register to be initialized. Only components contained in the mask are initialized, the rest is undefined. Note that only some registers are valid here (see `ireg` definition). |
-| #output {oreg}.{mask} | Defines an output register to be sent back to the caller. Only components contained in the mask will be sent back. Note that only some registers are valid here (see `oreg` definition).         |
-| #vertexShader         | Sets type of current shader as vertex shader. There must be only one shader type directive.                                                                                                      |
-| #fragmentShader       | Sets type of current shader as fragment shader. There must be only one shader type directive.                                                                                                    |
+| Directive              | Description                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| #input {reg}.{iomask}  | Defines an input register to be initialized. Only components contained in the mask are initialized, the rest is undefined. |
+| #output {reg}.{iomask} | Defines an output register to be sent back to the caller. Only components contained in the mask will be sent back.         |
+| #vertexShader          | Sets type of current shader as vertex shader. There must be only one shader type directive.                                |
+| #fragmentShader        | Sets type of current shader as fragment shader. There must be only one shader type directive.                              |
 
 
 
