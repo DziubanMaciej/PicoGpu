@@ -122,7 +122,9 @@ SC_MODULE(Tester) {
         dataStream.storeCommand.inputsCount = NonZeroCount::One;
         dataStream.storeCommand.outputsCount = NonZeroCount::One;
         dataStream.storeCommand.inputSize0 = NonZeroCount::Three;
+        dataStream.storeCommand.inputRegister0 = 0;
         dataStream.storeCommand.outputSize0 = NonZeroCount::Four;
+        dataStream.storeCommand.outputRegister0 = 12;
 
         dataStream.isa0.opcode = Isa::Opcode::iadd_imm;
         dataStream.isa0.src = 0;

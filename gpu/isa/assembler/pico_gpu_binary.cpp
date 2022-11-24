@@ -27,7 +27,7 @@ void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, 
     FATAL_ERROR_IF(mask == 0, "Mask must be non zero")
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
     if (mask != 0b1000 && mask != 0b1100 && mask != 0b1110 && mask != 0b1111) {
-        error << "Components for " << label << " directive must be used in order: x,y,z,w. Mask is " << mask;
+        error << "Components for " << label << " directive must be used in order: x,y,z,w";
         return;
     }
 
@@ -94,11 +94,11 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     // Mark this input/output register as fixed
     if ((!input && isVs()) || (input && isFs())) {
         if (io.usedRegsCount == 0) {
-            error << getShaderTypeName() << " must have at least 1 " << label;
+            error << getShaderTypeName() << " must use exactly one " << label << " register";
             return;
         }
         if (io.regs[0].componentsCount != 4) {
-            error << getShaderTypeName() << " must have a 4-component position vector as its first " << label;
+            error << getShaderTypeName() << " must use a 4-component position vector as its first " << label;
             return;
         }
         FATAL_ERROR_IF(io.regs[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
@@ -109,7 +109,11 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
     // Add a second output for interpolated z-value and mark it as internal.
     if (!input && programType.value() == Isa::Command::ProgramType::FragmentShader) {
         if (io.usedRegsCount != 1) {
-            error << getShaderTypeName() << " must use one output register";
+            error << getShaderTypeName() << " must use exactly one output register";
+            return;
+        }
+        if (io.regs[0].componentsCount != 4) {
+            error << getShaderTypeName() << " must use a 4-component color vector as its only " << label;
             return;
         }
         FATAL_ERROR_IF(io.regs[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
