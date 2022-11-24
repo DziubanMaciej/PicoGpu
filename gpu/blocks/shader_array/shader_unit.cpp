@@ -3,6 +3,7 @@
 #include "gpu/util/conversions.h"
 #include "gpu/util/handshake.h"
 #include "gpu/util/math.h"
+#include "gpu/util/os_interface.h"
 
 void ShaderUnit::main() {
     bool handshakeAlreadyEstablished = false;
@@ -311,6 +312,12 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
             break;
         case Isa::Opcode::swizzle:
             registers.pc += executeInstructionForLanes(threadCount, instruction.swizzle);
+            break;
+        case Isa::Opcode::trap:
+            if (OsInterface::isDebuggerAttached()) {
+                OsInterface::breakpoint();
+            }
+            registers.pc += sizeof(instruction.nullary) / sizeof(uint32_t);
             break;
 
         default:

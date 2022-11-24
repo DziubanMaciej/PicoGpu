@@ -78,8 +78,9 @@ Instructions with immediate arguments (`{int}` or `{float}`) all take between 1 
 | frcp    {reg}.{mask} {reg}                                                 | Calculates a reciprocal                                                                                           |
 
 ## Miscellaneous
-| Instruction                                                              | Description                                                         |
-|--------------------------------------------------------------------------|---------------------------------------------------------------------|
-| finit {reg}.{mask} {float}[1..4]</br>iinit {reg}.{mask} {int}[1..4]</br> | Loads immediate values into a register                              |
-| swizzle {reg} {reg}.{srcmask}                                            | Swizzles components of src register and stores it into dst register |
-| mov {reg}.{mask} {reg}                                                   | Moves contents of one register to another                           |
+| Instruction                                                              | Description                                                             |
+|--------------------------------------------------------------------------|------------------------------------------------------------------------ |
+| finit {reg}.{mask} {float}[1..4]</br>iinit {reg}.{mask} {int}[1..4]</br> | Loads immediate values into a register                                  |
+| swizzle {reg} {reg}.{srcmask}                                            | Swizzles components of src register and stores it into dst register     |
+| mov {reg}.{mask} {reg}                                                   | Moves contents of one register to another                               |
+| trap                                                                     | Triggers a debugger breakpoint. Does nothing if debugger is not present |

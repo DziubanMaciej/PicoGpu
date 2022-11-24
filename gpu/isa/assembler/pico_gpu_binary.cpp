@@ -221,6 +221,11 @@ CustomShaderComponents PicoGpuBinary::getVsPsCustomComponents() {
     return result;
 }
 
+void PicoGpuBinary::encodeNullary(Opcode opcode) {
+    auto inst = getSpace<InstructionLayouts::Nullary>();
+    inst->opcode = opcode;
+}
+
 void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask) {
     auto inst = getSpace<InstructionLayouts::UnaryMath>();
     inst->opcode = opcode;

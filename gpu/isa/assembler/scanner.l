@@ -36,6 +36,7 @@ static int processVecComponent(char c, GPUASM_STYPE &yyval);
 "ineg"    { return INEG; }
 "mov"     { return MOV; }
 "swizzle" { return SWIZZLE; }
+"trap"    { return TRAP; }
 
 r[0-9]  { gpuasm_lval.reg = atoi(&yytext[1]); return REG; }
 r1[0-5] { gpuasm_lval.reg = atoi(&yytext[1]); return REG; }

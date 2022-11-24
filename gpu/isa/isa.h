@@ -125,6 +125,7 @@ enum class Opcode : uint32_t {
     init,
     swizzle,
     mov,
+    trap,
 
     // control value
     COUNT,
@@ -142,6 +143,11 @@ namespace InstructionLayouts {
     // This is not an actual instruction layout, but just some type that can be used to extract
     // the opcode.
     struct Header {
+        Opcode opcode : opcodeBitsize;
+    };
+
+    // An operation without any arguments
+    struct Nullary {
         Opcode opcode : opcodeBitsize;
     };
 
@@ -220,6 +226,7 @@ namespace InstructionLayouts {
 
 union Instruction {
     InstructionLayouts::Header header;
+    InstructionLayouts::Nullary nullary;
     InstructionLayouts::BinaryMath binaryMath;
     InstructionLayouts::UnaryMath unaryMath;
     InstructionLayouts::TernaryMath ternaryMath;

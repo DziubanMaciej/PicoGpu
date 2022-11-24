@@ -65,7 +65,7 @@
 // Tokens received from lexer
 %token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS FCROSS2 FMAD FRCP
 %token IINIT IADD ISUB IMUL IDIV INEG
-%token MOV SWIZZLE
+%token MOV SWIZZLE TRAP
 %token HASH_INPUT HASH_OUTPUT HASH_VS HASH_FS DOT
 %token <swizzleComponent> VEC_COMPONENT
 %token <reg> REG
@@ -141,6 +141,7 @@ INSTRUCTION:
     | IDIV      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::idiv_imm, $2.reg, $3, $2.mask, {$4}); }
     | INEG      DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::ineg, $2.reg, $3, $2.mask); }
     | SWIZZLE   REG FULLY_SWIZZLED_REG    { outputBinary->encodeSwizzle(Isa::Opcode::swizzle, $2, $3.reg, $3.x, $3.y, $3.z, $3.w); }
+    | TRAP                                { outputBinary->encodeNullary(Isa::Opcode::trap); }
     | MOV       DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::mov, $2.reg, $3, $2.mask); }
     | FINIT     DST_REG IMMEDIATE_FLOATS  { outputBinary->encodeUnaryMathImm(Isa::Opcode::init, $2.reg, $2.mask, $3.toVector()); }
     | IINIT     DST_REG IMMEDIATE_INTS    { outputBinary->encodeUnaryMathImm(Isa::Opcode::init, $2.reg, $2.mask, $3.toVector()); }

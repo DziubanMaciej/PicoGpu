@@ -21,6 +21,7 @@ public:
     void encodeDirectiveShaderType(Isa::Command::ProgramType programType);
     void finalizeDirectives();
 
+    void encodeNullary(Opcode opcode);
     void encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask);
     void encodeBinaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, uint32_t destMask);
     void encodeTernaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, RegisterSelection src3, uint32_t destMask);
