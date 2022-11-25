@@ -178,14 +178,7 @@ void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bo
     command.commandType = Isa::Command::CommandType::ExecuteIsa;
     command.hasNextCommand = 0;
     command.threadCount = threadCount;
-    if (handshakeAlreadyDone) {
-        for (size_t i = 0; i < Isa::commandSizeInDwords; i++) {
-            unit.outData = command.raw[i];
-            wait();
-        }
-    } else {
-        Transfer::sendArray(unit.inpReceiving, unit.outSending, unit.outData, command.raw, Isa::commandSizeInDwords);
-    }
+    Transfer::sendArray(unit.inpReceiving, unit.outSending, unit.outData, command.raw, Isa::commandSizeInDwords, !handshakeAlreadyDone);
 
     // Send the shader inputs
     for (int i = 0; i < shaderInputsCount; i++) {

@@ -11,14 +11,7 @@ void ShaderUnit::main() {
     while (true) {
         // Read ISA header
         Isa::Command::Command command = {};
-        if (handshakeAlreadyEstablished) {
-            for (size_t i = 0u; i < Isa::commandSizeInDwords; i++) {
-                wait();
-                command.dummy.raw[i] = request.inpData.read();
-            }
-        } else {
-            Transfer::receiveArray(request.inpSending, request.inpData, request.outReceiving, command.dummy.raw, Isa::commandSizeInDwords, &profiling.outBusy);
-        }
+        Transfer::receiveArray(request.inpSending, request.inpData, request.outReceiving, command.dummy.raw, Isa::commandSizeInDwords, &profiling.outBusy, !handshakeAlreadyEstablished);
         handshakeAlreadyEstablished = command.dummy.hasNextCommand;
 
         switch (command.dummy.commandType) {

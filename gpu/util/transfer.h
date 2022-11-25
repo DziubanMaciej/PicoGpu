@@ -13,6 +13,7 @@ private:
         sc_out<DataT> *outData;    // array of parallel ports used to send data
         DataToSendT *dataToSend;   // array of data elements to send
         size_t dataToSendCount;    // number of data elements to send
+        bool performHandshake;     // whether to use control signals to synchronize with the receiver or not
     };
 
     template <typename DataT, typename DataToSendT, size_t numberOfPorts>
@@ -21,23 +22,27 @@ private:
         FATAL_ERROR_IF(numberOfPorts == 0, "Cannot send through zero ports");
 
         const size_t packagesCount = (args.dataToSendCount + numberOfPorts - 1) / numberOfPorts;
-
         size_t dataSent = 0;
+        size_t packagesSent = 0;
 
-        // Tell the receiver that we're able to begin transmission and send first package of data
-        args.outSending->write(1);
-        for (; dataSent < args.dataToSendCount && dataSent < numberOfPorts; dataSent++) {
-            args.outData[dataSent] = args.dataToSend[dataSent];
+        // Handshake with the receiver
+        if (args.performHandshake) {
+            // Tell the receiver that we're able to begin transmission and send first package of data
+            args.outSending->write(1);
+            for (; dataSent < args.dataToSendCount && dataSent < numberOfPorts; dataSent++) {
+                args.outData[dataSent] = args.dataToSend[dataSent];
+            }
+            packagesSent++;
+
+            // Wait for the receiver to acknowledge the transmission
+            do {
+                wait();
+            } while (!args.inpReceiving->read());
+            args.outSending->write(0);
         }
 
-        // Wait for the receiver to acknowledge the transmission
-        do {
-            wait();
-        } while (!args.inpReceiving->read());
-        args.outSending->write(0);
-
         // Send remaining packages
-        for (size_t packageIndex = 1; packageIndex < packagesCount; packageIndex++) {
+        for (; packagesSent < packagesCount; packagesSent++) {
             for (size_t port = 0; port < numberOfPorts && dataSent < args.dataToSendCount; port++, dataSent++) {
                 args.outData[port] = args.dataToSend[dataSent];
             }
@@ -60,52 +65,67 @@ private:
         sc_out<bool> *outBusinessSignal = nullptr; // optional control signal, that will be deactivated when receiving is stalled
         size_t *timeout = nullptr;                 // optional number of clock ticks after which the operation will be cancelled
         bool *success = nullptr;                   // optional success code
+        bool performHandshake;                     // whether to use control signals to synchronize with the sender or not
     };
     template <typename DataT, typename DataToSendT, size_t numberOfPorts>
     static void receiveArrayImpl(ReceiveArgs<DataT, DataToSendT, numberOfPorts> &args) {
         FATAL_ERROR_IF(args.dataToReceiveCount == 0, "Cannot receive empty array");
         FATAL_ERROR_IF(numberOfPorts == 0, "Cannot receive through zero ports");
 
-        // Tell the sender that we're able to begin transmission
-        args.outReceiving->write(1);
-
-        // Prepare some variables for timeout behavior
-        bool cancelled = false;
-        size_t clocksWaiting = 1;
-
-        // Wait for the sender to acknowledge the transmission
-        wait();
-        while (!args.inpSending->read()) {
-            if (args.outBusinessSignal) {
-                *args.outBusinessSignal = false;
-            }
-            wait();
-
-            if (args.timeout && *args.timeout >= (++clocksWaiting)) {
-                cancelled = true;
-                break;
-            }
-        }
-        if (args.outBusinessSignal) {
-            *args.outBusinessSignal = true;
-        }
-        args.outReceiving->write(0);
-
-        // Handle timeout behavior
-        if (args.success) {
-            *args.success = !cancelled;
-        }
-        if (cancelled) {
-            return;
-        }
-
-        // Receive packages of data
         const size_t packagesCount = (args.dataToReceiveCount + numberOfPorts - 1) / numberOfPorts;
         size_t dataReceived = 0;
-        for (size_t packageIndex = 0; packageIndex < packagesCount; packageIndex++) {
-            if (packageIndex > 0) {
+        size_t packagesReceived = 0;
+
+        // By default consider operation as a success
+        if (args.success) {
+            *args.success = true;
+        }
+
+        // Handshake with the sender
+        if (args.performHandshake) {
+            // Prepare some variables for timeout behavior
+            bool cancelled = false;
+            size_t clocksWaiting = 1;
+
+            // Tell the sender that we're able to begin transmission
+            args.outReceiving->write(1);
+
+            // Wait for the sender to acknowledge the transmission
+            wait();
+            while (!args.inpSending->read()) {
+                if (args.outBusinessSignal) {
+                    *args.outBusinessSignal = false;
+                }
                 wait();
+
+                if (args.timeout && *args.timeout >= (++clocksWaiting)) {
+                    cancelled = true;
+                    break;
+                }
             }
+            if (args.outBusinessSignal) {
+                *args.outBusinessSignal = true;
+            }
+            args.outReceiving->write(0);
+
+            // Handle timeout behavior
+            if (cancelled) {
+                if (args.success) {
+                    *args.success = false;
+                }
+                return;
+            }
+
+            // Receive first package of data
+            for (; dataReceived < numberOfPorts && dataReceived < args.dataToReceiveCount; dataReceived++) {
+                args.dataToReceive[dataReceived] = args.inpData[dataReceived].read();
+            }
+            packagesReceived++;
+        }
+
+        // Receive remaining packages of data
+        for (; packagesReceived < packagesCount; packagesReceived++) {
+            wait();
             for (size_t port = 0; port < numberOfPorts && dataReceived < args.dataToReceiveCount; port++, dataReceived++) {
                 args.dataToReceive[dataReceived] = args.inpData[port].read();
             }
@@ -122,6 +142,7 @@ public:
         args.outData = outData;
         args.dataToSend = dataToSend;
         args.dataToSendCount = dataToSendCount;
+        args.performHandshake = true;
         sendArrayImpl(args);
     }
 
@@ -135,24 +156,26 @@ public:
         args.dataToReceive = dataToReceive;
         args.dataToReceiveCount = dataToReceiveCount;
         args.outBusinessSignal = outBusinessSignal;
+        args.performHandshake = true;
         receiveArrayImpl(args);
     }
 
     template <typename DataT, typename DataToSendT>
-    static inline void sendArray(sc_in<bool> &inpReceiving, sc_out<bool> &outSending, sc_out<DataT> &outData, DataToSendT *dataToSend, size_t dataToSendCount) {
+    static inline void sendArray(sc_in<bool> &inpReceiving, sc_out<bool> &outSending, sc_out<DataT> &outData, DataToSendT *dataToSend, size_t dataToSendCount, bool performHandshake = true) {
         SendArgs<DataT, DataToSendT, 1> args = {};
         args.inpReceiving = &inpReceiving;
         args.outSending = &outSending;
         args.outData = &outData;
         args.dataToSend = dataToSend;
         args.dataToSendCount = dataToSendCount;
+        args.performHandshake = performHandshake;
         sendArrayImpl(args);
     }
 
     template <typename DataT, typename DataToReceiveT>
     static inline void receiveArray(sc_in<bool> &inpSending, sc_in<DataT> &inpData, sc_out<bool> &outReceiving,
                                     DataToReceiveT *dataToReceive, size_t dataToReceiveCount,
-                                    sc_out<bool> *outBusinessSignal = nullptr) {
+                                    sc_out<bool> *outBusinessSignal = nullptr, bool performHandshake = true) {
         ReceiveArgs<DataT, DataToReceiveT, 1> args = {};
         args.inpSending = &inpSending;
         args.outReceiving = &outReceiving;
@@ -160,6 +183,7 @@ public:
         args.dataToReceive = dataToReceive;
         args.dataToReceiveCount = dataToReceiveCount;
         args.outBusinessSignal = outBusinessSignal;
+        args.performHandshake = performHandshake;
         receiveArrayImpl(args);
     }
 
@@ -171,6 +195,7 @@ public:
         args.outData = &outData;
         args.dataToSend = &dataToSend;
         args.dataToSendCount = 1;
+        args.performHandshake = true;
         sendArrayImpl(args);
     }
 
@@ -184,6 +209,7 @@ public:
         args.dataToReceive = &dataToReceive;
         args.dataToReceiveCount = 1;
         args.outBusinessSignal = outBusinessSignal;
+        args.performHandshake = true;
         receiveArrayImpl(args);
         return dataToReceive;
     }
@@ -199,6 +225,7 @@ public:
         args.dataToReceiveCount = 1;
         args.timeout = &timeout;
         args.success = &success;
+        args.performHandshake = true;
         receiveArrayImpl(args);
         return dataToReceive;
     }
