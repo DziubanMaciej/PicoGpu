@@ -1,9 +1,9 @@
 #include "gpu/blocks/shader_array/shader_unit.h"
 #include "gpu/definitions/register_allocator.h"
 #include "gpu/util/conversions.h"
-#include "gpu/util/handshake.h"
 #include "gpu/util/math.h"
 #include "gpu/util/os_interface.h"
+#include "gpu/util/transfer.h"
 
 void ShaderUnit::main() {
     bool handshakeAlreadyEstablished = false;
@@ -17,7 +17,7 @@ void ShaderUnit::main() {
                 command.dummy.raw[i] = request.inpData.read();
             }
         } else {
-            Handshake::receiveArray(request.inpSending, request.inpData, request.outReceiving, command.dummy.raw, Isa::commandSizeInDwords, &profiling.outBusy);
+            Transfer::receiveArray(request.inpSending, request.inpData, request.outReceiving, command.dummy.raw, Isa::commandSizeInDwords, &profiling.outBusy);
         }
         handshakeAlreadyEstablished = command.dummy.hasNextCommand;
 
@@ -62,7 +62,7 @@ void ShaderUnit::processExecuteIsaCommand(Isa::Command::CommandExecuteIsa comman
     uint32_t outputStreamSize = {};
     appendOutputRegistersValues(threadCount, outputStream, outputStreamSize);
 
-    Handshake::sendArray(response.inpReceiving, response.outSending, response.outData, outputStream, outputStreamSize);
+    Transfer::sendArray(response.inpReceiving, response.outSending, response.outData, outputStream, outputStreamSize);
 }
 
 void ShaderUnit::initializeInputRegisters(uint32_t threadCount) {

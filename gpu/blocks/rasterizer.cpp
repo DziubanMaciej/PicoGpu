@@ -1,14 +1,14 @@
 #include "gpu/blocks/rasterizer.h"
 #include "gpu/isa/isa.h"
 #include "gpu/util/conversions.h"
-#include "gpu/util/handshake.h"
+#include "gpu/util/transfer.h"
 
 void Rasterizer::receiveFromVs(uint32_t customComponentsPerVertex, Point *outVertices) {
     const uint32_t componentsPerVertex = 4 + customComponentsPerVertex; // x,y,z,w position + custom attributes
 
     uint32_t receivedVertices[verticesInPrimitive * componentsPerVertex];
-    Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
-                                             receivedVertices, verticesInPrimitive * componentsPerVertex, &profiling.outBusy);
+    Transfer::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
+                                            receivedVertices, verticesInPrimitive * componentsPerVertex, &profiling.outBusy);
 
     for (uint32_t i = 0; i < verticesInPrimitive; i++) {
         outVertices[i] = readPoint(receivedVertices, componentsPerVertex, customComponentsPerVertex, i);
@@ -28,8 +28,8 @@ void Rasterizer::setupPerTriangleFsState(uint32_t customComponentsPerVertex, Poi
         }
     }
 
-    Handshake::sendArrayWithParallelPorts(nextBlock.perTriangle.inpReceiving, nextBlock.perTriangle.outSending, nextBlock.perTriangle.outData,
-                                          dataToSend, dataToSendCount);
+    Transfer::sendArrayWithParallelPorts(nextBlock.perTriangle.inpReceiving, nextBlock.perTriangle.outSending, nextBlock.perTriangle.outData,
+                                         dataToSend, dataToSendCount);
 }
 
 void Rasterizer::rasterize(Point *vertices) {
@@ -42,7 +42,7 @@ void Rasterizer::rasterize(Point *vertices) {
             const Point pixel{static_cast<float>(currentFragment.x), static_cast<float>(currentFragment.y)};
             const bool hit = isPointInTriangle(pixel, vertices[0], vertices[1], vertices[2]);
             if (hit) {
-                Handshake::send(nextBlock.perFragment.inpReceiving, nextBlock.perFragment.outSending, nextBlock.perFragment.outData, currentFragment);
+                Transfer::send(nextBlock.perFragment.inpReceiving, nextBlock.perFragment.outSending, nextBlock.perFragment.outData, currentFragment);
                 profiling.outFragmentsProduced = profiling.outFragmentsProduced.read() + 1;
             }
         }

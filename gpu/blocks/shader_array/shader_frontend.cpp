@@ -2,8 +2,8 @@
 #include "gpu/blocks/shader_array/shader_frontend.h"
 #include "gpu/isa/isa.h"
 #include "gpu/util/error.h"
-#include "gpu/util/handshake.h"
 #include "gpu/util/raii_boolean_setter.h"
+#include "gpu/util/transfer.h"
 
 void ShaderFrontendBase::requestThread() {
     constexpr bool handshakeOnlyOnce = true;
@@ -30,7 +30,7 @@ void ShaderFrontendBase::requestThread() {
 
         // Read request metadata
         ShaderFrontendRequest request = {};
-        request.dword0.raw = Handshake::receive(clientInterface->request.inpSending, clientInterface->request.inpData, clientInterface->request.outReceiving).to_int();
+        request.dword0.raw = Transfer::receive(clientInterface->request.inpSending, clientInterface->request.inpData, clientInterface->request.outReceiving).to_int();
         wait();
         request.dword1.raw = clientInterface->request.inpData.read();
         wait();
@@ -91,7 +91,7 @@ void ShaderFrontendBase::responseThread() {
 
         // Read results from shader unit
         auto &unit = shaderUnitInterface->response;
-        shaderOutputs[shaderOutputsCount++] = Handshake::receive(unit.inpSending, unit.inpData, unit.outReceiving);
+        shaderOutputs[shaderOutputsCount++] = Transfer::receive(unit.inpSending, unit.inpData, unit.outReceiving);
         for (int i = 1; i < shaderUnitState->request.outputsCount; i++) {
             wait();
             shaderOutputs[shaderOutputsCount++] = unit.inpData.read();
@@ -103,7 +103,7 @@ void ShaderFrontendBase::responseThread() {
         // Send results to client
         auto &client = clientInterface->response;
         sc_uint<32> data = shaderOutputs[0];
-        Handshake::send(client.inpReceiving, client.outSending, client.outData, data);
+        Transfer::send(client.inpReceiving, client.outSending, client.outData, data);
         for (int i = 1; i < shaderOutputsCount; i++) {
             client.outData = shaderOutputs[i];
             wait();
@@ -167,7 +167,7 @@ void ShaderFrontendBase::storeIsa(ShaderUnitInterface &shaderUnitInterface, Shad
     cache.getMetadata().hasNextCommand = hasNextCommand;
 
     auto &unit = shaderUnitInterface.request;
-    Handshake::sendArray(unit.inpReceiving, unit.outSending, unit.outData, cache.data, cache.dataSize);
+    Transfer::sendArray(unit.inpReceiving, unit.outSending, unit.outData, cache.data, cache.dataSize);
 }
 
 void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bool handshakeAlreadyDone, const uint32_t *shaderInputs, NonZeroCount threadCount, uint32_t shaderInputsCount) {
@@ -179,12 +179,12 @@ void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bo
     command.hasNextCommand = 0;
     command.threadCount = threadCount;
     if (handshakeAlreadyDone) {
-        for (size_t i=0; i < Isa::commandSizeInDwords; i++) {
+        for (size_t i = 0; i < Isa::commandSizeInDwords; i++) {
             unit.outData = command.raw[i];
             wait();
         }
     } else {
-        Handshake::sendArray(unit.inpReceiving, unit.outSending, unit.outData, command.raw, Isa::commandSizeInDwords);
+        Transfer::sendArray(unit.inpReceiving, unit.outSending, unit.outData, command.raw, Isa::commandSizeInDwords);
     }
 
     // Send the shader inputs

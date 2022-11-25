@@ -1,8 +1,8 @@
 #include "gpu/blocks/fragment_shader.h"
 #include "gpu/blocks/shader_array/request.h"
 #include "gpu/util/conversions.h"
-#include "gpu/util/handshake.h"
 #include "gpu/util/math.h"
+#include "gpu/util/transfer.h"
 
 void FragmentShader::perTriangleThread() {
     uint32_t data[maxPerTriangleAttribsCount];
@@ -10,8 +10,8 @@ void FragmentShader::perTriangleThread() {
         wait();
 
         const uint32_t dataToReceiveCount = calculateTriangleAttributesCount(CustomShaderComponents(inpCustomInputComponents.read().to_int()));
-        Handshake::receiveArrayWithParallelPorts(previousBlock.perTriangle.inpSending, previousBlock.perTriangle.outReceiving,
-                                                 previousBlock.perTriangle.inpData, data, dataToReceiveCount);
+        Transfer::receiveArrayWithParallelPorts(previousBlock.perTriangle.inpSending, previousBlock.perTriangle.outReceiving,
+                                                previousBlock.perTriangle.inpData, data, dataToReceiveCount);
         for (size_t i = 0; i < dataToReceiveCount; i++) {
             this->perTriangleAttribs[i] = data[i];
         }
@@ -52,7 +52,7 @@ void FragmentShader::perFragmentThread() {
         size_t dataDwords = 0;
         for (; fragmentsCount < maxThreadsCount; fragmentsCount++) {
             bool success{};
-            UnshadedFragment inputFragment = Handshake::receiveWithTimeout(previousBlock.perFragment.inpSending, previousBlock.perFragment.inpData, previousBlock.perFragment.outReceiving, timeout, success);
+            UnshadedFragment inputFragment = Transfer::receiveWithTimeout(previousBlock.perFragment.inpSending, previousBlock.perFragment.inpData, previousBlock.perFragment.outReceiving, timeout, success);
             if (!success) {
                 break;
             }
@@ -91,17 +91,17 @@ void FragmentShader::perFragmentThread() {
         request.header.dword2.outputSize0 = NonZeroCount::Four; // color data r,g,b,a
         request.header.dword2.outputSize1 = NonZeroCount::One;  // interpolated z
         const size_t requestSize = sizeof(ShaderFrontendRequest) / sizeof(uint32_t) + dataDwords;
-        Handshake::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
-                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);
+        Transfer::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
+                            shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);
 
-        Handshake::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
-                                shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), sizeof(response) / sizeof(uint32_t));
+        Transfer::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
+                               shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), sizeof(response) / sizeof(uint32_t));
 
         // Send results to the next block
         for (size_t i = 0; i < fragmentsCount; i++) {
             shadedFragments[i].color = packRgbaToUint(response.data + i * componentsPerOutputFragment);
             shadedFragments[i].z = Conversions::floatBytesToUint(response.data[i * componentsPerOutputFragment + 4]);
-            Handshake::send(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, shadedFragments[i]);
+            Transfer::send(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, shadedFragments[i]);
         }
     }
 }

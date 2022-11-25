@@ -1,8 +1,8 @@
 #include "gpu/blocks/shader_array/shader_frontend.h"
 #include "gpu/blocks/shader_array/shader_unit.h"
 #include "gpu/isa/assembler/assembler.h"
-#include "gpu/util/handshake.h"
 #include "gpu/util/port_connector.h"
+#include "gpu/util/transfer.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/debug_memory.h"
 #include "gpu_tests/test_utils.h"
@@ -74,8 +74,8 @@ private:
         shaderFrontendRequest.shaderInputs[10] = 110;
         shaderFrontendRequest.shaderInputs[11] = 120;
 
-        Handshake::sendArray(request.inpReceiving, request.outSending, request.outData,
-                             reinterpret_cast<uint32_t *>(&shaderFrontendRequest), sizeof(Request) / sizeof(uint32_t));
+        Transfer::sendArray(request.inpReceiving, request.outSending, request.outData,
+                            reinterpret_cast<uint32_t *>(&shaderFrontendRequest), sizeof(Request) / sizeof(uint32_t));
     }
 
     void expectResponse(uint32_t clientToken) {
@@ -83,8 +83,8 @@ private:
             ShaderFrontendResponse response;
             uint32_t shaderOutputs[12];
         } shaderFrontendResponse;
-        Handshake::receiveArray(response.inpSending, response.inpData, response.outReceiving,
-                                reinterpret_cast<uint32_t *>(&shaderFrontendResponse), sizeof(Response) / sizeof(uint32_t));
+        Transfer::receiveArray(response.inpSending, response.inpData, response.outReceiving,
+                               reinterpret_cast<uint32_t *>(&shaderFrontendResponse), sizeof(Response) / sizeof(uint32_t));
 
         bool success = true;
         ASSERT_EQ(clientToken, shaderFrontendResponse.response.dword0.clientToken);

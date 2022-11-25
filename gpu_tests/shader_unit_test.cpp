@@ -1,8 +1,8 @@
 #include "gpu/blocks/shader_array/shader_unit.h"
 #include "gpu/isa/assembler/assembler.h"
 #include "gpu/util/conversions.h"
-#include "gpu/util/handshake.h"
 #include "gpu/util/port_connector.h"
+#include "gpu/util/transfer.h"
 #include "gpu/util/vcd_trace.h"
 #include "gpu_tests/test_utils.h"
 
@@ -79,12 +79,12 @@ SC_MODULE(Tester) {
     };
 
     void executeTestCase(const TestCase &testCase) {
-        Handshake::sendArray(request.inpReceiving, request.outSending, request.outData,
-                             testCase.inputDataStream.data(), testCase.inputDataStream.size());
+        Transfer::sendArray(request.inpReceiving, request.outSending, request.outData,
+                            testCase.inputDataStream.data(), testCase.inputDataStream.size());
 
         std::vector<uint32_t> actualOutputs(testCase.expectedOutputs.size());
-        Handshake::receiveArray(response.inpSending, response.inpData, response.outReceiving,
-                                actualOutputs.data(), actualOutputs.size());
+        Transfer::receiveArray(response.inpSending, response.inpData, response.outReceiving,
+                               actualOutputs.data(), actualOutputs.size());
 
         bool success = true;
         for (size_t i = 0; i < actualOutputs.size(); i++) {

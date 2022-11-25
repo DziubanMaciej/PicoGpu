@@ -1,10 +1,10 @@
 #include "gpu/blocks/output_merger.h"
 #include "gpu/util/conversions.h"
-#include "gpu/util/handshake.h"
+#include "gpu/util/transfer.h"
 
 void OutputMerger::main() {
     while (true) {
-        const ShadedFragment fragment = Handshake::receive(previousBlock.inpSending, previousBlock.inpData, previousBlock.outReceiving, &profiling.outBusy);
+        const ShadedFragment fragment = Transfer::receive(previousBlock.inpSending, previousBlock.inpData, previousBlock.outReceiving, &profiling.outBusy);
         const uint32_t fragmentX = fragment.x;
         const uint32_t fragmentY = fragment.y;
         const float fragmentZ = Conversions::uintBytesToFloat(fragment.z);

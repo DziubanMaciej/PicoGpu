@@ -4,7 +4,7 @@
 
 #include <systemc.h>
 
-struct Handshake {
+struct Transfer {
 private:
     template <typename DataT, typename DataToSendT, size_t numberOfPorts>
     struct SendArgs {

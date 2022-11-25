@@ -1,7 +1,7 @@
 #include "gpu/blocks/primitive_assembler.h"
 #include "gpu/util/conversions.h"
-#include "gpu/util/handshake.h"
 #include "gpu/util/raii_boolean_setter.h"
+#include "gpu/util/transfer.h"
 
 void PrimitiveAssembler::assemble() {
     const size_t maxInputComponents = verticesInPrimitive * Isa::maxInputOutputRegisters * Isa::registerComponentsCount;
@@ -31,7 +31,7 @@ void PrimitiveAssembler::assemble() {
             }
 
             // Output the triangle to the next block
-            Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, readVertices, componentsToTransfer);
+            Transfer::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, readVertices, componentsToTransfer);
             profiling.outPrimitivesProduced = profiling.outPrimitivesProduced.read() + 1;
         }
     }

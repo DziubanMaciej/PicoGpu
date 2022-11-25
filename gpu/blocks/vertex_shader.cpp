@@ -1,6 +1,6 @@
 #include "gpu/blocks/shader_array/request.h"
 #include "gpu/blocks/vertex_shader.h"
-#include "gpu/util/handshake.h"
+#include "gpu/util/transfer.h"
 
 void VertexShader::main() {
     const auto maxDwordsPerInputPrimitive = verticesInPrimitive * Isa::registerComponentsCount * Isa::maxInputOutputRegisters;
@@ -24,8 +24,8 @@ void VertexShader::main() {
         const size_t inputRegistersCount = inputComponentsInfo.registersCount;
 
         // Receive triangle data
-        Handshake::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
-                                                 request.vertexData, totalInputComponents, &profiling.outBusy);
+        Transfer::receiveArrayWithParallelPorts(previousBlock.inpSending, previousBlock.outReceiving, previousBlock.inpData,
+                                                request.vertexData, totalInputComponents, &profiling.outBusy);
 
         // Prepare some info about the request
         CustomShaderComponents customOutputComponents{this->inpCustomOutputComponents.read().to_uint()};
@@ -63,13 +63,13 @@ void VertexShader::main() {
 
         // Perform the request
         const size_t dwordsToSend = sizeof(request) / sizeof(uint32_t);
-        Handshake::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
-                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), dwordsToSend);
+        Transfer::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
+                            shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), dwordsToSend);
         const size_t dwordsToReceive = sizeof(ShaderFrontendResponse) / sizeof(uint32_t) + (4 + customOutputComponents.getCustomComponentsCount()) * threadCount;
-        Handshake::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
-                                shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), dwordsToReceive);
+        Transfer::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
+                               shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), dwordsToReceive);
 
         // Send results for rasterization
-        Handshake::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, response.vertexData, dwordsToReceive);
+        Transfer::sendArrayWithParallelPorts(nextBlock.inpReceiving, nextBlock.outSending, nextBlock.outData, response.vertexData, dwordsToReceive);
     }
 }
