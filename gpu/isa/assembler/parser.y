@@ -102,8 +102,8 @@ DIRECTIVES:
       DIRECTIVE
     | DIRECTIVES DIRECTIVE
 DIRECTIVE : INPUT_DIRECTIVE | OUTPUT_DIRECTIVE | PROGRAM_TYPE_DIRECTIVE
-INPUT_DIRECTIVE :  HASH_INPUT  REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, true);  VALIDATE_BINARY(); }
-OUTPUT_DIRECTIVE : HASH_OUTPUT REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, false); VALIDATE_BINARY(); }
+INPUT_DIRECTIVE :  HASH_INPUT  REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Input);  VALIDATE_BINARY(); }
+OUTPUT_DIRECTIVE : HASH_OUTPUT REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Output); VALIDATE_BINARY(); }
 PROGRAM_TYPE_DIRECTIVE:
       HASH_VS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::VertexShader); }
     | HASH_FS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::FragmentShader); }

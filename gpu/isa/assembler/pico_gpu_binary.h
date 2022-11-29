@@ -14,10 +14,15 @@ union CustomShaderComponents;
 namespace Isa {
 class PicoGpuBinary {
 public:
+    enum class IoType {
+        Input,
+        Output,
+    };
+
     PicoGpuBinary();
     void reset();
 
-    void encodeDirectiveInputOutput(RegisterSelection reg, int mask, bool input);
+    void encodeDirectiveInputOutput(RegisterSelection reg, int mask, IoType ioType);
     void encodeDirectiveShaderType(Isa::Command::ProgramType programType);
     void finalizeDirectives();
 
@@ -45,31 +50,14 @@ public:
     CustomShaderComponents getVsPsCustomComponents();
 
 private:
-    void encodeAttributeInterpolationForFragmentShader();
-    void finalizeInputOutputDirectives(bool input);
-    const char *getShaderTypeName();
-
-    template <typename InstructionLayout>
-    InstructionLayout *getSpace() {
-        const uint32_t length = sizeof(InstructionLayout) / sizeof(uint32_t);
-        return getSpace<InstructionLayout>(length);
-    }
-    template <typename InstructionLayout>
-    InstructionLayout *getSpace(uint32_t length) {
-        FATAL_ERROR_IF(data.size() + length - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t) >= Isa::maxIsaSize, "Too long program"); // TODO make this more graceful
-        data.resize(data.size() + length);
-        InstructionLayout *space = reinterpret_cast<InstructionLayout *>(data.data() + data.size() - length);
-        return space;
-    }
-    Command::CommandStoreIsa &getStoreIsaCommand() { return reinterpret_cast<Command::CommandStoreIsa &>(data[0]); }
-
+    // Basic data of the shader binary
     std::ostringstream error = {};
     std::optional<Isa::Command::ProgramType> programType = {};
     std::vector<uint32_t> data = {};
 
-    // Below two arrays have the same format. Each element is a number from 0 to 4 describing number of
-    // components used for a register. For example "#input i0.xy" and "#input i1.yzw" would set the array
-    // for input regs to {2, 3, 0, 0}.
+    // Description of used input and output registers. Per thread inputs/outpus may be hardcoded in GPU,
+    // some may be implicitly inserted and some may be defined by the shader code. Uniform values are all
+    // defined by the shader code.
     enum class InputOutputRegisterUsage : uint8_t {
         Unknown,  // not used
         Fixed,    // defined in a shader and mandatory (e.g. input position in FS)
@@ -89,6 +77,28 @@ private:
     };
     InputOutputRegisters inputs = {};
     InputOutputRegisters outputs = {};
+
+    // Helper private methods
+    Command::CommandStoreIsa &getStoreIsaCommand() { return reinterpret_cast<Command::CommandStoreIsa &>(data[0]); }
+    void encodeAttributeInterpolationForFragmentShader();
+    void finalizeInputOutputDirectives(IoType ioType);
+    const char *getShaderTypeName();
+    static const char *getIoLabel(IoType ioType);
+    InputOutputRegisters &getIoRegisters(IoType ioType);
+
+    // Methods for allocating space in data buffer, which is meant to be uploaded on GPU
+    template <typename InstructionLayout>
+    InstructionLayout *getSpace() {
+        const uint32_t length = sizeof(InstructionLayout) / sizeof(uint32_t);
+        return getSpace<InstructionLayout>(length);
+    }
+    template <typename InstructionLayout>
+    InstructionLayout *getSpace(uint32_t length) {
+        FATAL_ERROR_IF(data.size() + length - sizeof(Command::CommandStoreIsa) / sizeof(uint32_t) >= Isa::maxIsaSize, "Too long program"); // TODO make this more graceful
+        data.resize(data.size() + length);
+        InstructionLayout *space = reinterpret_cast<InstructionLayout *>(data.data() + data.size() - length);
+        return space;
+    }
 };
 
 } // namespace Isa

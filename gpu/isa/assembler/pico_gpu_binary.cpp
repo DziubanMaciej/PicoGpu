@@ -19,27 +19,26 @@ void PicoGpuBinary::reset() {
     std::memset(&outputs, 0, sizeof(outputs));
 }
 
-void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, bool input) {
-    const char *label = input ? "input" : "output";
-    InputOutputRegisters &io = input ? this->inputs : this->outputs;
+void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, IoType ioType) {
+    InputOutputRegisters &io = getIoRegisters(ioType);
 
     // Validate component mask
     FATAL_ERROR_IF(mask == 0, "Mask must be non zero")
     FATAL_ERROR_IF(mask & ~0b1111, "Mask must be a 4-bit value");
     if (mask != 0b1000 && mask != 0b1100 && mask != 0b1110 && mask != 0b1111) {
-        error << "Components for " << label << " directive must be used in order: x,y,z,w";
+        error << "Components for " << getIoLabel(ioType) << " directive must be used in order: x,y,z,w";
         return;
     }
 
     // Validate if register is not already used
     if (isBitSet(io.usedRegsMask, reg)) {
-        error << "Multiple " << label << " directives for r" << reg;
+        error << "Multiple " << getIoLabel(ioType) << " directives for r" << reg;
         return;
     }
 
     // Validate if we exceeded max number of io regisers
     if (io.usedRegsCount == Isa::maxInputOutputRegisters) {
-        error << "Too many " << label << " directives. Max is " << Isa::maxInputOutputRegisters;
+        error << "Too many " << getIoLabel(ioType) << " directives. Max is " << Isa::maxInputOutputRegisters;
         return;
     }
 
@@ -68,8 +67,8 @@ void PicoGpuBinary::finalizeDirectives() {
         getStoreIsaCommand().programType = this->programType.value();
     }
 
-    finalizeInputOutputDirectives(false);
-    finalizeInputOutputDirectives(true);
+    finalizeInputOutputDirectives(IoType::Input);
+    finalizeInputOutputDirectives(IoType::Output);
 
     // Insert preamble code if necessary
     if (this->programType.value() == Isa::Command::ProgramType::FragmentShader) {
@@ -77,13 +76,12 @@ void PicoGpuBinary::finalizeDirectives() {
     }
 }
 
-void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
-    const char *label = input ? "input" : "output";
-    InputOutputRegisters &io = input ? this->inputs : this->outputs;
+void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {
+    InputOutputRegisters &io = getIoRegisters(ioType);
 
     // Ensure that vertex shader has at least one input. There are no enforced size of any inputs, so all VS inputs are
     // considered custom - there are no fixed inputs. But we require at least one.
-    if (input && isVs()) {
+    if (ioType == IoType::Input && isVs()) {
         if (io.usedRegsCount == 0) {
             error << getShaderTypeName() << " must use at least one input register";
             return;
@@ -92,13 +90,13 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
 
     // Ensure that vertex shader returns 4-component vector as first output and fragment shader receives it as first input.
     // Mark this input/output register as fixed
-    if ((!input && isVs()) || (input && isFs())) {
+    if ((ioType == IoType::Output && isVs()) || (ioType == IoType::Input && isFs())) {
         if (io.usedRegsCount == 0) {
-            error << getShaderTypeName() << " must use exactly one " << label << " register";
+            error << getShaderTypeName() << " must use exactly one " << getIoLabel(ioType) << " register";
             return;
         }
         if (io.regs[0].componentsCount != 4) {
-            error << getShaderTypeName() << " must use a 4-component position vector as its first " << label;
+            error << getShaderTypeName() << " must use a 4-component position vector as its first " << getIoLabel(ioType);
             return;
         }
         FATAL_ERROR_IF(io.regs[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
@@ -107,26 +105,27 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
 
     // Ensure that fragment shader only uses one output and mark it as fixed.
     // Add a second output for interpolated z-value and mark it as internal.
-    if (!input && programType.value() == Isa::Command::ProgramType::FragmentShader) {
+    if (ioType == IoType::Output && programType.value() == Isa::Command::ProgramType::FragmentShader) {
         if (io.usedRegsCount != 1) {
             error << getShaderTypeName() << " must use exactly one output register";
             return;
         }
         if (io.regs[0].componentsCount != 4) {
-            error << getShaderTypeName() << " must use a 4-component color vector as its only " << label;
+            error << getShaderTypeName() << " must use a 4-component color vector as its only " << getIoLabel(ioType);
             return;
         }
         FATAL_ERROR_IF(io.regs[0].usage != InputOutputRegisterUsage::Custom, "Unexpected usage of fixed io register");
         io.regs[0].usage = InputOutputRegisterUsage::Fixed;
 
         // TODO we should allocate some free register and use it instead. Current code will create conflict, if user defines input0 as output too.
-        encodeDirectiveInputOutput(inputs.regs[0].index, 0b1000, false);
+        encodeDirectiveInputOutput(inputs.regs[0].index, 0b1000, IoType::Output);
         io.regs[1].usage = InputOutputRegisterUsage::Internal;
     }
 
     // Store the data to ISA
     auto &command = getStoreIsaCommand();
-    if (input) {
+    switch (ioType) {
+    case IoType::Input:
         command.inputsCount = intToNonZeroCount(io.usedRegsCount);
         command.inputSize0 = intToNonZeroCount(io.regs[0].componentsCount);
         command.inputSize1 = intToNonZeroCount(io.regs[1].componentsCount);
@@ -136,7 +135,8 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         command.inputRegister1 = io.regs[1].index;
         command.inputRegister2 = io.regs[2].index;
         command.inputRegister3 = io.regs[3].index;
-    } else {
+        break;
+    case IoType::Output:
         command.outputsCount = intToNonZeroCount(io.usedRegsCount);
         command.outputSize0 = intToNonZeroCount(io.regs[0].componentsCount);
         command.outputSize1 = intToNonZeroCount(io.regs[1].componentsCount);
@@ -146,6 +146,7 @@ void PicoGpuBinary::finalizeInputOutputDirectives(bool input) {
         command.outputRegister1 = io.regs[1].index;
         command.outputRegister2 = io.regs[2].index;
         command.outputRegister3 = io.regs[3].index;
+        break;
     }
 }
 
@@ -160,6 +161,28 @@ const char *PicoGpuBinary::getShaderTypeName() {
         return "FragmentShader";
     }
     return "UnknownShader";
+}
+
+const char *PicoGpuBinary::getIoLabel(IoType ioType) {
+    switch (ioType) {
+    case IoType::Input:
+        return "input";
+    case IoType::Output:
+        return "output";
+    default:
+        FATAL_ERROR("Unknown IoType");
+    }
+}
+
+PicoGpuBinary::InputOutputRegisters &PicoGpuBinary::getIoRegisters(IoType ioType) {
+    switch (ioType) {
+    case IoType::Input:
+        return inputs;
+    case IoType::Output:
+        return outputs;
+    default:
+        FATAL_ERROR("Unknown IoType");
+    }
 }
 
 bool PicoGpuBinary::areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs) {
