@@ -20,7 +20,7 @@ constexpr inline size_t maxInputOutputRegistersExponent = 2;
 constexpr inline size_t maxInputOutputRegisters = 1 << maxInputOutputRegistersExponent;
 constexpr inline size_t registerComponentsCountExponent = 2;
 constexpr inline size_t registerComponentsCount = 1 << 2;
-constexpr inline size_t commandSizeInDwords = 2;
+constexpr inline size_t commandSizeInDwords = 3;
 
 using RegisterSelection = uint32_t; // TODO rename to GeneralPurposeRegisterIndex
 
@@ -71,6 +71,16 @@ namespace Command {
             RegisterSelection outputRegister2 : generalPurposeRegistersCountExponent;
             NonZeroCount outputSize3 : registerComponentsCountExponent;
             RegisterSelection outputRegister3 : generalPurposeRegistersCountExponent;
+
+            NonZeroCount uniformsCount : maxInputOutputRegistersExponent;
+            NonZeroCount uniformSize0 : registerComponentsCountExponent;
+            RegisterSelection uniformRegister0 : generalPurposeRegistersCountExponent;
+            NonZeroCount uniformSize1 : registerComponentsCountExponent;
+            RegisterSelection uniformRegister1 : generalPurposeRegistersCountExponent;
+            NonZeroCount uniformSize2 : registerComponentsCountExponent;
+            RegisterSelection uniformRegister2 : generalPurposeRegistersCountExponent;
+            NonZeroCount uniformSize3 : registerComponentsCountExponent;
+            RegisterSelection uniformRegister3 : generalPurposeRegistersCountExponent;
         };
         uint32_t raw[commandSizeInDwords];
     };

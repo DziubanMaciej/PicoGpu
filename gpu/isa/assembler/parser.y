@@ -66,7 +66,7 @@
 %token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS FCROSS2 FMAD FRCP
 %token IINIT IADD ISUB IMUL IDIV INEG
 %token MOV SWIZZLE TRAP
-%token HASH_INPUT HASH_OUTPUT HASH_VS HASH_FS DOT
+%token HASH_INPUT HASH_OUTPUT HASH_UNIFORM HASH_VS HASH_FS DOT
 %token <swizzleComponent> VEC_COMPONENT
 %token <reg> REG
 %token <i> NUMBER_INT
@@ -101,9 +101,10 @@ DIRECTIVE_SECTION : DIRECTIVES { outputBinary->finalizeDirectives(); VALIDATE_BI
 DIRECTIVES:
       DIRECTIVE
     | DIRECTIVES DIRECTIVE
-DIRECTIVE : INPUT_DIRECTIVE | OUTPUT_DIRECTIVE | PROGRAM_TYPE_DIRECTIVE
+DIRECTIVE : INPUT_DIRECTIVE | OUTPUT_DIRECTIVE | UNIFORM_DIRECTIVE | PROGRAM_TYPE_DIRECTIVE
 INPUT_DIRECTIVE :  HASH_INPUT  REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Input);  VALIDATE_BINARY(); }
 OUTPUT_DIRECTIVE : HASH_OUTPUT REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Output); VALIDATE_BINARY(); }
+UNIFORM_DIRECTIVE : HASH_UNIFORM REG REG_MASK { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Uniform); VALIDATE_BINARY(); }
 PROGRAM_TYPE_DIRECTIVE:
       HASH_VS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::VertexShader); }
     | HASH_FS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::FragmentShader); }

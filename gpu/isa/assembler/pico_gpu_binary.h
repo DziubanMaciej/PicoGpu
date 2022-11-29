@@ -17,6 +17,7 @@ public:
     enum class IoType {
         Input,
         Output,
+        Uniform,
     };
 
     PicoGpuBinary();
@@ -77,6 +78,7 @@ private:
     };
     InputOutputRegisters inputs = {};
     InputOutputRegisters outputs = {};
+    InputOutputRegisters uniforms = {};
 
     // Helper private methods
     Command::CommandStoreIsa &getStoreIsaCommand() { return reinterpret_cast<Command::CommandStoreIsa &>(data[0]); }

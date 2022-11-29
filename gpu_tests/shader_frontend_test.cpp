@@ -126,7 +126,7 @@ private:
             "#output r12.xyzw\n"
             "iadd r3.xz r0 100\n"
             "iadd r3.yw r0 1000\n";
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 450; i++) {
             code += "mov r2 r2\n"; // just some garbage instructions that take time
         }
         code += "mov r12 r3\n";

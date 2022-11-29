@@ -35,6 +35,12 @@ void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, 
         error << "Multiple " << getIoLabel(ioType) << " directives for r" << reg;
         return;
     }
+    if (ioType == IoType::Input && isBitSet(io.usedRegsMask, reg)) {
+        error << "Register r" << reg << " is already used as a uniform";
+    }
+    if (ioType == IoType::Uniform && isBitSet(io.usedRegsMask, reg)) {
+        error << "Register r" << reg << " is already used as an input";
+    }
 
     // Validate if we exceeded max number of io regisers
     if (io.usedRegsCount == Isa::maxInputOutputRegisters) {
@@ -69,6 +75,7 @@ void PicoGpuBinary::finalizeDirectives() {
 
     finalizeInputOutputDirectives(IoType::Input);
     finalizeInputOutputDirectives(IoType::Output);
+    finalizeInputOutputDirectives(IoType::Uniform);
 
     // Insert preamble code if necessary
     if (this->programType.value() == Isa::Command::ProgramType::FragmentShader) {
@@ -147,6 +154,19 @@ void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {
         command.outputRegister2 = io.regs[2].index;
         command.outputRegister3 = io.regs[3].index;
         break;
+    case IoType::Uniform:
+        command.uniformsCount = intToNonZeroCount(io.usedRegsCount);
+        command.uniformSize0 = intToNonZeroCount(io.regs[0].componentsCount);
+        command.uniformSize1 = intToNonZeroCount(io.regs[1].componentsCount);
+        command.uniformSize2 = intToNonZeroCount(io.regs[2].componentsCount);
+        command.uniformSize3 = intToNonZeroCount(io.regs[3].componentsCount);
+        command.uniformRegister0 = io.regs[0].index;
+        command.uniformRegister1 = io.regs[1].index;
+        command.uniformRegister2 = io.regs[2].index;
+        command.uniformRegister3 = io.regs[3].index;
+        break;
+    default:
+        FATAL_ERROR("Unknown IoType");
     }
 }
 
@@ -169,6 +189,8 @@ const char *PicoGpuBinary::getIoLabel(IoType ioType) {
         return "input";
     case IoType::Output:
         return "output";
+    case IoType::Uniform:
+        return "uniform";
     default:
         FATAL_ERROR("Unknown IoType");
     }
@@ -180,6 +202,8 @@ PicoGpuBinary::InputOutputRegisters &PicoGpuBinary::getIoRegisters(IoType ioType
         return inputs;
     case IoType::Output:
         return outputs;
+    case IoType::Uniform:
+        return uniforms;
     default:
         FATAL_ERROR("Unknown IoType");
     }
