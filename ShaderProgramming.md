@@ -3,7 +3,7 @@
 
 The assembler (see [gpu/isa/assembler](gpu/isa/assembler)) can parse a *PicoGpu* assembly and convert it into data stream ready to be sent to the shading unit. The program binary and its inputs are passed as a data stream to the shading unit. After executing the binary, the shading unit streams all outputs back to the caller.
 
-Each shader consists of two sections - directives and instructions. Directives serve as metadata of the shader program, describing how it interacts with the rest of *PicoGpu*. Instructions are what actually gets executed by shader units. Instructions can alter any of the registers exposed to the user. Note that overwriting values of input registers is forbidden and can yield undefined results.
+Each shader consists of two sections - directives and instructions. Directives serve as metadata of the shader program, describing how it interacts with the rest of *PicoGpu*. Instructions are what actually gets executed by shader units. Instructions can alter any of the registers exposed to the shader programmer. Note that overwriting values of input registers is forbidden and can yield undefined results.
 
 
 
@@ -12,7 +12,7 @@ All instructions can utilize the following registers:
 
 | Register type         | Symbol      | Size                       | Count              | Description                                                                                                                             |
 | --------------------- | ----------- | -------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| General purpose (GPR) | r0, r1, ... | 4 components, 32 bits each | 16 per thread      | Can be used for any operation. Can be defined as an input or output parameters.                                                          |
+| General purpose (GPR) | r0, r1, ... | 4 components, 32 bits each | 16 per thread      | Can be used for any operation. Can also be defined as an input, output or uniform.                                                      |
 | Program counter (PC)  | N/A         | 32 bits                    | 1 per shading unit | Defines current position within the instruction buffer for all threads. It is advanced automatically and cannot be manipulated directly |
 
 The following symbols will be used to describe parameters to directives and instructions:
@@ -29,22 +29,29 @@ The following symbols will be used to describe parameters to directives and inst
 # Directives
 The prologue of *PicoGpu* assembly is a number of directives. All directives start with a `#` sign.
 
-| Directive              | Description                                                                                                                |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| #input {reg}.{iomask}  | Defines an input register to be initialized. Only components contained in the mask are initialized, the rest is undefined. |
-| #output {reg}.{iomask} | Defines an output register to be sent back to the caller. Only components contained in the mask will be sent back.         |
-| #vertexShader          | Sets type of current shader as vertex shader. There must be only one shader type directive.                                |
-| #fragmentShader        | Sets type of current shader as fragment shader. There must be only one shader type directive.                              |
+| Directive               | Description                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| #input {reg}.{iomask}   | Defines an input register.                                                                                     |
+| #output {reg}.{iomask}  | Defines an output register.                                                                                    |
+| #uniform {reg}.{iomask} | Defines a uniform register.                                                                                    |
+| #vertexShader           | Sets type of current shader as vertex shader. There must be only one shader type directive.                    |
+| #fragmentShader         | Sets type of current shader as fragment shader. There must be only one shader type directive.                  |
+| #undefinedRegs          | Allows unused registers to have undefined values instead of zero-initializing them. Can reduce launch latency. |
 
+Input registers are initialized with their thread-specific values at the beginning of the shader execution. Only components contained in `iomask` of the input directive are set to input values, the rest are zero-initialized. Origin of these values depends on the [shader type](#Shader-types). A single register cannot be used in multiple input directives as well as both as input and a uniform.
+
+Output registers are sent back to the GPU pipeline for further processing. Only components contained in `iomask` of the output directive are sent back, the rest are ignored. There may be different requirements on outputs depending on the [shader type](#Shader-types). A single register cannot be used in multiple output directives. However, it can be used both as an input and output to implement a passthrough effect.
+
+Uniform registers are initialized with values set in the GPU pipeline state. The values are the same for all threads. Components in `iomask` are set to values set in the pipeline state, the rest are zero-initialized. A single register cannot be used in multiple uniform directives as well as both as a uniform and input.
 
 
 
 # Shader types
 Every shader has to contain a shader type directive - either `#fragmentShader` or `#vertexShader`. The directive will set the shader type and allow it to be used only by designated hardware block - [VertexShader](gpu/blocks/vertex_shader.h) and [FragmentShader](gpu/blocks/fragment_shader.h) respectively. Shader type can also add some additional requirements and/or limitations to the programming model.
 
-Vertex shaders can take between 1 and 3 input parameters, which will be taken from the vertex buffer. They can output between 1 and 3 parameters. First parameter has to be 4-component vector containing position. Remaining two are optional attributes to store values like normals or tex coords to pass to the fragment shader.
+Vertex shaders must take between 1 and 3 input parameters, which will be taken from the vertex buffer. They must output between 1 and 3 parameters. First parameter has to be 4-component vector containing position. Remaining two are called custom attributes. They can be used to pass values like normals or tex coords to the fragment shader.
 
-Fragment shaders can take between 1 and 3 input parameters, which must match output parameters produces by the vertex shader. They can only return 1 vector with 4 components containing computed RGBA color. *PicoGpu* will internally append additional parameter containing interpolated z-value. Although this is completely hidden from the user.
+Fragment shaders must take between 1 and 3 input parameters, which must match output parameters produced by the vertex shader. First input must be a 4-component position vector. The z-value and the custom input attributes will be interpolated based on values at triangle vertices. Fragment shader must return only one vector with 4 components containing computed RGBA color. *PicoGpu* will internally append additional parameter containing interpolated z-value. Although this is completely hidden from the shader programmer.
 
 
 
