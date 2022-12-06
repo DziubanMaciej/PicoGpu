@@ -101,22 +101,19 @@ DIRECTIVE_SECTION : DIRECTIVES { outputBinary->finalizeDirectives(); VALIDATE_BI
 DIRECTIVES:
       DIRECTIVE
     | DIRECTIVES DIRECTIVE
-DIRECTIVE : INPUT_DIRECTIVE | OUTPUT_DIRECTIVE | UNIFORM_DIRECTIVE | PROGRAM_TYPE_DIRECTIVE | HASH_UNDEFINED_REGS { outputBinary->encodeDirectiveUndefinedRegs(); VALIDATE_BINARY();}
-INPUT_DIRECTIVE :  HASH_INPUT  REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Input);  VALIDATE_BINARY(); }
-OUTPUT_DIRECTIVE : HASH_OUTPUT REG REG_MASK  { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Output); VALIDATE_BINARY(); }
-UNIFORM_DIRECTIVE : HASH_UNIFORM REG REG_MASK { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Uniform); VALIDATE_BINARY(); }
-PROGRAM_TYPE_DIRECTIVE:
-      HASH_VS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::VertexShader); }
+DIRECTIVE:
+      HASH_INPUT   REG REG_MASK { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Input);  VALIDATE_BINARY(); }
+    | HASH_OUTPUT  REG REG_MASK { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Output); VALIDATE_BINARY(); }
+    | HASH_UNIFORM REG REG_MASK { outputBinary->encodeDirectiveInputOutput($2, $3, Isa::PicoGpuBinary::IoType::Uniform); VALIDATE_BINARY(); }
+    | HASH_VS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::VertexShader); }
     | HASH_FS { outputBinary->encodeDirectiveShaderType(Isa::Command::ProgramType::FragmentShader); }
-
-
+    | HASH_UNDEFINED_REGS { outputBinary->encodeDirectiveUndefinedRegs(); VALIDATE_BINARY();}
 
 // ----------------------------- Instructions
 INSTRUCTION_SECTION : INSTRUCTIONS { outputBinary->finalizeInstructions(); VALIDATE_BINARY(); }
 INSTRUCTIONS:
       INSTRUCTION
     | INSTRUCTIONS INSTRUCTION
-
 INSTRUCTION:
       FADD      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fadd, $2.reg, $3, $4, $2.mask); }
     | FADD      DST_REG REG NUMBER_FLOAT  { outputBinary->encodeBinaryMathImm(Isa::Opcode::fadd_imm, $2.reg, $3, $2.mask, {asint($4)}); }
