@@ -15,8 +15,11 @@ void PicoGpuBinary::reset() {
     error.clear();
     programType = {};
     std::fill(data.begin(), data.end(), 0);
+    undefinedRegs = {};
+
     std::memset(&inputs, 0, sizeof(inputs));
     std::memset(&outputs, 0, sizeof(outputs));
+    std::memset(&uniforms, 0, sizeof(uniforms));
 }
 
 void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, IoType ioType) {
@@ -65,6 +68,14 @@ void PicoGpuBinary::encodeDirectiveShaderType(Isa::Command::ProgramType programT
     this->programType = programType;
 }
 
+void PicoGpuBinary::encodeDirectiveUndefinedRegs() {
+    if (undefinedRegs) {
+        error << "Multiple undefined regs directives";
+        return;
+    }
+    undefinedRegs = true;
+}
+
 void PicoGpuBinary::finalizeDirectives() {
     if (!this->programType.has_value()) {
         error << "No program type specification";
@@ -84,7 +95,13 @@ void PicoGpuBinary::finalizeDirectives() {
 
     // Setup register values
     encodeNullary(Isa::Opcode::lduni);
-    encodeNullary(Isa::Opcode::initregs);
+    if (!this->undefinedRegs) {
+        encodeNullary(Isa::Opcode::initregs);
+    }
+    if (isFs()) {
+
+    encodeNullary(Isa::Opcode::trap);
+    }
 }
 
 void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {

@@ -73,6 +73,12 @@ int sc_main(int argc, char *argv[]) {
                "#input r0.xyzw\n"
                "#output r0.xyzw\n"
                "mov r0 r0");
+    expectPass(success, "Undefined regs",
+               "#vertexShader\n"
+               "#input r0.xyzw\n"
+               "#output r0.xyzw\n"
+               "#undefinedRegs\n"
+               "mov r0 r0");
 
     expectFail(success, "No instructions",
                "", // TODO error is printed to stdout, so we cannot check for it (same for all cases that have this empty)
@@ -204,6 +210,15 @@ int sc_main(int argc, char *argv[]) {
                "#output r12.xyzw\n"
                "#output r13.x\n"
                "mov r12 r0");
+
+    expectFail(success, "Multiple undefined regs directives",
+               "Multiple undefined regs directives",
+               "#vertexShader\n"
+               "#input r0.xyzw\n"
+               "#output r0.xyzw\n"
+               "#undefinedRegs\n"
+               "#undefinedRegs\n"
+               "mov r0 r0");
 
     return success ? 0 : 1;
 }

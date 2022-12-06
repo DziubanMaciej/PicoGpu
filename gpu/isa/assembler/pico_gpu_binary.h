@@ -25,6 +25,7 @@ public:
 
     void encodeDirectiveInputOutput(RegisterSelection reg, int mask, IoType ioType);
     void encodeDirectiveShaderType(Isa::Command::ProgramType programType);
+    void encodeDirectiveUndefinedRegs();
     void finalizeDirectives();
 
     void encodeNullary(Opcode opcode);
@@ -55,6 +56,7 @@ private:
     // Basic data of the shader binary
     std::ostringstream error = {};
     std::optional<Isa::Command::ProgramType> programType = {};
+    bool undefinedRegs = {};
     std::vector<uint32_t> data = {};
 
     // Description of used input and output registers. Per thread inputs/outpus may be hardcoded in GPU,

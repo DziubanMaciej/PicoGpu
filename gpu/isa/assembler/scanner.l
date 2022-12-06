@@ -51,6 +51,7 @@ r1[0-5] { gpuasm_lval.reg = atoi(&yytext[1]); return REG; }
 "#vertexShader" { return HASH_VS; }
 "#fragmentShader" { return HASH_FS; }
 "#uniform" { return HASH_UNIFORM; }
+"#undefinedRegs" { return HASH_UNDEFINED_REGS; }
 
 
 . { return GPUASM_UNDEF; }
