@@ -1,5 +1,6 @@
 #include "gpu/gpu.h"
 #include "gpu/isa/assembler/assembler.h"
+#include "gpu/util/conversions.h"
 #include "gpu/util/vcd_trace.h"
 
 #include <map>
@@ -35,11 +36,13 @@ int sc_main(int argc, char *argv[]) {
             #input r11.xyz
             #output r10.xyzw
             #output r11.xyz
-            #uniform r5.x
-            #uniform r6.xy
+            #uniform r5.xy
 
             // Set homogeneous coordinate to 1
             finit r10.w 1.f
+
+            // x-shift
+            fadd r10.xy r10 r5
 
             // y-flip
             finit r1 100.f
@@ -82,7 +85,8 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.PA.inpVerticesCount = 6;
     gpu.blocks.VS.inpShaderAddress = vsAddress;
     gpu.blocks.VS.inpUniforms = vs.getUniforms().raw;
-    gpu.blocks.VS.inpUniformsData[0][0] = 3;
+    gpu.blocks.VS.inpUniformsData[0][0] = Conversions::floatBytesToUint(10.f);
+    gpu.blocks.VS.inpUniformsData[0][1] = Conversions::floatBytesToUint(20.f);
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.FS.inpShaderAddress = fsAddress;
@@ -106,13 +110,13 @@ int sc_main(int argc, char *argv[]) {
         float x, y, z, r, g, b;
     };
     Vertex vertices[] = {
-        Vertex{10, 10, 40,   1.0, 0.0, 0.0 },
-        Vertex{45, 80, 90,   0.0, 0.0, 1.0 },
-        Vertex{90, 10, 40,   0.0, 1.0, 0.0 },
+        Vertex{10, 10, 40, 1.0, 0.0, 0.0},
+        Vertex{45, 80, 90, 0.0, 0.0, 1.0},
+        Vertex{90, 10, 40, 0.0, 1.0, 0.0},
 
-        Vertex{10, 60, 50,    0.5, 0.5, 0.5 },
-        Vertex{90, 40, 50,    1.0, 1.0, 1.0 },
-        Vertex{45, 20, 50,    0.0, 0.0, 0.0 },
+        Vertex{10, 60, 50, 0.5, 0.5, 0.5},
+        Vertex{90, 40, 50, 1.0, 1.0, 1.0},
+        Vertex{45, 20, 50, 0.0, 0.0, 0.0},
     };
     gpu.commandStreamer.blitToMemory(vertexBufferAddress, (uint32_t *)vertices, sizeof(vertices) / 4, &profiling["Upload VB"]);
 
@@ -120,7 +124,7 @@ int sc_main(int argc, char *argv[]) {
     uint32_t clearColor = 0xffcccccc;
     gpu.commandStreamer.fillMemory(framebufferAddress, &clearColor, 100 * 100, &profiling["Clear screen"]);
     const float infinity = std::numeric_limits<float>::infinity();
-    uint32_t clearDepth = *reinterpret_cast<const uint32_t*>(&infinity);
+    uint32_t clearDepth = *reinterpret_cast<const uint32_t *>(&infinity);
     gpu.commandStreamer.fillMemory(depthBufferAddress, &clearDepth, 100 * 100, &profiling["Clear depth buffer"]);
 
     // Issue a drawcall

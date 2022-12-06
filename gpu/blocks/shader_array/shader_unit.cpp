@@ -179,6 +179,25 @@ void ShaderUnit::appendOutputRegistersValues(uint32_t threadCount, uint32_t *out
     }
 }
 
+void ShaderUnit::loadUniforms(uint32_t threadCount) {
+    const size_t uniformsCount = isaMetadata.uniformsCount;
+
+    size_t offset = 0;
+    for (size_t uniformIndex = 0; uniformIndex < uniformsCount; uniformIndex++) {
+        const uint32_t componentsCount = nonZeroCountToInt(getUniformSize(uniformIndex));
+        const uint32_t registerIndex = getUniformRegisterIndex(uniformIndex);
+
+        VectorRegister registerValue = {};
+        for (size_t componentIndex = 0; componentIndex < componentsCount; componentIndex++) {
+            registerValue[componentIndex] = this->uniformDwords[offset++];
+        }
+
+        for (int threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+            registers.gpr[threadIndex][registerIndex] = registerValue;
+        }
+    }
+}
+
 NonZeroCount ShaderUnit::getInputOutputSize(bool input, uint32_t index) const {
     switch (index) {
     case 0:
@@ -219,6 +238,21 @@ Isa::RegisterSelection ShaderUnit::getInputOutputRegisterIndex(bool input, uint3
         return input ? isaMetadata.inputRegister2 : isaMetadata.outputRegister2;
     case 3:
         return input ? isaMetadata.inputRegister3 : isaMetadata.outputRegister3;
+    default:
+        FATAL_ERROR("Invalid index for ", __FUNCTION__);
+    }
+}
+
+Isa::RegisterSelection ShaderUnit::getUniformRegisterIndex(uint32_t index) const {
+    switch (index) {
+    case 0:
+        return isaMetadata.uniformRegister0;
+    case 1:
+        return isaMetadata.uniformRegister1;
+    case 2:
+        return isaMetadata.uniformRegister2;
+    case 3:
+        return isaMetadata.uniformRegister3;
     default:
         FATAL_ERROR("Invalid index for ", __FUNCTION__);
     }
@@ -332,6 +366,11 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
             if (OsInterface::isDebuggerAttached()) {
                 OsInterface::breakpoint();
             }
+            registers.pc += sizeof(instruction.nullary) / sizeof(uint32_t);
+            break;
+
+        case Isa::Opcode::lduni:
+            loadUniforms(threadCount);
             registers.pc += sizeof(instruction.nullary) / sizeof(uint32_t);
             break;
 

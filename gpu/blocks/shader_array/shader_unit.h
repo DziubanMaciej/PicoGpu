@@ -46,9 +46,12 @@ private:
     void initializeInputRegisters(uint32_t threadCount);
     void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
 
+    void loadUniforms(uint32_t threadCount);
+
     NonZeroCount getInputOutputSize(bool input, uint32_t index) const;
     NonZeroCount getUniformSize(uint32_t index) const;
     Isa::RegisterSelection getInputOutputRegisterIndex(bool input, uint32_t index) const;
+    Isa::RegisterSelection getUniformRegisterIndex(uint32_t index) const;
 
     using UnaryFunction = int32_t (*)(int32_t);
     using BinaryFunction = int32_t (*)(int32_t, int32_t);

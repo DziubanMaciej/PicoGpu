@@ -81,6 +81,9 @@ void PicoGpuBinary::finalizeDirectives() {
     if (this->programType.value() == Isa::Command::ProgramType::FragmentShader) {
         encodeAttributeInterpolationForFragmentShader();
     }
+
+    // Setup uniform values in their registers
+    encodeNullary(Isa::Opcode::lduni);
 }
 
 void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {

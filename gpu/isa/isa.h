@@ -137,6 +137,9 @@ enum class Opcode : uint32_t {
     mov,
     trap,
 
+    // Internal
+    lduni, // load uniform values to registers
+
     // control value
     COUNT,
 };
