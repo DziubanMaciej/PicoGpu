@@ -82,8 +82,9 @@ void PicoGpuBinary::finalizeDirectives() {
         encodeAttributeInterpolationForFragmentShader();
     }
 
-    // Setup uniform values in their registers
+    // Setup register values
     encodeNullary(Isa::Opcode::lduni);
+    encodeNullary(Isa::Opcode::initregs);
 }
 
 void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {

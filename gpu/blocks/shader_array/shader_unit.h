@@ -47,6 +47,7 @@ private:
     void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
 
     void loadUniforms(uint32_t threadCount);
+    void zeroInitializeUnusedRegisters(uint32_t threadCount);
 
     NonZeroCount getInputOutputSize(bool input, uint32_t index) const;
     NonZeroCount getUniformSize(uint32_t index) const;

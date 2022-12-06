@@ -198,6 +198,32 @@ void ShaderUnit::loadUniforms(uint32_t threadCount) {
     }
 }
 
+void ShaderUnit::zeroInitializeUnusedRegisters(uint32_t threadCount) {
+    static_assert(Isa::generalPurposeRegistersCount == 16);
+    uint16_t usedRegisterMask = 0;
+
+    // Find out which registers are used
+    const size_t uniformsCount = isaMetadata.uniformsCount;
+    for (size_t uniformIndex = 0; uniformIndex < uniformsCount; uniformIndex++) {
+        const Isa::RegisterSelection registerIndex = getUniformRegisterIndex(uniformIndex);
+        setBit(usedRegisterMask, registerIndex);
+    }
+    const size_t inputsCount = nonZeroCountToInt(isaMetadata.inputsCount);
+    for (size_t inputIndex = 0; inputIndex < inputsCount; inputIndex++) {
+        const Isa::RegisterSelection registerIndex = getInputOutputRegisterIndex(true, inputIndex);
+        setBit(usedRegisterMask, registerIndex);
+    }
+
+    // Clear registers which are not used
+    for (Isa::RegisterSelection registerIndex = 0; registerIndex < Isa::generalPurposeRegistersCount; registerIndex++) {
+        if (!isBitSet(usedRegisterMask, registerIndex)) {
+            for (size_t threadIndex = 0; threadIndex < threadCount; threadIndex++) {
+                registers.gpr[threadIndex][registerIndex] = {};
+            }
+        }
+    }
+}
+
 NonZeroCount ShaderUnit::getInputOutputSize(bool input, uint32_t index) const {
     switch (index) {
     case 0:
@@ -371,6 +397,10 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
 
         case Isa::Opcode::lduni:
             loadUniforms(threadCount);
+            registers.pc += sizeof(instruction.nullary) / sizeof(uint32_t);
+            break;
+        case Isa::Opcode::initregs:
+            zeroInitializeUnusedRegisters(threadCount);
             registers.pc += sizeof(instruction.nullary) / sizeof(uint32_t);
             break;
 

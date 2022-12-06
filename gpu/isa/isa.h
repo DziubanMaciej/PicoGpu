@@ -138,7 +138,8 @@ enum class Opcode : uint32_t {
     trap,
 
     // Internal
-    lduni, // load uniform values to registers
+    lduni,    // load uniform values to registers
+    initregs, // initialize unused register to 0
 
     // control value
     COUNT,
