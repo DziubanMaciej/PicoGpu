@@ -49,6 +49,7 @@ public:
     static bool areShadersCompatible(const PicoGpuBinary &vs, const PicoGpuBinary &fs);
     CustomShaderComponents getVsCustomInputComponents();
     CustomShaderComponents getVsPsCustomComponents();
+    CustomShaderComponents getUniforms();
 
 private:
     // Basic data of the shader binary

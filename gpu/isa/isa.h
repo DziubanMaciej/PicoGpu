@@ -72,7 +72,7 @@ namespace Command {
             NonZeroCount outputSize3 : registerComponentsCountExponent;
             RegisterSelection outputRegister3 : generalPurposeRegistersCountExponent;
 
-            NonZeroCount uniformsCount : maxInputOutputRegistersExponent;
+            uint32_t uniformsCount : 3;
             NonZeroCount uniformSize0 : registerComponentsCountExponent;
             RegisterSelection uniformRegister0 : generalPurposeRegistersCountExponent;
             NonZeroCount uniformSize1 : registerComponentsCountExponent;

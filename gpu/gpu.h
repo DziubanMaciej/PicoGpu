@@ -52,6 +52,8 @@ SC_MODULE(Gpu) {
 
         struct {
             sc_signal<MemoryAddressType> inpShaderAddress{"VS_inpShaderAddress"};
+            sc_signal<CustomShaderComponentsType> inpUniforms{"VS_inpUniforms"};
+            sc_signal<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
         } VS;
 
         struct {
@@ -61,6 +63,8 @@ SC_MODULE(Gpu) {
 
         struct {
             sc_signal<MemoryAddressType> inpShaderAddress{"FS_inpShaderAddress"};
+            sc_signal<CustomShaderComponentsType> inpUniforms{"FS_inpUniforms"};
+            sc_signal<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
         } FS;
 
         struct {

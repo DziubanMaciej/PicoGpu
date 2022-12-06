@@ -20,15 +20,20 @@ struct ShaderFrontendRequest {
     union {
         struct {
             NonZeroCount inputsCount : 2;
-            NonZeroCount outputsCount : 2;
             NonZeroCount inputSize0 : 2;
             NonZeroCount inputSize1 : 2;
             NonZeroCount inputSize2 : 2;
             NonZeroCount inputSize3 : 2;
+            NonZeroCount outputsCount : 2;
             NonZeroCount outputSize0 : 2;
             NonZeroCount outputSize1 : 2;
             NonZeroCount outputSize2 : 2;
             NonZeroCount outputSize3 : 2;
+            uint32_t uniformsCount : 3;
+            NonZeroCount uniformSize0 : 2;
+            NonZeroCount uniformSize1 : 2;
+            NonZeroCount uniformSize2 : 2;
+            NonZeroCount uniformSize3 : 2;
         };
         uint32_t raw;
     } dword2;

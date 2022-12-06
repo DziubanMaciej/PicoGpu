@@ -66,7 +66,18 @@ void FragmentShader::perFragmentThread() {
             continue;
         }
 
-        // Write per dispatch data to the request
+        // Write uniforms (per-request data)
+        const CustomShaderComponents uniformsInfo{this->inpUniforms.read().to_uint()};
+        const size_t totalUniformsCount = uniformsInfo.registersCount;
+        for (size_t uniformIndex = 0u; uniformIndex < totalUniformsCount; uniformIndex++) {
+            const uint32_t componentsCount = uniformsInfo.getCustomComponents(uniformIndex);
+            for (size_t componentIndex = 0u; componentIndex < componentsCount; componentIndex++) {
+                const uint32_t value = inpUniformsData[uniformIndex][componentIndex].read().to_int();
+                request.data[dataDwords++] = value;
+            }
+        }
+
+        // Write triangle attribs (per-request data)
         for (auto i = 0u; i < triangleAttributesCount; i++) {
             request.data[dataDwords++] = this->perTriangleAttribs[i].read().to_int();
         }
@@ -90,6 +101,11 @@ void FragmentShader::perFragmentThread() {
         request.header.dword2.outputsCount = NonZeroCount::Two;
         request.header.dword2.outputSize0 = NonZeroCount::Four; // color data r,g,b,a
         request.header.dword2.outputSize1 = NonZeroCount::One;  // interpolated z
+        request.header.dword2.uniformsCount = uniformsInfo.registersCount;
+        request.header.dword2.uniformSize0 = uniformsInfo.comp0;
+        request.header.dword2.uniformSize1 = uniformsInfo.comp1;
+        request.header.dword2.uniformSize2 = uniformsInfo.comp2;
+        request.header.dword2.uniformSize3 = uniformsInfo.comp3;
         const size_t requestSize = sizeof(ShaderFrontendRequest) / sizeof(uint32_t) + dataDwords;
         Transfer::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);

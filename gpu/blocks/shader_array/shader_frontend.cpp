@@ -7,7 +7,7 @@
 
 void ShaderFrontendBase::requestThread() {
     constexpr bool handshakeOnlyOnce = true;
-    constexpr size_t maxShaderInputsCount = Isa::registerComponentsCount * Isa::maxInputOutputRegisters * Isa::simdSize;
+    constexpr size_t maxShaderInputsCount = (Isa::registerComponentsCount * Isa::maxInputOutputRegisters) * (1 + Isa::simdSize);
     uint32_t shaderInput[maxShaderInputsCount] = {};
 
     while (true) {
@@ -188,10 +188,11 @@ void ShaderFrontendBase::executeIsa(ShaderUnitInterface &shaderUnitInterface, bo
 }
 
 size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendRequest &request) {
-    const size_t attributesCount = nonZeroCountToInt(request.dword2.inputsCount);
-
     size_t perThreadInputs = 0;
     size_t perRequestInputs = 0;
+
+    // Add regular inputs
+    const size_t attributesCount = nonZeroCountToInt(request.dword2.inputsCount);
     if (request.dword1.programType == Isa::Command::ProgramType::FragmentShader) {
         // Receive x,y coordinates per thread
         perThreadInputs = 2;
@@ -221,6 +222,21 @@ size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendReques
         if (attributesCount > 3) {
             perThreadInputs += nonZeroCountToInt(request.dword2.inputSize3);
         }
+    }
+
+    // Add uniform inputs
+    const size_t uniformsCount = request.dword2.uniformsCount;
+    if (uniformsCount > 0) {
+        perRequestInputs += nonZeroCountToInt(request.dword2.uniformSize0);
+    }
+    if (uniformsCount > 1) {
+        perRequestInputs += nonZeroCountToInt(request.dword2.uniformSize1);
+    }
+    if (uniformsCount > 2) {
+        perRequestInputs += nonZeroCountToInt(request.dword2.uniformSize2);
+    }
+    if (uniformsCount > 3) {
+        perRequestInputs += nonZeroCountToInt(request.dword2.uniformSize3);
     }
 
     return perThreadInputs * nonZeroCountToInt(request.dword1.threadCount) + perRequestInputs;
@@ -277,5 +293,20 @@ void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, I
     }
     if (outputsCount > 3) {
         FATAL_ERROR_IF(isaCommand.outputSize3 != request.dword2.outputSize3, "Invalid outputSize3");
+    }
+
+    FATAL_ERROR_IF(isaCommand.uniformsCount != request.dword2.uniformsCount, "Invalid uniforms count");
+    const int uniformsCount = isaCommand.uniformsCount;
+    if (uniformsCount > 0) {
+        FATAL_ERROR_IF(isaCommand.uniformSize0 != request.dword2.uniformSize0, "Invalid uniformSize0");
+    }
+    if (uniformsCount > 1) {
+        FATAL_ERROR_IF(isaCommand.uniformSize1 != request.dword2.uniformSize1, "Invalid uniformSize1");
+    }
+    if (uniformsCount > 2) {
+        FATAL_ERROR_IF(isaCommand.uniformSize2 != request.dword2.uniformSize2, "Invalid uniformSize2");
+    }
+    if (uniformsCount > 3) {
+        FATAL_ERROR_IF(isaCommand.uniformSize3 != request.dword2.uniformSize3, "Invalid uniformSize3");
     }
 }

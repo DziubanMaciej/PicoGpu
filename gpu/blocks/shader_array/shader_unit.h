@@ -47,6 +47,7 @@ private:
     void appendOutputRegistersValues(uint32_t threadCount, uint32_t * outputStream, uint32_t & outputStreamSize);
 
     NonZeroCount getInputOutputSize(bool input, uint32_t index) const;
+    NonZeroCount getUniformSize(uint32_t index) const;
     Isa::RegisterSelection getInputOutputRegisterIndex(bool input, uint32_t index) const;
 
     using UnaryFunction = int32_t (*)(int32_t);
@@ -80,4 +81,7 @@ private:
         VectorRegister gpr[Isa::simdSize][Isa::generalPurposeRegistersCount];
         uint32_t pc;
     } registers;
+
+    constexpr static size_t maxUniformDwords = Isa::maxInputOutputRegisters * Isa::registerComponentsCount;
+    uint32_t uniformDwords[maxUniformDwords];
 };

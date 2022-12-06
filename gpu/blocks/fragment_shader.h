@@ -12,6 +12,8 @@ SC_MODULE(FragmentShader) {
     sc_in_clk inpClock;
     sc_in<MemoryAddressType> inpShaderAddress;
     sc_in<CustomShaderComponentsType> inpCustomInputComponents;
+    sc_in<CustomShaderComponentsType> inpUniforms;
+    sc_in<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
 
     struct PreviousBlock {
         struct PerTriangle {

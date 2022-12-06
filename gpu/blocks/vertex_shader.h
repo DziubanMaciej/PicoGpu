@@ -10,6 +10,8 @@ SC_MODULE(VertexShader) {
     sc_in<MemoryAddressType> inpShaderAddress;
     sc_in<CustomShaderComponentsType> inpCustomInputComponents;
     sc_in<CustomShaderComponentsType> inpCustomOutputComponents;
+    sc_in<CustomShaderComponentsType> inpUniforms;
+    sc_in<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
 
     struct PreviousBlock {
         sc_in<bool> inpSending;

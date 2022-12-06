@@ -35,6 +35,8 @@ int sc_main(int argc, char *argv[]) {
             #input r11.xyz
             #output r10.xyzw
             #output r11.xyz
+            #uniform r5.x
+            #uniform r6.xy
 
             // Set homogeneous coordinate to 1
             finit r10.w 1.f
@@ -79,9 +81,12 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 6;
     gpu.blocks.VS.inpShaderAddress = vsAddress;
+    gpu.blocks.VS.inpUniforms = vs.getUniforms().raw;
+    gpu.blocks.VS.inpUniformsData[0][0] = 3;
     gpu.blocks.RS_OM.framebufferWidth.write(100);
     gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.FS.inpShaderAddress = fsAddress;
+    gpu.blocks.FS.inpUniforms = fs.getUniforms().raw;
     gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;
     gpu.blocks.OM.inpDepthEnable = 1;
     gpu.blocks.OM.inpDepthBufferAddress = depthBufferAddress;

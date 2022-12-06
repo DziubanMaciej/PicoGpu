@@ -155,7 +155,7 @@ void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {
         command.outputRegister3 = io.regs[3].index;
         break;
     case IoType::Uniform:
-        command.uniformsCount = intToNonZeroCount(io.usedRegsCount);
+        command.uniformsCount = io.usedRegsCount;
         command.uniformSize0 = intToNonZeroCount(io.regs[0].componentsCount);
         command.uniformSize1 = intToNonZeroCount(io.regs[1].componentsCount);
         command.uniformSize2 = intToNonZeroCount(io.regs[2].componentsCount);
@@ -265,6 +265,16 @@ CustomShaderComponents PicoGpuBinary::getVsPsCustomComponents() {
     result.comp0 = intToNonZeroCount(components[0]);
     result.comp1 = intToNonZeroCount(components[1]);
     result.comp2 = intToNonZeroCount(components[2]);
+    return result;
+}
+
+CustomShaderComponents PicoGpuBinary::getUniforms() {
+    CustomShaderComponents result = {0};
+    result.registersCount = uniforms.usedRegsCount;
+    result.comp0 = intToNonZeroCount(uniforms.regs[0].componentsCount);
+    result.comp1 = intToNonZeroCount(uniforms.regs[1].componentsCount);
+    result.comp2 = intToNonZeroCount(uniforms.regs[2].componentsCount);
+    result.comp3 = intToNonZeroCount(uniforms.regs[3].componentsCount);
     return result;
 }
 

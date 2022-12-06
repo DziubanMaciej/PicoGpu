@@ -111,6 +111,14 @@ void Gpu::connectPublicPorts() {
     vertexShader.inpShaderAddress(blocks.VS.inpShaderAddress);
     vertexShader.inpCustomInputComponents(blocks.GLOBAL.inpVsCustomInputComponents);
     vertexShader.inpCustomOutputComponents(blocks.GLOBAL.inpVsPsCustomComponents);
+    vertexShader.inpUniforms(blocks.VS.inpUniforms);
+    for (uint32_t uniformIndex = 0u; uniformIndex < Isa::maxInputOutputRegisters; uniformIndex++) {
+        for (uint32_t componentIndex = 0u; componentIndex < Isa::registerComponentsCount; componentIndex++) {
+            auto &input = vertexShader.inpUniformsData[uniformIndex][componentIndex];
+            auto &signal = blocks.VS.inpUniformsData[uniformIndex][componentIndex];
+            input(signal);
+        }
+    }
 
     rasterizer.inpCustomVsPsComponents(blocks.GLOBAL.inpVsPsCustomComponents);
     rasterizer.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
@@ -118,6 +126,14 @@ void Gpu::connectPublicPorts() {
 
     fragmentShader.inpCustomInputComponents(blocks.GLOBAL.inpVsPsCustomComponents);
     fragmentShader.inpShaderAddress(blocks.FS.inpShaderAddress);
+    fragmentShader.inpUniforms(blocks.FS.inpUniforms);
+    for (uint32_t uniformIndex = 0u; uniformIndex < Isa::maxInputOutputRegisters; uniformIndex++) {
+        for (uint32_t componentIndex = 0u; componentIndex < Isa::registerComponentsCount; componentIndex++) {
+            auto &input = fragmentShader.inpUniformsData[uniformIndex][componentIndex];
+            auto &signal = blocks.FS.inpUniformsData[uniformIndex][componentIndex];
+            input(signal);
+        }
+    }
 
     outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);
     outputMerger.depth.inpEnable(blocks.OM.inpDepthEnable);
@@ -168,11 +184,13 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
         trace.trace(blocks.PA.inpVerticesCount);
 
         trace.trace(blocks.VS.inpShaderAddress);
+        trace.trace(blocks.VS.inpUniforms);
 
         trace.trace(blocks.RS_OM.framebufferWidth);
         trace.trace(blocks.RS_OM.framebufferHeight);
 
         trace.trace(blocks.FS.inpShaderAddress);
+        trace.trace(blocks.FS.inpUniforms);
 
         trace.trace(blocks.OM.inpFramebufferAddress);
         trace.trace(blocks.OM.inpDepthEnable);

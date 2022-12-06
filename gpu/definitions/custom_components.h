@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gpu/isa/isa.h"
+#include "gpu/util/error.h"
 
 #include <systemc.h>
 
@@ -16,23 +17,29 @@ union CustomShaderComponents {
 
     CustomShaderComponents(uint32_t raw) : raw(raw) {}
 
-    // TOOD: rename to getTotalComponentsCount
+    // TOOD: rename to getTotalCustomComponents
     uint32_t getCustomComponentsCount() const {
         const uint32_t registersCount = this->registersCount;
         uint32_t result = 0;
-        if (registersCount > 0) {
-            result += nonZeroCountToInt(this->comp0);
-        }
-        if (registersCount > 1) {
-            result += nonZeroCountToInt(this->comp1);
-        }
-        if (registersCount > 2) {
-            result += nonZeroCountToInt(this->comp2);
-        }
-        if (registersCount > 3) {
-            result += nonZeroCountToInt(this->comp3);
+        for (uint32_t registerIndex = 0; registerIndex < registersCount; registerIndex++) {
+            result += getCustomComponents(registerIndex);
         }
         return result;
+    }
+
+    uint32_t getCustomComponents(uint32_t registerIndex) const {
+        switch (registerIndex) {
+        case 0:
+            return nonZeroCountToInt(comp0);
+        case 1:
+            return nonZeroCountToInt(comp1);
+        case 2:
+            return nonZeroCountToInt(comp2);
+        case 3:
+            return nonZeroCountToInt(comp3);
+        default:
+            FATAL_ERROR("Invalid registerIndex");
+        }
     }
 };
 static_assert(sizeof(CustomShaderComponents) == sizeof(uint32_t));
