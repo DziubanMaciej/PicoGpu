@@ -1,7 +1,7 @@
 #include "gpu/gpu.h"
 #include "gpu/isa/assembler/assembler.h"
-#include "gpu/util/vcd_trace.h"
 #include "gpu/util/conversions.h"
+#include "gpu/util/vcd_trace.h"
 
 #include <GL/gl.h>
 #include <GL/glut.h>
@@ -241,6 +241,10 @@ int sc_main(int argc, char *argv[]) {
             #output r0.xyzw
             #output r1.xyz
             #uniform r2.xy
+            #uniform r3.x
+
+            // Add x-offset
+            fadd r0.x r0 r3
 
             // Set position.w = 1
             finit r0.w 1.f
@@ -289,6 +293,11 @@ int sc_main(int argc, char *argv[]) {
         static uint32_t bgColor = 0xffcccccc;
         gpuWrapper.clearDepthBuffer();
         gpuWrapper.clearFrameBuffer(&bgColor);
+
+        static float xOffset = 0;
+        xOffset += 3;
+        gpuWrapper.setVsUniform(1, Conversions::floatBytesToUint(xOffset));
+
         gpuWrapper.draw();
     };
 
