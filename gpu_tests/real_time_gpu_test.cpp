@@ -79,6 +79,13 @@ public:
         gpu.blocks.VS.inpUniformsData[index][3] = w;
     }
 
+    void setFsUniform(size_t index, uint32_t x = 0, uint32_t y = 0, uint32_t z = 0, uint32_t w = 0) {
+        gpu.blocks.FS.inpUniformsData[index][0] = x;
+        gpu.blocks.FS.inpUniformsData[index][1] = y;
+        gpu.blocks.FS.inpUniformsData[index][2] = z;
+        gpu.blocks.FS.inpUniformsData[index][3] = w;
+    }
+
     void draw() {
         gpu.commandStreamer.draw(nullptr);
     }
@@ -240,40 +247,79 @@ int sc_main(int argc, char *argv[]) {
             #input r1.xyz
             #output r0.xyzw
             #output r1.xyz
-            #uniform r2.xy
-            #uniform r3.x
+            #uniform r2.xy  // screen coords
+            #uniform r3.xy  // position offset offset
 
             // Add x-offset
-            fadd r0.x r0 r3
+            fadd r0.xy r0 r3
 
             // Set position.w = 1
             finit r0.w 1.f
 
             // y-flip
             fsub r0.y r2 r0
+            fneg r1.y r1
         )code";
     const char *fsCode = R"code(
             #fragmentShader
-            #input r0.xyzw
-            #input r1.xyz
-            #output r1.xyzw
+            #input r0.xyzw   // fragment position
+            #input r1.xyz    // normal vector
+            #output r15.xyzw // color
+            #uniform r2.xyz  // light position
 
-            // Set color.alpha = 1
-            finit r12.w 1.f
+            // Make sure normal vector is normalized
+            fnorm r1 r1
+
+            // Calculate diffuse power
+            fsub  r10.xyz r2  r0       // r10 = lightDir
+            fnorm r10.xyz r10
+            fdot  r11.xyz r1  r10      // r11 = diffusePower
+            fmax  r11.xyz r11 r15
+
+            // Calculate diffuse light color
+            finit r12.xyz 0.9 0.3 0.9  // r12 = lightColor
+            fmul  r13.xyz r12 r11      // r13 = diffuseColor
+
+            // Output
+            mov  r15.xyz r13
+            finit r15.w   1.0f
         )code";
 
+    struct Vec3 {
+        float x, y, z;
+    };
     struct Vertex {
-        float x, y, z, r, g, b;
+        Vec3 pos;
+        Vec3 norm;
     };
+    static_assert(sizeof(Vertex) == 6 * sizeof(float));
+    Vec3 pos0{10, 30, 30};
+    Vec3 pos1{50, 30, 50};
+    Vec3 pos2{90, 30, 30};
+    Vec3 pos3{50, 30, 10};
+    Vec3 pos4{50, 60, 30};
+    Vec3 norm0 {-0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
+    Vec3 norm1 {0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
+    Vec3 norm2 {0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
+    Vec3 norm3 {-0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
     Vertex vertices[] = {
-        Vertex{10, 10, 40, 1.0, 0.0, 0.0},
-        Vertex{45, 80, 90, 0.0, 0.0, 1.0},
-        Vertex{90, 10, 40, 0.0, 1.0, 0.0},
+        {pos0, norm0},
+        {pos4, norm0},
+        {pos3, norm0},
 
-        Vertex{10, 60, 50, 0.5, 0.5, 0.5},
-        Vertex{90, 40, 50, 1.0, 1.0, 1.0},
-        Vertex{45, 20, 50, 0.0, 0.0, 0.0},
+        {pos3, norm1},
+        {pos4, norm1},
+        {pos2, norm1},
+
+        {pos2, norm2},
+        {pos4, norm2},
+        {pos1, norm2},
+
+        {pos1, norm3},
+        {pos4, norm3},
+        {pos0, norm3},
     };
+    const size_t vertexCount = sizeof(vertices) / sizeof(Vertex);
 
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
@@ -281,22 +327,20 @@ int sc_main(int argc, char *argv[]) {
 
     gpuWrapper.setShaders(vsCode, fsCode);
     gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(100), Conversions::floatBytesToUint(100));
+    gpuWrapper.setFsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(0));
     gpuWrapper.setDepth();
-    gpuWrapper.setVertices((uint32_t *)vertices, 6, 6);
+    gpuWrapper.setVertices((uint32_t *)vertices, vertexCount, 6);
 
     gpuWrapper.summarizeMemory();
 
     WindowWrapper::UpdateFunction updateFunction = +[](GpuWrapper &gpuWrapper) {
-        static int frameCount = 0;
-        printf("Frame %d\n", frameCount++);
-
         static uint32_t bgColor = 0xffcccccc;
         gpuWrapper.clearDepthBuffer();
         gpuWrapper.clearFrameBuffer(&bgColor);
 
         static float xOffset = 0;
-        xOffset += 3;
-        gpuWrapper.setVsUniform(1, Conversions::floatBytesToUint(xOffset));
+        static float yOffset = 0;
+        gpuWrapper.setVsUniform(1, Conversions::floatBytesToUint(xOffset), Conversions::floatBytesToUint(yOffset));
 
         gpuWrapper.draw();
     };
