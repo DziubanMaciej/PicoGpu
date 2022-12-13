@@ -61,13 +61,15 @@ The shader unit can interpret and execute multiple instructions. All instruction
 Instructions with immediate arguments (`{int}` or `{float}`) all take between 1 and 4 values. If there are too few values for a given mask, the last specified value is duplicated. For example `iadd r0.xyz r0 1 2` is functionally equivalent to `iadd r0.xyz 1 2 2`.
 
 ## Integer math
-| Instruction                                                           | Description          |
-|-----------------------------------------------------------------------|----------------------|
-| iadd {reg}.{mask} {reg} {reg}</br>iadd {reg}.{mask} {reg} {int}[1..4] | Adds two values      |
-| isub {reg}.{mask} {reg} {reg}</br>isub {reg}.{mask} {reg} {int}[1..4] | Subtracts two values |
-| imul {reg}.{mask} {reg} {reg}</br>imul {reg}.{mask} {reg} {int}[1..4] | Multiply two values  |
-| idiv {reg}.{mask} {reg} {reg}</br>idiv {reg}.{mask} {reg} {int}[1..4] | Divides two values   |
-| ineg {reg}.{mask} {reg}                                               | Negates a value      |
+| Instruction                                                           | Description                               |
+|-----------------------------------------------------------------------|------------------------------------------ |
+| iadd {reg}.{mask} {reg} {reg}</br>iadd {reg}.{mask} {reg} {int}[1..4] | Adds two values                           |
+| isub {reg}.{mask} {reg} {reg}</br>isub {reg}.{mask} {reg} {int}[1..4] | Subtracts two values                      |
+| imul {reg}.{mask} {reg} {reg}</br>imul {reg}.{mask} {reg} {int}[1..4] | Multiply two values                       |
+| idiv {reg}.{mask} {reg} {reg}</br>idiv {reg}.{mask} {reg} {int}[1..4] | Divides two values                        |
+| ineg {reg}.{mask} {reg}                                               | Negates a value                           |
+| imax {reg}.{mask} {reg}                                               | Calculates a component-wise maximum value |
+| imin {reg}.{mask} {reg}                                               | Calculates a component-wise minimum value |
 
 
 ## Floating point math
@@ -82,7 +84,10 @@ Instructions with immediate arguments (`{int}` or `{float}`) all take between 1 
 | fdot    {reg}.{mask} {reg} {reg}                                           | Calculates a 4-dimensional dot product and stores result in all components                                        |
 | fcross2 {reg}.{mask} {reg} {reg}                                           | Calculates a 2-dimensional cross product being `Ax*By - Ay*Bx` and stores result in all components                |
 | fmad    {reg}.{mask} {reg} {reg} {reg}                                     | Multiplies first two src values together and adds the third src value                                             |
-| frcp    {reg}.{mask} {reg}                                                 | Calculates a reciprocal                                                                                           |
+| fnorm   {reg}.{mask} {reg}                                                 | Normalizes a vector                                                                                               |
+| frcp    {reg}.{mask} {reg}                                                 | Calculates a component-wise reciprocal                                                                            |
+| fmax    {reg}.{mask} {reg}                                                 | Calculates a component-wise maximum value                                                                         |
+| fmin    {reg}.{mask} {reg}                                                 | Calculates a component-wise minimum value                                                                         |
 
 ## Miscellaneous
 | Instruction                                                              | Description                                                             |

@@ -63,8 +63,8 @@
 %}
 
 // Tokens received from lexer
-%token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS FCROSS2 FMAD FRCP
-%token IINIT IADD ISUB IMUL IDIV INEG
+%token FINIT FADD FSUB FMUL FDIV FNEG FDOT FCROSS FCROSS2 FMAD FRCP FNORM FMAX FMIN
+%token IINIT IADD ISUB IMUL IDIV INEG IMAX IMIN
 %token MOV SWIZZLE TRAP
 %token HASH_INPUT HASH_OUTPUT HASH_UNIFORM HASH_VS HASH_FS HASH_UNDEFINED_REGS DOT
 %token <swizzleComponent> VEC_COMPONENT
@@ -128,6 +128,9 @@ INSTRUCTION:
     | FCROSS    REG REG REG               { outputBinary->encodeBinaryMath(Isa::Opcode::fcross, $2, $3, $4, 0b1111); }
     | FCROSS2   DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fcross2, $2.reg, $3, $4, $2.mask); }
     | FRCP      DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::frcp, $2.reg, $3, $2.mask); }
+    | FNORM     DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::fnorm, $2.reg, $3, $2.mask); }
+    | FMAX      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fmax, $2.reg, $3, $4, $2.mask); }
+    | FMIN      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::fmin, $2.reg, $3, $4, $2.mask); }
     | FMAD      DST_REG REG REG REG       { outputBinary->encodeTernaryMath(Isa::Opcode::fcross2, $2.reg, $3, $4, $5, $2.mask); }
     | IADD      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::iadd, $2.reg, $3, $4, $2.mask); }
     | IADD      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::iadd_imm, $2.reg, $3, $2.mask, {$4}); }
@@ -138,6 +141,8 @@ INSTRUCTION:
     | IDIV      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::idiv, $2.reg, $3, $4, $2.mask); }
     | IDIV      DST_REG REG NUMBER_INT    { outputBinary->encodeBinaryMathImm(Isa::Opcode::idiv_imm, $2.reg, $3, $2.mask, {$4}); }
     | INEG      DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::ineg, $2.reg, $3, $2.mask); }
+    | IMAX      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::imax, $2.reg, $3, $4, $2.mask); }
+    | IMIN      DST_REG REG REG           { outputBinary->encodeBinaryMath(Isa::Opcode::imin, $2.reg, $3, $4, $2.mask); }
     | SWIZZLE   REG FULLY_SWIZZLED_REG    { outputBinary->encodeSwizzle(Isa::Opcode::swizzle, $2, $3.reg, $3.x, $3.y, $3.z, $3.w); }
     | TRAP                                { outputBinary->encodeNullary(Isa::Opcode::trap); }
     | MOV       DST_REG REG               { outputBinary->encodeUnaryMath(Isa::Opcode::mov, $2.reg, $3, $2.mask); }

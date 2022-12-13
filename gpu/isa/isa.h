@@ -9,7 +9,7 @@ namespace Isa {
 
 // Define general constants used during further definition of the ISA as well as by
 // components using it.
-constexpr inline size_t opcodeBitsize = 5;
+constexpr inline size_t opcodeBitsize = 6;
 constexpr inline size_t simdExponent = 5;
 constexpr inline size_t simdSize = 1 << simdExponent;
 constexpr inline size_t maxIsaSizeExponent = 9;
@@ -119,6 +119,9 @@ enum class Opcode : uint32_t {
     fcross2,
     fmad,
     frcp,
+    fnorm,
+    fmax,
+    fmin,
 
     // Integer math
     iadd,
@@ -130,6 +133,8 @@ enum class Opcode : uint32_t {
     idiv,
     idiv_imm,
     ineg,
+    imax,
+    imin,
 
     // Misc
     init,
@@ -207,7 +212,7 @@ namespace InstructionLayouts {
         RegisterSelection dest : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
         NonZeroCount immediateValuesCount : 2;
-        uint32_t reserved : 17;
+        uint32_t reserved : 16;
         uint32_t immediateValues[1];
     };
 
@@ -221,14 +226,14 @@ namespace InstructionLayouts {
         RegisterSelection src : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
         NonZeroCount immediateValuesCount : 2;
-        uint32_t reserved : 13;
+        uint32_t reserved : 12;
         uint32_t immediateValues[1];
     };
 
     // Swizzle the components of a vector register and store it in a register (can be the same one).
     // The swizzle pattern is 8 bit, 2 bits per component to select either x,y,z or w from src.
     struct Swizzle {
-        Opcode opcode : 5;
+        Opcode opcode : opcodeBitsize;
         RegisterSelection dest : generalPurposeRegistersCountExponent;
         RegisterSelection src : generalPurposeRegistersCountExponent;
         SwizzlePatternComponent patternX : 2;

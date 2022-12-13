@@ -5,6 +5,8 @@
 #include "gpu/util/os_interface.h"
 #include "gpu/util/transfer.h"
 
+#include <algorithm>
+
 void ShaderUnit::main() {
     bool handshakeAlreadyEstablished = false;
 
@@ -350,6 +352,27 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
         case Isa::Opcode::frcp:
             registers.pc += executeInstructionForLanes(threadCount, instruction.unaryMath, [](int32_t src) { return asi(1 / asf(src)); });
             break;
+        case Isa::Opcode::fnorm:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.unaryMath, [](VectorRegister src) {
+                const float x = asf(src.x);
+                const float y = asf(src.y);
+                const float z = asf(src.z);
+                const float w = asf(src.w);
+                const float len = sqrtf(x * x + y * y + z * z + w * w);
+                return VectorRegister{
+                    asi(x / len),
+                    asi(y / len),
+                    asi(z / len),
+                    asi(w / len),
+                };
+            });
+            break;
+        case Isa::Opcode::fmax:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return asi(std::max(asf(src1), asf(src2))); });
+            break;
+        case Isa::Opcode::fmin:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return asi(std::min(asf(src1), asf(src2))); });
+            break;
 
         case Isa::Opcode::iadd:
             registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return src1 + src2; });
@@ -377,6 +400,12 @@ void ShaderUnit::executeInstructions(uint32_t isaSize, uint32_t threadCount) {
             break;
         case Isa::Opcode::ineg:
             registers.pc += executeInstructionForLanes(threadCount, instruction.unaryMath, [](int32_t src) { return -src; });
+            break;
+        case Isa::Opcode::imax:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return std::max(src1, src2); });
+            break;
+        case Isa::Opcode::imin:
+            registers.pc += executeInstructionForLanes(threadCount, instruction.binaryMath, [](int32_t src1, int32_t src2) { return std::min(src1, src2); });
             break;
 
         case Isa::Opcode::init:
@@ -423,6 +452,32 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
     return sizeof(inst) / sizeof(uint32_t);
 }
 
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryVectorScalarFunction function) {
+    VectorRegister &src1 = registers.gpr[lane][inst.src];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
+
+    const uint32_t result = function(src1);
+    for (int i = 0; i < 4; i++) {
+        if (isBitSet(inst.destMask, 3 - i)) {
+            dest[i] = result; // store the same result in each component from mask
+        }
+    }
+
+    return sizeof(inst) / sizeof(uint32_t);
+}
+
+int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryVectorVectorFunction function) {
+    VectorRegister &src = registers.gpr[lane][inst.src];
+    VectorRegister &dest = registers.gpr[lane][inst.dest];
+
+    const VectorRegister result = function(src);
+    for (int i = 0; i < 4; i++) {
+        dest = result; // ignore destination mask
+    }
+
+    return sizeof(inst) / sizeof(uint32_t);
+}
+
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryFunction function) {
     VectorRegister &src1 = registers.gpr[lane][inst.src1];
     VectorRegister &src2 = registers.gpr[lane][inst.src2];
@@ -462,6 +517,7 @@ int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::Instruction
 
     return sizeof(inst) / sizeof(uint32_t);
 }
+
 int32_t ShaderUnit::executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryVectorVectorFunction function) {
     VectorRegister &src1 = registers.gpr[lane][inst.src1];
     VectorRegister &src2 = registers.gpr[lane][inst.src2];

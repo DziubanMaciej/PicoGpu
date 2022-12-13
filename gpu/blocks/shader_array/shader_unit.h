@@ -55,12 +55,16 @@ private:
     Isa::RegisterSelection getUniformRegisterIndex(uint32_t index) const;
 
     using UnaryFunction = int32_t (*)(int32_t);
+    using UnaryVectorScalarFunction = int32_t (*)(VectorRegister);
+    using UnaryVectorVectorFunction = VectorRegister (*)(VectorRegister);
     using BinaryFunction = int32_t (*)(int32_t, int32_t);
     using TernaryFunction = int32_t (*)(int32_t, int32_t, int32_t);
     using BinaryVectorScalarFunction = int32_t (*)(VectorRegister, VectorRegister);
     using BinaryVectorVectorFunction = VectorRegister (*)(VectorRegister, VectorRegister);
     void executeInstructions(uint32_t isaSize, uint32_t threadCount);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryFunction function);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryVectorScalarFunction function);
+    int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::UnaryMath &inst, UnaryVectorVectorFunction function);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryFunction function);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::TernaryMath &inst, TernaryFunction function);
     int32_t executeInstructionLane(uint32_t lane, const Isa::InstructionLayouts::BinaryMath &inst, BinaryVectorScalarFunction function);
