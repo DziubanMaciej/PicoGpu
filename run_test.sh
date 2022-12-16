@@ -10,6 +10,7 @@ fi
 cd build || exit 1
 make -j $(nproc) "$test" || exit 1
 cd bin || exit 1
+export SC_COPYRIGHT_MESSAGE=DISABLE
 if [ "$debug" == "1" ]; then
     gdb ./"$test"
 else
