@@ -327,11 +327,16 @@ int sc_main(int argc, char *argv[]) {
     Vec3 pos1{50, 30, 70};
     Vec3 pos2{90, 30, 50};
     Vec3 pos3{50, 30, 30};
-    Vec3 pos4{50, 60, 50};
+    Vec3 pos4{50, 60, 50}; // upper tip
+    Vec3 pos5{50, 10, 50}; // lower tip
     Vec3 norm0{-0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
     Vec3 norm1{0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
     Vec3 norm2{0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
     Vec3 norm3{-0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
+    Vec3 norm4{-0.3841106397986879, -0.5121475197315839, -0.7682212795973759};
+    Vec3 norm5{0.3841106397986879, -0.5121475197315839, -0.7682212795973759};
+    Vec3 norm6{0.3841106397986879, -0.5121475197315839, 0.7682212795973759};
+    Vec3 norm7{-0.3841106397986879, -0.5121475197315839, 0.7682212795973759};
     Vertex vertices[] = {
         {pos0, norm0},
         {pos4, norm0},
@@ -348,6 +353,23 @@ int sc_main(int argc, char *argv[]) {
         {pos1, norm3},
         {pos4, norm3},
         {pos0, norm3},
+
+        {pos3, norm4},
+        {pos5, norm4},
+        {pos0, norm4},
+
+        {pos2, norm5},
+        {pos5, norm5},
+        {pos3, norm5},
+
+        {pos1, norm6},
+        {pos5, norm6},
+        {pos2, norm6},
+
+        {pos0, norm7},
+        {pos5, norm7},
+        {pos1, norm7},
+
     };
     const size_t vertexCount = sizeof(vertices) / sizeof(Vertex);
 
@@ -356,8 +378,8 @@ int sc_main(int argc, char *argv[]) {
     GpuWrapper gpuWrapper{gpu, clock, 100, 100};
 
     gpuWrapper.setShaders(vsCode, fsCode);
-    gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(50));
-    gpuWrapper.setFsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(0));
+    gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(50)); // rotation origin
+    gpuWrapper.setFsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(-40));  // light position
     gpuWrapper.setDepth();
     gpuWrapper.setVertices((uint32_t *)vertices, vertexCount, 6);
 
@@ -373,7 +395,7 @@ int sc_main(int argc, char *argv[]) {
         gpuWrapper.setVsUniform(1, Conversions::floatBytesToUint(xOffset), Conversions::floatBytesToUint(yOffset));
 
         static double rotationRadians = 0;
-        rotationRadians += 0.09;
+        rotationRadians += 0.19;
         gpuWrapper.setVsUniform(2, Conversions::floatBytesToUint(sin(rotationRadians)), Conversions::floatBytesToUint(cos(rotationRadians)));
 
         gpuWrapper.draw();
