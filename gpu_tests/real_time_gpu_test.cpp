@@ -247,18 +247,48 @@ int sc_main(int argc, char *argv[]) {
             #input r1.xyz
             #output r0.xyzw
             #output r1.xyz
-            #uniform r2.xy  // screen coords
-            #uniform r3.xy  // position offset offset
+            #uniform r2.xyz    // rotation origin
+            #uniform r3.xy     // position offset offset
+            #uniform r15.xy    // rotation sin and cos
+
+            // Prepare sine and cosine registers
+            swizzle r4 r15.xxxx   // r4 = all components sin
+            swizzle r5 r15.yyyy   // r5 = all components cos
+            fneg    r6 r4        // r6 = all components -sin
+            fneg    r7 r5        // r7 = all components -cos
+
+            // Prepare rotation matrix
+            //
+            //      |  cos    0   sin   0  |
+            //      |   0     1    0    0  |
+            //      |  -sin   0   cos   0  |
+            //      |   0     0    0    0  |
+            //
+            mov   r8.x  r5     // r8 = (cos, 0, sin, 0)
+            mov   r8.z  r4
+            finit r9.y  1.0f   // r9 = (0, 1, 0, 1)
+            mov   r10.x r6     // r10 = (-sin, 0, cos)
+            mov   r10.z r5
+
+            // Multiply rotation matrix and position vector
+            fsub r0.xyz r0 r2
+            fdot r11.x r8  r0
+            fdot r11.y r9  r0
+            fdot r11.z r10 r0
+            fadd r0.xyz r11 r2
+
+
+            // Multiply rotation matrix and normal vector
+            fdot r11.x r8  r1
+            fdot r11.y r9  r1
+            fdot r11.z r10 r1
+            mov  r1.xyz r11
 
             // Add x-offset
             fadd r0.xy r0 r3
 
             // Set position.w = 1
             finit r0.w 1.f
-
-            // y-flip
-            fsub r0.y r2 r0
-            fneg r1.y r1
         )code";
     const char *fsCode = R"code(
             #fragmentShader
@@ -293,15 +323,15 @@ int sc_main(int argc, char *argv[]) {
         Vec3 norm;
     };
     static_assert(sizeof(Vertex) == 6 * sizeof(float));
-    Vec3 pos0{10, 30, 30};
-    Vec3 pos1{50, 30, 50};
-    Vec3 pos2{90, 30, 30};
-    Vec3 pos3{50, 30, 10};
-    Vec3 pos4{50, 60, 30};
-    Vec3 norm0 {-0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
-    Vec3 norm1 {0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
-    Vec3 norm2 {0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
-    Vec3 norm3 {-0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
+    Vec3 pos0{10, 30, 50};
+    Vec3 pos1{50, 30, 70};
+    Vec3 pos2{90, 30, 50};
+    Vec3 pos3{50, 30, 30};
+    Vec3 pos4{50, 60, 50};
+    Vec3 norm0{-0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
+    Vec3 norm1{0.3841106397986879, 0.5121475197315839, -0.7682212795973759};
+    Vec3 norm2{0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
+    Vec3 norm3{-0.3841106397986879, 0.5121475197315839, 0.7682212795973759};
     Vertex vertices[] = {
         {pos0, norm0},
         {pos4, norm0},
@@ -326,7 +356,7 @@ int sc_main(int argc, char *argv[]) {
     GpuWrapper gpuWrapper{gpu, clock, 100, 100};
 
     gpuWrapper.setShaders(vsCode, fsCode);
-    gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(100), Conversions::floatBytesToUint(100));
+    gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(50));
     gpuWrapper.setFsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(0));
     gpuWrapper.setDepth();
     gpuWrapper.setVertices((uint32_t *)vertices, vertexCount, 6);
@@ -342,7 +372,12 @@ int sc_main(int argc, char *argv[]) {
         static float yOffset = 0;
         gpuWrapper.setVsUniform(1, Conversions::floatBytesToUint(xOffset), Conversions::floatBytesToUint(yOffset));
 
+        static double rotationRadians = 0;
+        rotationRadians += 0.09;
+        gpuWrapper.setVsUniform(2, Conversions::floatBytesToUint(sin(rotationRadians)), Conversions::floatBytesToUint(cos(rotationRadians)));
+
         gpuWrapper.draw();
+        gpuWrapper.waitForIdle();
     };
 
     WindowWrapper window{gpuWrapper, updateFunction, 100, 100};
