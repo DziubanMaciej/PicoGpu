@@ -36,22 +36,22 @@ Gpu::Gpu(sc_module_name name)
     connectInternalPorts();
     connectPublicPorts();
     connectProfilingPorts();
-    SC_CTHREAD(setBusyValue, config.GLOBAL.inpClock.pos());
+    SC_CTHREAD(setBusyValue, config.GLOBAL.clock.pos());
 }
 
 void Gpu::connectClocks() {
-    commandStreamer.inpClock(config.GLOBAL.inpClock);
-    blitter.inpClock(config.GLOBAL.inpClock);
-    memoryController.inpClock(config.GLOBAL.inpClock);
-    memory.inpClock(config.GLOBAL.inpClock);
-    shaderFrontend.inpClock(config.GLOBAL.inpClock);
-    shaderUnit0.inpClock(config.GLOBAL.inpClock);
-    shaderUnit1.inpClock(config.GLOBAL.inpClock);
-    primitiveAssembler.inpClock(config.GLOBAL.inpClock);
-    vertexShader.inpClock(config.GLOBAL.inpClock);
-    rasterizer.inpClock(config.GLOBAL.inpClock);
-    fragmentShader.inpClock(config.GLOBAL.inpClock);
-    outputMerger.inpClock(config.GLOBAL.inpClock);
+    commandStreamer.inpClock(config.GLOBAL.clock);
+    blitter.inpClock(config.GLOBAL.clock);
+    memoryController.inpClock(config.GLOBAL.clock);
+    memory.inpClock(config.GLOBAL.clock);
+    shaderFrontend.inpClock(config.GLOBAL.clock);
+    shaderUnit0.inpClock(config.GLOBAL.clock);
+    shaderUnit1.inpClock(config.GLOBAL.clock);
+    primitiveAssembler.inpClock(config.GLOBAL.clock);
+    vertexShader.inpClock(config.GLOBAL.clock);
+    rasterizer.inpClock(config.GLOBAL.clock);
+    fragmentShader.inpClock(config.GLOBAL.clock);
+    outputMerger.inpClock(config.GLOBAL.clock);
 }
 
 void Gpu::connectInternalPorts() {
@@ -104,40 +104,40 @@ void Gpu::connectInternalPorts() {
 }
 
 void Gpu::connectPublicPorts() {
-    primitiveAssembler.inpVerticesAddress(config.PA.inpVerticesAddress);
-    primitiveAssembler.inpVerticesCount(config.PA.inpVerticesCount);
-    primitiveAssembler.inpCustomInputComponents(config.GLOBAL.inpVsCustomInputComponents);
+    primitiveAssembler.inpVerticesAddress(config.PA.verticesAddress);
+    primitiveAssembler.inpVerticesCount(config.PA.verticesCount);
+    primitiveAssembler.inpCustomInputComponents(config.GLOBAL.vsCustomInputComponents);
 
-    vertexShader.inpShaderAddress(config.VS.inpShaderAddress);
-    vertexShader.inpCustomInputComponents(config.GLOBAL.inpVsCustomInputComponents);
-    vertexShader.inpCustomOutputComponents(config.GLOBAL.inpVsPsCustomComponents);
-    vertexShader.inpUniforms(config.VS.inpUniforms);
+    vertexShader.inpShaderAddress(config.VS.shaderAddress);
+    vertexShader.inpCustomInputComponents(config.GLOBAL.vsCustomInputComponents);
+    vertexShader.inpCustomOutputComponents(config.GLOBAL.vsPsCustomComponents);
+    vertexShader.inpUniforms(config.VS.uniforms);
     for (uint32_t uniformIndex = 0u; uniformIndex < Isa::maxInputOutputRegisters; uniformIndex++) {
         for (uint32_t componentIndex = 0u; componentIndex < Isa::registerComponentsCount; componentIndex++) {
             auto &input = vertexShader.inpUniformsData[uniformIndex][componentIndex];
-            auto &signal = config.VS.inpUniformsData[uniformIndex][componentIndex];
+            auto &signal = config.VS.uniformsData[uniformIndex][componentIndex];
             input(signal);
         }
     }
 
-    rasterizer.inpCustomVsPsComponents(config.GLOBAL.inpVsPsCustomComponents);
+    rasterizer.inpCustomVsPsComponents(config.GLOBAL.vsPsCustomComponents);
     rasterizer.framebuffer.inpWidth(config.GLOBAL.framebufferWidth);
     rasterizer.framebuffer.inpHeight(config.GLOBAL.framebufferHeight);
 
-    fragmentShader.inpCustomInputComponents(config.GLOBAL.inpVsPsCustomComponents);
-    fragmentShader.inpShaderAddress(config.FS.inpShaderAddress);
-    fragmentShader.inpUniforms(config.FS.inpUniforms);
+    fragmentShader.inpCustomInputComponents(config.GLOBAL.vsPsCustomComponents);
+    fragmentShader.inpShaderAddress(config.FS.shaderAddress);
+    fragmentShader.inpUniforms(config.FS.uniforms);
     for (uint32_t uniformIndex = 0u; uniformIndex < Isa::maxInputOutputRegisters; uniformIndex++) {
         for (uint32_t componentIndex = 0u; componentIndex < Isa::registerComponentsCount; componentIndex++) {
             auto &input = fragmentShader.inpUniformsData[uniformIndex][componentIndex];
-            auto &signal = config.FS.inpUniformsData[uniformIndex][componentIndex];
+            auto &signal = config.FS.uniformsData[uniformIndex][componentIndex];
             input(signal);
         }
     }
 
-    outputMerger.framebuffer.inpAddress(config.OM.inpFramebufferAddress);
-    outputMerger.depth.inpEnable(config.OM.inpDepthEnable);
-    outputMerger.depth.inpAddress(config.OM.inpDepthBufferAddress);
+    outputMerger.framebuffer.inpAddress(config.OM.framebufferAddress);
+    outputMerger.depth.inpEnable(config.OM.depthEnable);
+    outputMerger.depth.inpAddress(config.OM.depthBufferAddress);
     outputMerger.framebuffer.inpWidth(config.GLOBAL.framebufferWidth);
     outputMerger.framebuffer.inpHeight(config.GLOBAL.framebufferHeight);
 }
@@ -176,24 +176,24 @@ void Gpu::connectProfilingPorts() {
 
 void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalPorts) {
     if (publicPorts) {
-        trace.trace(config.GLOBAL.inpClock);
-        trace.trace(config.GLOBAL.inpVsCustomInputComponents);
-        trace.trace(config.GLOBAL.inpVsPsCustomComponents);
+        trace.trace(config.GLOBAL.clock);
+        trace.trace(config.GLOBAL.vsCustomInputComponents);
+        trace.trace(config.GLOBAL.vsPsCustomComponents);
         trace.trace(config.GLOBAL.framebufferWidth);
         trace.trace(config.GLOBAL.framebufferHeight);
 
-        trace.trace(config.PA.inpVerticesAddress);
-        trace.trace(config.PA.inpVerticesCount);
+        trace.trace(config.PA.verticesAddress);
+        trace.trace(config.PA.verticesCount);
 
-        trace.trace(config.VS.inpShaderAddress);
-        trace.trace(config.VS.inpUniforms);
+        trace.trace(config.VS.shaderAddress);
+        trace.trace(config.VS.uniforms);
 
-        trace.trace(config.FS.inpShaderAddress);
-        trace.trace(config.FS.inpUniforms);
+        trace.trace(config.FS.shaderAddress);
+        trace.trace(config.FS.uniforms);
 
-        trace.trace(config.OM.inpFramebufferAddress);
-        trace.trace(config.OM.inpDepthEnable);
-        trace.trace(config.OM.inpDepthBufferAddress);
+        trace.trace(config.OM.framebufferAddress);
+        trace.trace(config.OM.depthEnable);
+        trace.trace(config.OM.depthBufferAddress);
     }
 
     if (internalPorts) {
@@ -203,7 +203,7 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
 
 void Gpu::addProfilingSignalsToVcdTrace(VcdTrace &trace) {
     profilingPorts.addSignalsToTrace(trace);
-    trace.trace(config.GLOBAL.inpClock);
+    trace.trace(config.GLOBAL.clock);
     trace.trace(out.busyNoCs);
     trace.trace(out.busy);
 }

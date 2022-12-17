@@ -19,25 +19,25 @@ public:
           pixels(std::make_unique<uint32_t[]>(screenWidth * screenHeight)) {
         sc_report_handler::set_actions(SC_INFO, SC_DO_NOTHING);
 
-        gpu.config.GLOBAL.inpClock(clock);
+        gpu.config.GLOBAL.clock(clock);
 
         addresses.frameBuffer = allocateDwords(screenWidth * screenHeight, "frame buffer");
         gpu.config.GLOBAL.framebufferWidth.write(screenWidth);
         gpu.config.GLOBAL.framebufferHeight.write(screenHeight);
-        gpu.config.OM.inpFramebufferAddress = addresses.frameBuffer;
+        gpu.config.OM.framebufferAddress = addresses.frameBuffer;
     }
 
     void setDepth() {
         addresses.depthBuffer = allocateDwords(screenWidth * screenHeight, "depth buffer");
-        gpu.config.OM.inpDepthEnable = 1;
-        gpu.config.OM.inpDepthBufferAddress = addresses.depthBuffer.value();
+        gpu.config.OM.depthEnable = 1;
+        gpu.config.OM.depthBufferAddress = addresses.depthBuffer.value();
     }
 
     void setVertices(uint32_t *vertices, uint32_t verticesCount, uint32_t vertexSizeInDwords) {
         addresses.vb = allocateDwords(verticesCount * vertexSizeInDwords, "vertex buffer");
         uploadData(addresses.vb, vertices, verticesCount * vertexSizeInDwords);
-        gpu.config.PA.inpVerticesAddress = addresses.vb;
-        gpu.config.PA.inpVerticesCount = verticesCount;
+        gpu.config.PA.verticesAddress = addresses.vb;
+        gpu.config.PA.verticesCount = verticesCount;
     }
 
     void setShaders(const char *vsCode, const char *fsCode) {
@@ -48,18 +48,18 @@ public:
         FATAL_ERROR_IF(Isa::assembly(fsCode, &fs), "Failed to assemble FS");
         FATAL_ERROR_IF(!Isa::PicoGpuBinary::areShadersCompatible(vs, fs), "VS is not compatible with FS");
 
-        gpu.config.GLOBAL.inpVsCustomInputComponents = vs.getVsCustomInputComponents().raw;
-        gpu.config.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
+        gpu.config.GLOBAL.vsCustomInputComponents = vs.getVsCustomInputComponents().raw;
+        gpu.config.GLOBAL.vsPsCustomComponents = vs.getVsPsCustomComponents().raw;
 
         addresses.vs = allocateDwords(vs.getSizeInDwords(), "vertex shader");
         uploadData(addresses.vs, vs.getData().data(), vs.getSizeInDwords());
-        gpu.config.VS.inpShaderAddress = addresses.vs;
-        gpu.config.VS.inpUniforms = vs.getUniforms().raw;
+        gpu.config.VS.shaderAddress = addresses.vs;
+        gpu.config.VS.uniforms = vs.getUniforms().raw;
 
         addresses.fs = allocateDwords(fs.getSizeInDwords(), "fragment shader");
         uploadData(addresses.fs, fs.getData().data(), fs.getSizeInDwords());
-        gpu.config.FS.inpShaderAddress = addresses.fs;
-        gpu.config.FS.inpUniforms = fs.getUniforms().raw;
+        gpu.config.FS.shaderAddress = addresses.fs;
+        gpu.config.FS.uniforms = fs.getUniforms().raw;
     }
 
     void clearFrameBuffer(uint32_t *color) {
@@ -73,17 +73,17 @@ public:
     }
 
     void setVsUniform(size_t index, uint32_t x = 0, uint32_t y = 0, uint32_t z = 0, uint32_t w = 0) {
-        gpu.config.VS.inpUniformsData[index][0] = x;
-        gpu.config.VS.inpUniformsData[index][1] = y;
-        gpu.config.VS.inpUniformsData[index][2] = z;
-        gpu.config.VS.inpUniformsData[index][3] = w;
+        gpu.config.VS.uniformsData[index][0] = x;
+        gpu.config.VS.uniformsData[index][1] = y;
+        gpu.config.VS.uniformsData[index][2] = z;
+        gpu.config.VS.uniformsData[index][3] = w;
     }
 
     void setFsUniform(size_t index, uint32_t x = 0, uint32_t y = 0, uint32_t z = 0, uint32_t w = 0) {
-        gpu.config.FS.inpUniformsData[index][0] = x;
-        gpu.config.FS.inpUniformsData[index][1] = y;
-        gpu.config.FS.inpUniformsData[index][2] = z;
-        gpu.config.FS.inpUniformsData[index][3] = w;
+        gpu.config.FS.uniformsData[index][0] = x;
+        gpu.config.FS.uniformsData[index][1] = y;
+        gpu.config.FS.uniformsData[index][2] = z;
+        gpu.config.FS.uniformsData[index][3] = w;
     }
 
     void draw() {

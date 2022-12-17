@@ -78,22 +78,22 @@ int sc_main(int argc, char *argv[]) {
     // Initialize GPU
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
-    gpu.config.GLOBAL.inpClock(clock);
-    gpu.config.GLOBAL.inpVsCustomInputComponents = vs.getVsCustomInputComponents().raw;
-    gpu.config.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
+    gpu.config.GLOBAL.clock(clock);
+    gpu.config.GLOBAL.vsCustomInputComponents = vs.getVsCustomInputComponents().raw;
+    gpu.config.GLOBAL.vsPsCustomComponents = vs.getVsPsCustomComponents().raw;
     gpu.config.GLOBAL.framebufferWidth.write(100);
     gpu.config.GLOBAL.framebufferHeight.write(100);
-    gpu.config.PA.inpVerticesAddress = vertexBufferAddress;
-    gpu.config.PA.inpVerticesCount = 6;
-    gpu.config.VS.inpShaderAddress = vsAddress;
-    gpu.config.VS.inpUniforms = vs.getUniforms().raw;
-    gpu.config.VS.inpUniformsData[0][0] = Conversions::floatBytesToUint(10.f);
-    gpu.config.VS.inpUniformsData[0][1] = Conversions::floatBytesToUint(20.f);
-    gpu.config.FS.inpShaderAddress = fsAddress;
-    gpu.config.FS.inpUniforms = fs.getUniforms().raw;
-    gpu.config.OM.inpFramebufferAddress = framebufferAddress;
-    gpu.config.OM.inpDepthEnable = 1;
-    gpu.config.OM.inpDepthBufferAddress = depthBufferAddress;
+    gpu.config.PA.verticesAddress = vertexBufferAddress;
+    gpu.config.PA.verticesCount = 6;
+    gpu.config.VS.shaderAddress = vsAddress;
+    gpu.config.VS.uniforms = vs.getUniforms().raw;
+    gpu.config.VS.uniformsData[0][0] = Conversions::floatBytesToUint(10.f);
+    gpu.config.VS.uniformsData[0][1] = Conversions::floatBytesToUint(20.f);
+    gpu.config.FS.shaderAddress = fsAddress;
+    gpu.config.FS.uniforms = fs.getUniforms().raw;
+    gpu.config.OM.framebufferAddress = framebufferAddress;
+    gpu.config.OM.depthEnable = 1;
+    gpu.config.OM.depthBufferAddress = depthBufferAddress;
 
     // Create vcd traces
     VcdTrace trace{TEST_NAME};

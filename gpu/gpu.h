@@ -40,34 +40,34 @@ SC_MODULE(Gpu) {
     // user. Ideally user should set all of the fields to desired values.
     struct {
         struct {
-            sc_in_clk inpClock{"GLOBAL_clock"};
-            sc_signal<CustomShaderComponentsType> inpVsCustomInputComponents{"GLOBAL_inpVsCustomInputComponents"};
-            sc_signal<CustomShaderComponentsType> inpVsPsCustomComponents{"GLOBAL_vsPsCustomComponents"};
+            sc_in_clk clock{"GLOBAL_clock"};
+            sc_signal<CustomShaderComponentsType> vsCustomInputComponents{"GLOBAL_vsCustomInputComponents"};
+            sc_signal<CustomShaderComponentsType> vsPsCustomComponents{"GLOBAL_vsPsCustomComponents"};
             sc_signal<VertexPositionFloatType> framebufferWidth{"GLOBAL_framebufferWidth"};
             sc_signal<VertexPositionFloatType> framebufferHeight{"GLOBAL_framebufferHeight"};
         } GLOBAL;
 
         struct {
-            sc_signal<MemoryAddressType> inpVerticesAddress{"PA_inpVerticesAddress"};
-            sc_signal<sc_uint<8>> inpVerticesCount{"PA_inpVerticesCount"};
+            sc_signal<MemoryAddressType> verticesAddress{"PA_verticesAddress"};
+            sc_signal<sc_uint<8>> verticesCount{"PA_verticesCount"};
         } PA;
 
         struct {
-            sc_signal<MemoryAddressType> inpShaderAddress{"VS_inpShaderAddress"};
-            sc_signal<CustomShaderComponentsType> inpUniforms{"VS_inpUniforms"};
-            sc_signal<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
+            sc_signal<MemoryAddressType> shaderAddress{"VS_shaderAddress"};
+            sc_signal<CustomShaderComponentsType> uniforms{"VS_uniforms"};
+            sc_signal<VertexPositionFloatType> uniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
         } VS;
 
         struct {
-            sc_signal<MemoryAddressType> inpShaderAddress{"FS_inpShaderAddress"};
-            sc_signal<CustomShaderComponentsType> inpUniforms{"FS_inpUniforms"};
-            sc_signal<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
+            sc_signal<MemoryAddressType> shaderAddress{"FS_shaderAddress"};
+            sc_signal<CustomShaderComponentsType> uniforms{"FS_uniforms"};
+            sc_signal<VertexPositionFloatType> uniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
         } FS;
 
         struct {
-            sc_signal<MemoryAddressType> inpFramebufferAddress{"OM_inpFramebufferAddress"};
-            sc_signal<bool> inpDepthEnable{"OM_inpDepthEnable"};
-            sc_signal<MemoryAddressType> inpDepthBufferAddress{"OM_inpDepthBufferAddress"};
+            sc_signal<MemoryAddressType> framebufferAddress{"OM_framebufferAddress"};
+            sc_signal<bool> depthEnable{"OM_depthEnable"};
+            sc_signal<MemoryAddressType> depthBufferAddress{"OM_depthBufferAddress"};
         } OM;
     } config;
 
