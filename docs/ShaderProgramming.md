@@ -5,6 +5,8 @@ The assembler (see [gpu/isa/assembler](gpu/isa/assembler)) can parse a *PicoGpu*
 
 Each shader consists of two sections - directives and instructions. Directives serve as metadata of the shader program, describing how it interacts with the rest of *PicoGpu*. Instructions are what actually gets executed by shader units. Instructions can alter any of the registers exposed to the shader programmer. Note that overwriting values of input registers is forbidden and can yield undefined results.
 
+Control flow instructions, such as jumps, conditionals, function calls and loops are currently unsupported in *PicoGpu* programming model.
+
 
 
 # Registers
