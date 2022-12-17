@@ -76,9 +76,8 @@ int sc_main(int argc, char *argv[]) {
     std::map<const char *, sc_time> profiling;
 
     // Initialize GPU
-    Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
-    gpu.config.GLOBAL.clock(clock);
+    Gpu gpu{"Gpu", clock};
     gpu.config.GLOBAL.vsCustomInputComponents = vs.getVsCustomInputComponents().raw;
     gpu.config.GLOBAL.vsPsCustomComponents = vs.getVsPsCustomComponents().raw;
     gpu.config.GLOBAL.framebufferWidth.write(100);
@@ -135,7 +134,7 @@ int sc_main(int argc, char *argv[]) {
     gpu.commandStreamer.blitFromMemory(framebufferAddress, pixels.get(), 100 * 100, &profiling["Read screen"]);
 
     // Print profiling results
-    gpu.waitForIdle(clock);
+    gpu.commandStreamer.waitForIdle();
     printf("Profiling data:\n");
     for (auto it : profiling) {
         printf("\t%s: %s\n", it.first, it.second.to_string().c_str());

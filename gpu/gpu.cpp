@@ -18,8 +18,8 @@ std::array<sc_out<bool> *, 10> getBlocksBusySignals(Gpu *gpu) {
     };
 }
 
-Gpu::Gpu(sc_module_name name)
-    : commandStreamer("CommandStreamer"),
+Gpu::Gpu(sc_module_name name, sc_clock &clock)
+    : commandStreamer("CommandStreamer", clock.period()),
       blitter("Blitter"),
       memoryController("MemoryController"),
       memory("Memory"),
@@ -32,26 +32,27 @@ Gpu::Gpu(sc_module_name name)
       fragmentShader("FragmentShader"),
       outputMerger("OutputMerger") {
 
-    connectClocks();
+    connectClocks(clock);
     connectInternalPorts();
     connectPublicPorts();
     connectProfilingPorts();
-    SC_CTHREAD(setBusyValue, config.GLOBAL.clock.pos());
+    SC_CTHREAD(setBusyValue, this->clock.pos());
 }
 
-void Gpu::connectClocks() {
-    commandStreamer.inpClock(config.GLOBAL.clock);
-    blitter.inpClock(config.GLOBAL.clock);
-    memoryController.inpClock(config.GLOBAL.clock);
-    memory.inpClock(config.GLOBAL.clock);
-    shaderFrontend.inpClock(config.GLOBAL.clock);
-    shaderUnit0.inpClock(config.GLOBAL.clock);
-    shaderUnit1.inpClock(config.GLOBAL.clock);
-    primitiveAssembler.inpClock(config.GLOBAL.clock);
-    vertexShader.inpClock(config.GLOBAL.clock);
-    rasterizer.inpClock(config.GLOBAL.clock);
-    fragmentShader.inpClock(config.GLOBAL.clock);
-    outputMerger.inpClock(config.GLOBAL.clock);
+void Gpu::connectClocks(sc_clock &clock) {
+    this->clock(clock);
+    commandStreamer.inpClock(clock);
+    blitter.inpClock(clock);
+    memoryController.inpClock(clock);
+    memory.inpClock(clock);
+    shaderFrontend.inpClock(clock);
+    shaderUnit0.inpClock(clock);
+    shaderUnit1.inpClock(clock);
+    primitiveAssembler.inpClock(clock);
+    vertexShader.inpClock(clock);
+    rasterizer.inpClock(clock);
+    fragmentShader.inpClock(clock);
+    outputMerger.inpClock(clock);
 }
 
 void Gpu::connectInternalPorts() {
@@ -61,7 +62,8 @@ void Gpu::connectInternalPorts() {
     ports.connectPorts(blitter.command.inpMemoryPtr, commandStreamer.bltBlock.outMemoryPtr, "CS_BLT_memoryPtr");
     ports.connectPorts(blitter.command.inpUserPtr, commandStreamer.bltBlock.outUserPtr, "CS_BLT_userPtr");
     ports.connectPorts(blitter.command.inpSizeInDwords, commandStreamer.bltBlock.outSizeInDwords, "CS_BLT_size");
-    commandStreamer.inpGpuBusy(out.busyNoCs);
+    commandStreamer.inpGpuBusy(out.busy);
+    commandStreamer.inpGpuBusyNoCs(out.busyNoCs);
 
     // MEM <-> MEMCTL
     ports.connectMemoryToClient(memoryController.memory, memory, "MEM_MEMCTL");
@@ -176,7 +178,7 @@ void Gpu::connectProfilingPorts() {
 
 void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalPorts) {
     if (publicPorts) {
-        trace.trace(config.GLOBAL.clock);
+        trace.trace(clock);
         trace.trace(config.GLOBAL.vsCustomInputComponents);
         trace.trace(config.GLOBAL.vsPsCustomComponents);
         trace.trace(config.GLOBAL.framebufferWidth);
@@ -203,16 +205,9 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
 
 void Gpu::addProfilingSignalsToVcdTrace(VcdTrace &trace) {
     profilingPorts.addSignalsToTrace(trace);
-    trace.trace(config.GLOBAL.clock);
+    trace.trace(clock);
     trace.trace(out.busyNoCs);
     trace.trace(out.busy);
-}
-
-void Gpu::waitForIdle(const sc_clock &clock) const {
-    sc_start(4 * clock.period());
-    do {
-        sc_start(clock.period());
-    } while (out.busy.read());
 }
 
 void Gpu::setBusyValue() {

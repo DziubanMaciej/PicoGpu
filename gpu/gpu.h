@@ -20,7 +20,7 @@ class VcdTrace;
 SC_MODULE(Gpu) {
     constexpr static inline size_t memorySize = 21000;
     SC_HAS_PROCESS(Gpu);
-    Gpu(sc_module_name name);
+    Gpu(sc_module_name name, sc_clock &clock);
 
     // Blocks of the GPU
     CommandStreamer commandStreamer;       // abbreviation: CS
@@ -40,7 +40,6 @@ SC_MODULE(Gpu) {
     // user. Ideally user should set all of the fields to desired values.
     struct {
         struct {
-            sc_in_clk clock{"GLOBAL_clock"};
             sc_signal<CustomShaderComponentsType> vsCustomInputComponents{"GLOBAL_vsCustomInputComponents"};
             sc_signal<CustomShaderComponentsType> vsPsCustomComponents{"GLOBAL_vsPsCustomComponents"};
             sc_signal<VertexPositionFloatType> framebufferWidth{"GLOBAL_framebufferWidth"};
@@ -81,16 +80,15 @@ SC_MODULE(Gpu) {
     void addSignalsToVcdTrace(VcdTrace & trace, bool publicPorts, bool internalPorts);
     void addProfilingSignalsToVcdTrace(VcdTrace & trace);
 
-    void waitForIdle(const sc_clock &clock) const;
-
 private:
-    void connectClocks();
+    void connectClocks(sc_clock &clock);
     void connectInternalPorts();
     void connectPublicPorts();
     void connectProfilingPorts();
 
     void setBusyValue();
 
+    sc_in_clk clock{"clock"};
     PortConnector ports;
     PortConnector profilingPorts;
 };

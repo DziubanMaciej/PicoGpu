@@ -8,7 +8,7 @@ void CommandStreamer::main() {
     while (true) {
         wait();
 
-        if (commands.empty() || inpGpuBusy.read()) {
+        if (commands.empty() || inpGpuBusyNoCs.read()) {
             profiling.outBusy = 0;
             if (command.profilingData.outTimeTaken) {
                 *command.profilingData.outTimeTaken = sc_time_stamp() - beginTime;
@@ -61,4 +61,11 @@ void CommandStreamer::blit(Blitter::CommandType blitType, MemoryAddressType memo
     command.blitData.sizeInDwords = sizeInDwords;
     command.profilingData.outTimeTaken = outTimeTaken;
     commands.push(command);
+}
+
+void CommandStreamer::waitForIdle() const {
+    sc_start(4 * clockPeriod);
+    do {
+        sc_start(clockPeriod);
+    } while (inpGpuBusy.read());
 }

@@ -11,15 +11,12 @@
 
 class GpuWrapper {
 public:
-    GpuWrapper(Gpu &gpu, sc_clock &clock, size_t screenWidth, size_t screenHeight)
+    GpuWrapper(Gpu &gpu, size_t screenWidth, size_t screenHeight)
         : gpu(gpu),
-          clock(clock),
           screenWidth(screenWidth),
           screenHeight(screenHeight),
           pixels(std::make_unique<uint32_t[]>(screenWidth * screenHeight)) {
         sc_report_handler::set_actions(SC_INFO, SC_DO_NOTHING);
-
-        gpu.config.GLOBAL.clock(clock);
 
         addresses.frameBuffer = allocateDwords(screenWidth * screenHeight, "frame buffer");
         gpu.config.GLOBAL.framebufferWidth.write(screenWidth);
@@ -91,7 +88,7 @@ public:
     }
 
     void waitForIdle() {
-        gpu.waitForIdle(clock);
+        gpu.commandStreamer.waitForIdle();
     }
 
     const uint32_t *readFramebuffer(bool blocking) {
@@ -132,7 +129,6 @@ private:
     // Constants
     float infinity = 100;
     Gpu &gpu;
-    sc_clock &clock;
     size_t screenWidth;
     size_t screenHeight;
 
@@ -373,13 +369,13 @@ int sc_main(int argc, char *argv[]) {
     };
     const size_t vertexCount = sizeof(vertices) / sizeof(Vertex);
 
-    Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
-    GpuWrapper gpuWrapper{gpu, clock, 100, 100};
+    Gpu gpu{"Gpu", clock};
+    GpuWrapper gpuWrapper{gpu, 100, 100};
 
     gpuWrapper.setShaders(vsCode, fsCode);
-    gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(50)); // rotation origin
-    gpuWrapper.setFsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(-40));  // light position
+    gpuWrapper.setVsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(50));  // rotation origin
+    gpuWrapper.setFsUniform(0, Conversions::floatBytesToUint(50), Conversions::floatBytesToUint(30), Conversions::floatBytesToUint(-40)); // light position
     gpuWrapper.setDepth();
     gpuWrapper.setVertices((uint32_t *)vertices, vertexCount, 6);
 

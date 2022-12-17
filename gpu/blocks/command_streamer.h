@@ -9,6 +9,7 @@
 SC_MODULE(CommandStreamer) {
     sc_in_clk inpClock;
     sc_in<bool> inpGpuBusy;
+    sc_in<bool> inpGpuBusyNoCs;
 
     struct PrimitiveAssemblerBlock {
         sc_out<bool> outEnable;
@@ -25,7 +26,8 @@ SC_MODULE(CommandStreamer) {
         sc_out<bool> outBusy;
     } profiling;
 
-    SC_CTOR(CommandStreamer) {
+    SC_HAS_PROCESS(CommandStreamer);
+    CommandStreamer(sc_module_name name, sc_time clockPeriod) : clockPeriod(clockPeriod) {
         SC_CTHREAD(main, inpClock.pos());
     }
 
@@ -34,6 +36,8 @@ SC_MODULE(CommandStreamer) {
     void blitToMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken) { blit(Blitter::CommandType::CopyToMem, memoryPtr, userPtr, sizeInDwords, outTimeTaken); }
     void blitFromMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken) { blit(Blitter::CommandType::CopyFromMem, memoryPtr, userPtr, sizeInDwords, outTimeTaken); }
     void fillMemory(MemoryAddressType memoryPtr, uint32_t * userPtr, size_t sizeInDwords, sc_time * outTimeTaken) { blit(Blitter::CommandType::FillMem, memoryPtr, userPtr, sizeInDwords, outTimeTaken); }
+
+    void waitForIdle() const;
 
 private:
     void main();
@@ -56,6 +60,6 @@ private:
         BlitData blitData;
         ProfilingData profilingData;
     };
-
-    std::queue<Command> commands;
+    std::queue<Command> commands = {};
+    sc_time clockPeriod;
 };
