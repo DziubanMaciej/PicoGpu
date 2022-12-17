@@ -69,7 +69,7 @@ SC_MODULE(Gpu) {
             sc_signal<bool> inpDepthEnable{"OM_inpDepthEnable"};
             sc_signal<MemoryAddressType> inpDepthBufferAddress{"OM_inpDepthBufferAddress"};
         } OM;
-    } blocks;
+    } config;
 
     // This structure represents outputs signals to be read by user. The user
     // should not set any of these signals to any value and treat them as read-only.

@@ -78,22 +78,22 @@ int sc_main(int argc, char *argv[]) {
     // Initialize GPU
     Gpu gpu{"Gpu"};
     sc_clock clock("clock", 1, SC_NS, 0.5, 0, SC_NS, true);
-    gpu.blocks.GLOBAL.inpClock(clock);
-    gpu.blocks.GLOBAL.inpVsCustomInputComponents = vs.getVsCustomInputComponents().raw;
-    gpu.blocks.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
-    gpu.blocks.GLOBAL.framebufferWidth.write(100);
-    gpu.blocks.GLOBAL.framebufferHeight.write(100);
-    gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
-    gpu.blocks.PA.inpVerticesCount = 6;
-    gpu.blocks.VS.inpShaderAddress = vsAddress;
-    gpu.blocks.VS.inpUniforms = vs.getUniforms().raw;
-    gpu.blocks.VS.inpUniformsData[0][0] = Conversions::floatBytesToUint(10.f);
-    gpu.blocks.VS.inpUniformsData[0][1] = Conversions::floatBytesToUint(20.f);
-    gpu.blocks.FS.inpShaderAddress = fsAddress;
-    gpu.blocks.FS.inpUniforms = fs.getUniforms().raw;
-    gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;
-    gpu.blocks.OM.inpDepthEnable = 1;
-    gpu.blocks.OM.inpDepthBufferAddress = depthBufferAddress;
+    gpu.config.GLOBAL.inpClock(clock);
+    gpu.config.GLOBAL.inpVsCustomInputComponents = vs.getVsCustomInputComponents().raw;
+    gpu.config.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
+    gpu.config.GLOBAL.framebufferWidth.write(100);
+    gpu.config.GLOBAL.framebufferHeight.write(100);
+    gpu.config.PA.inpVerticesAddress = vertexBufferAddress;
+    gpu.config.PA.inpVerticesCount = 6;
+    gpu.config.VS.inpShaderAddress = vsAddress;
+    gpu.config.VS.inpUniforms = vs.getUniforms().raw;
+    gpu.config.VS.inpUniformsData[0][0] = Conversions::floatBytesToUint(10.f);
+    gpu.config.VS.inpUniformsData[0][1] = Conversions::floatBytesToUint(20.f);
+    gpu.config.FS.inpShaderAddress = fsAddress;
+    gpu.config.FS.inpUniforms = fs.getUniforms().raw;
+    gpu.config.OM.inpFramebufferAddress = framebufferAddress;
+    gpu.config.OM.inpDepthEnable = 1;
+    gpu.config.OM.inpDepthBufferAddress = depthBufferAddress;
 
     // Create vcd traces
     VcdTrace trace{TEST_NAME};
