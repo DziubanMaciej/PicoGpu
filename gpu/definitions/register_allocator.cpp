@@ -9,10 +9,11 @@ RegisterAllocator::RegisterAllocator(Isa::Command::CommandStoreIsa isaMetadata)
     : usedRegistersMask(constructUsedRegistersMaskFromIsaMetadata(isaMetadata)) {}
 
 Isa::RegisterSelection RegisterAllocator::allocate() {
-    // TODO remember last retrieved bit and add startBit argument to findBit function
-    int32_t index = findBit(usedRegistersMask, false);
+    int32_t index = findBit(usedRegistersMask, false, startRegisterToAllocate);
     FATAL_ERROR_IF(index < 0, "Failed to find free register");
+
     setBit(usedRegistersMask, index);
+    startRegisterToAllocate = index + 1;
     return Isa::RegisterSelection(index);
 }
 

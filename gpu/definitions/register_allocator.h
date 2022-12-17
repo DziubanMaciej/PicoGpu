@@ -16,4 +16,5 @@ private:
     static MaskType constructUsedRegistersMaskFromIsaMetadata(Isa::Command::CommandStoreIsa isaMetadata);
 
     MaskType usedRegistersMask;
+    Isa::RegisterSelection startRegisterToAllocate = 0; // cached to minimize number of loops through the bitmask
 };

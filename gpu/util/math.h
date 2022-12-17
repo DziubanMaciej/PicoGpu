@@ -23,11 +23,11 @@ inline size_t countBits(Integral number) {
 }
 
 template <typename Integral>
-inline int32_t findBit(Integral bits, bool findSetBit) {
+inline int32_t findBit(Integral bits, bool findSetBit, uint32_t startBit = 0) {
     // There are some super-performant platform-specific intrinsics for bit scanning, but this is fine too.
 
     const auto bitCount = sizeof(Integral) * 8;
-    for (uint32_t bitIndex = 0; bitIndex < bitCount; bitIndex++) {
+    for (uint32_t bitIndex = startBit; bitIndex < bitCount; bitIndex++) {
         if (isBitSet(bits, bitIndex) == findSetBit) {
             return bitIndex;
         }
