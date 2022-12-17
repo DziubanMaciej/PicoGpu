@@ -22,8 +22,8 @@ public:
         gpu.blocks.GLOBAL.inpClock(clock);
 
         addresses.frameBuffer = allocateDwords(screenWidth * screenHeight, "frame buffer");
-        gpu.blocks.RS_OM.framebufferWidth.write(screenWidth);
-        gpu.blocks.RS_OM.framebufferHeight.write(screenHeight);
+        gpu.blocks.GLOBAL.framebufferWidth.write(screenWidth);
+        gpu.blocks.GLOBAL.framebufferHeight.write(screenHeight);
         gpu.blocks.OM.inpFramebufferAddress = addresses.frameBuffer;
     }
 

@@ -81,14 +81,14 @@ int sc_main(int argc, char *argv[]) {
     gpu.blocks.GLOBAL.inpClock(clock);
     gpu.blocks.GLOBAL.inpVsCustomInputComponents = vs.getVsCustomInputComponents().raw;
     gpu.blocks.GLOBAL.inpVsPsCustomComponents = vs.getVsPsCustomComponents().raw;
+    gpu.blocks.GLOBAL.framebufferWidth.write(100);
+    gpu.blocks.GLOBAL.framebufferHeight.write(100);
     gpu.blocks.PA.inpVerticesAddress = vertexBufferAddress;
     gpu.blocks.PA.inpVerticesCount = 6;
     gpu.blocks.VS.inpShaderAddress = vsAddress;
     gpu.blocks.VS.inpUniforms = vs.getUniforms().raw;
     gpu.blocks.VS.inpUniformsData[0][0] = Conversions::floatBytesToUint(10.f);
     gpu.blocks.VS.inpUniformsData[0][1] = Conversions::floatBytesToUint(20.f);
-    gpu.blocks.RS_OM.framebufferWidth.write(100);
-    gpu.blocks.RS_OM.framebufferHeight.write(100);
     gpu.blocks.FS.inpShaderAddress = fsAddress;
     gpu.blocks.FS.inpUniforms = fs.getUniforms().raw;
     gpu.blocks.OM.inpFramebufferAddress = framebufferAddress;

@@ -43,6 +43,8 @@ SC_MODULE(Gpu) {
             sc_in_clk inpClock{"GLOBAL_clock"};
             sc_signal<CustomShaderComponentsType> inpVsCustomInputComponents{"GLOBAL_inpVsCustomInputComponents"};
             sc_signal<CustomShaderComponentsType> inpVsPsCustomComponents{"GLOBAL_vsPsCustomComponents"};
+            sc_signal<VertexPositionFloatType> framebufferWidth{"GLOBAL_framebufferWidth"};
+            sc_signal<VertexPositionFloatType> framebufferHeight{"GLOBAL_framebufferHeight"};
         } GLOBAL;
 
         struct {
@@ -55,11 +57,6 @@ SC_MODULE(Gpu) {
             sc_signal<CustomShaderComponentsType> inpUniforms{"VS_inpUniforms"};
             sc_signal<VertexPositionFloatType> inpUniformsData[Isa::maxInputOutputRegisters][Isa::registerComponentsCount];
         } VS;
-
-        struct {
-            sc_signal<VertexPositionFloatType> framebufferWidth{"RS_OM_framebufferWidth"};
-            sc_signal<VertexPositionFloatType> framebufferHeight{"RS_OM_framebufferHeight"};
-        } RS_OM;
 
         struct {
             sc_signal<MemoryAddressType> inpShaderAddress{"FS_inpShaderAddress"};

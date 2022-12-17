@@ -121,8 +121,8 @@ void Gpu::connectPublicPorts() {
     }
 
     rasterizer.inpCustomVsPsComponents(blocks.GLOBAL.inpVsPsCustomComponents);
-    rasterizer.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
-    rasterizer.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
+    rasterizer.framebuffer.inpWidth(blocks.GLOBAL.framebufferWidth);
+    rasterizer.framebuffer.inpHeight(blocks.GLOBAL.framebufferHeight);
 
     fragmentShader.inpCustomInputComponents(blocks.GLOBAL.inpVsPsCustomComponents);
     fragmentShader.inpShaderAddress(blocks.FS.inpShaderAddress);
@@ -138,8 +138,8 @@ void Gpu::connectPublicPorts() {
     outputMerger.framebuffer.inpAddress(blocks.OM.inpFramebufferAddress);
     outputMerger.depth.inpEnable(blocks.OM.inpDepthEnable);
     outputMerger.depth.inpAddress(blocks.OM.inpDepthBufferAddress);
-    outputMerger.framebuffer.inpWidth(blocks.RS_OM.framebufferWidth);
-    outputMerger.framebuffer.inpHeight(blocks.RS_OM.framebufferHeight);
+    outputMerger.framebuffer.inpWidth(blocks.GLOBAL.framebufferWidth);
+    outputMerger.framebuffer.inpHeight(blocks.GLOBAL.framebufferHeight);
 }
 
 void Gpu::connectProfilingPorts() {
@@ -179,15 +179,14 @@ void Gpu::addSignalsToVcdTrace(VcdTrace &trace, bool publicPorts, bool internalP
         trace.trace(blocks.GLOBAL.inpClock);
         trace.trace(blocks.GLOBAL.inpVsCustomInputComponents);
         trace.trace(blocks.GLOBAL.inpVsPsCustomComponents);
+        trace.trace(blocks.GLOBAL.framebufferWidth);
+        trace.trace(blocks.GLOBAL.framebufferHeight);
 
         trace.trace(blocks.PA.inpVerticesAddress);
         trace.trace(blocks.PA.inpVerticesCount);
 
         trace.trace(blocks.VS.inpShaderAddress);
         trace.trace(blocks.VS.inpUniforms);
-
-        trace.trace(blocks.RS_OM.framebufferWidth);
-        trace.trace(blocks.RS_OM.framebufferHeight);
 
         trace.trace(blocks.FS.inpShaderAddress);
         trace.trace(blocks.FS.inpUniforms);
