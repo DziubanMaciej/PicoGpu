@@ -91,7 +91,6 @@ void FragmentShader::perFragmentThread() {
         request.header.dword2.inputSize0 = NonZeroCount::Two; // First input is always x,y position
         request.header.dword2.inputSize1 = customInputComponents.comp0;
         request.header.dword2.inputSize2 = customInputComponents.comp1;
-        request.header.dword2.inputSize3 = customInputComponents.comp2;
         request.header.dword2.outputsCount = NonZeroCount::Two;
         request.header.dword2.outputSize0 = NonZeroCount::Four; // color data r,g,b,a
         request.header.dword2.outputSize1 = NonZeroCount::One;  // interpolated z
@@ -99,7 +98,6 @@ void FragmentShader::perFragmentThread() {
         request.header.dword2.uniformSize0 = uniformsInfo.comp0;
         request.header.dword2.uniformSize1 = uniformsInfo.comp1;
         request.header.dword2.uniformSize2 = uniformsInfo.comp2;
-        request.header.dword2.uniformSize3 = uniformsInfo.comp3;
         const size_t requestSize = sizeof(ShaderFrontendRequest) / sizeof(uint32_t) + dataDwords;
         Transfer::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), requestSize);

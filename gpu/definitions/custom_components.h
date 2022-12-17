@@ -11,7 +11,6 @@ union CustomShaderComponents {
         NonZeroCount comp0 : Isa::registerComponentsCountExponent;
         NonZeroCount comp1 : Isa::registerComponentsCountExponent;
         NonZeroCount comp2 : Isa::registerComponentsCountExponent;
-        NonZeroCount comp3 : Isa::registerComponentsCountExponent;
     };
     uint32_t raw;
 
@@ -35,8 +34,6 @@ union CustomShaderComponents {
             return nonZeroCountToInt(comp1);
         case 2:
             return nonZeroCountToInt(comp2);
-        case 3:
-            return nonZeroCountToInt(comp3);
         default:
             FATAL_ERROR("Invalid registerIndex");
         }

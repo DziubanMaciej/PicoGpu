@@ -154,33 +154,27 @@ void PicoGpuBinary::finalizeInputOutputDirectives(IoType ioType) {
         command.inputSize0 = intToNonZeroCount(io.regs[0].componentsCount);
         command.inputSize1 = intToNonZeroCount(io.regs[1].componentsCount);
         command.inputSize2 = intToNonZeroCount(io.regs[2].componentsCount);
-        command.inputSize3 = intToNonZeroCount(io.regs[3].componentsCount);
         command.inputRegister0 = io.regs[0].index;
         command.inputRegister1 = io.regs[1].index;
         command.inputRegister2 = io.regs[2].index;
-        command.inputRegister3 = io.regs[3].index;
         break;
     case IoType::Output:
         command.outputsCount = intToNonZeroCount(io.usedRegsCount);
         command.outputSize0 = intToNonZeroCount(io.regs[0].componentsCount);
         command.outputSize1 = intToNonZeroCount(io.regs[1].componentsCount);
         command.outputSize2 = intToNonZeroCount(io.regs[2].componentsCount);
-        command.outputSize3 = intToNonZeroCount(io.regs[3].componentsCount);
         command.outputRegister0 = io.regs[0].index;
         command.outputRegister1 = io.regs[1].index;
         command.outputRegister2 = io.regs[2].index;
-        command.outputRegister3 = io.regs[3].index;
         break;
     case IoType::Uniform:
         command.uniformsCount = io.usedRegsCount;
         command.uniformSize0 = intToNonZeroCount(io.regs[0].componentsCount);
         command.uniformSize1 = intToNonZeroCount(io.regs[1].componentsCount);
         command.uniformSize2 = intToNonZeroCount(io.regs[2].componentsCount);
-        command.uniformSize3 = intToNonZeroCount(io.regs[3].componentsCount);
         command.uniformRegister0 = io.regs[0].index;
         command.uniformRegister1 = io.regs[1].index;
         command.uniformRegister2 = io.regs[2].index;
-        command.uniformRegister3 = io.regs[3].index;
         break;
     default:
         FATAL_ERROR("Unknown IoType");
@@ -251,7 +245,6 @@ CustomShaderComponents PicoGpuBinary::getVsCustomInputComponents() {
     result.comp0 = intToNonZeroCount(inputs.regs[0].componentsCount);
     result.comp1 = intToNonZeroCount(inputs.regs[1].componentsCount);
     result.comp2 = intToNonZeroCount(inputs.regs[2].componentsCount);
-    result.comp3 = intToNonZeroCount(inputs.regs[3].componentsCount);
     return result;
 }
 
@@ -291,7 +284,6 @@ CustomShaderComponents PicoGpuBinary::getUniforms() {
     result.comp0 = intToNonZeroCount(uniforms.regs[0].componentsCount);
     result.comp1 = intToNonZeroCount(uniforms.regs[1].componentsCount);
     result.comp2 = intToNonZeroCount(uniforms.regs[2].componentsCount);
-    result.comp3 = intToNonZeroCount(uniforms.regs[3].componentsCount);
     return result;
 }
 
@@ -404,8 +396,7 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
 
     // Prepare register indices to operate on
     RegisterAllocator registerAllocator{inputs.usedRegsMask};
-    size_t maxInputOutputRegisters = 3; // TODO remove it and make Isa::maxInputOutputRegisters=3
-    RegisterIndex regPerTriangleAttrib[verticesInPrimitive][maxInputOutputRegisters] = {};
+    RegisterIndex regPerTriangleAttrib[verticesInPrimitive][Isa::maxInputOutputRegisters] = {};
     for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
         for (int inputIndex = 0; inputIndex < inputs.usedRegsCount; inputIndex++) {
             regPerTriangleAttrib[vertexIndex][inputIndex] = registerAllocator.allocate(); // this has to be in sync with how SU lays out these attributes
@@ -472,7 +463,7 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     }
 
     // Interpolate custom attributes
-    for (uint32_t i = 1; i < maxInputOutputRegisters; i++) {
+    for (uint32_t i = 1; i < Isa::maxInputOutputRegisters; i++) {
         if (inputs.regs[i].usage == InputOutputRegisterUsage::Custom) {
             const auto regDst = inputs.regs[i].index;
             const auto mask = inputs.regs[i].mask;

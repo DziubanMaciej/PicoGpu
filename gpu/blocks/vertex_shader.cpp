@@ -52,17 +52,14 @@ void VertexShader::main() {
         request.header.dword2.inputSize0 = inputComponentsInfo.comp0;
         request.header.dword2.inputSize1 = inputComponentsInfo.comp1;
         request.header.dword2.inputSize2 = inputComponentsInfo.comp2;
-        request.header.dword2.inputSize3 = inputComponentsInfo.comp3;
         request.header.dword2.outputsCount = NonZeroCount::One + intToNonZeroCount(customOutputRegistersCount);
         request.header.dword2.outputSize0 = NonZeroCount::Four;
         request.header.dword2.outputSize1 = customOutputComponents.comp0;
         request.header.dword2.outputSize2 = customOutputComponents.comp1;
-        request.header.dword2.outputSize3 = customOutputComponents.comp2;
         request.header.dword2.uniformsCount = uniformsInfo.registersCount;
         request.header.dword2.uniformSize0 = uniformsInfo.comp0;
         request.header.dword2.uniformSize1 = uniformsInfo.comp1;
         request.header.dword2.uniformSize2 = uniformsInfo.comp2;
-        request.header.dword2.uniformSize3 = uniformsInfo.comp3;
 
         // Perform the request
         const size_t dwordsToSend = sizeof(ShaderFrontendRequest) / sizeof(uint32_t) + dataDwords;

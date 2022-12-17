@@ -234,8 +234,6 @@ NonZeroCount ShaderUnit::getInputOutputSize(bool input, uint32_t index) const {
         return input ? isaMetadata.inputSize1 : isaMetadata.outputSize1;
     case 2:
         return input ? isaMetadata.inputSize2 : isaMetadata.outputSize2;
-    case 3:
-        return input ? isaMetadata.inputSize3 : isaMetadata.outputSize3;
     default:
         FATAL_ERROR("Invalid index for ", __FUNCTION__);
     }
@@ -249,8 +247,6 @@ NonZeroCount ShaderUnit::getUniformSize(uint32_t index) const {
         return isaMetadata.uniformSize1;
     case 2:
         return isaMetadata.uniformSize2;
-    case 3:
-        return isaMetadata.uniformSize3;
     default:
         FATAL_ERROR("Invalid index for ", __FUNCTION__);
     }
@@ -264,8 +260,6 @@ Isa::RegisterIndex ShaderUnit::getInputOutputRegisterIndex(bool input, uint32_t 
         return input ? isaMetadata.inputRegister1 : isaMetadata.outputRegister1;
     case 2:
         return input ? isaMetadata.inputRegister2 : isaMetadata.outputRegister2;
-    case 3:
-        return input ? isaMetadata.inputRegister3 : isaMetadata.outputRegister3;
     default:
         FATAL_ERROR("Invalid index for ", __FUNCTION__);
     }
@@ -279,8 +273,6 @@ Isa::RegisterIndex ShaderUnit::getUniformRegisterIndex(uint32_t index) const {
         return isaMetadata.uniformRegister1;
     case 2:
         return isaMetadata.uniformRegister2;
-    case 3:
-        return isaMetadata.uniformRegister3;
     default:
         FATAL_ERROR("Invalid index for ", __FUNCTION__);
     }

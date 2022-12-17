@@ -43,15 +43,15 @@ int sc_main(int argc, char *argv[]) {
                "#input r0.xyzw\n"
                "#input r1.xyz\n"
                "#input r2.xyz\n"
-               "#input r3.xyzw\n"
                "#output r12.xyzw\n"
                "#output r13.xyz\n"
                "#output r14.xyz\n"
-               "#output r15.xy\n"
+               "#uniform r5.x\n"
+               "#uniform r6.x\n"
+               "#uniform r7.x\n"
                "mov r12 r0\n"
                "mov r13 r1\n"
-               "mov r14 r2\n"
-               "mov r15 r3\n");
+               "mov r14 r2\n");
     expectPass(success, "Arg auto passthrough",
                "#vertexShader\n"
                "#input r13.xyzw\n"
@@ -133,25 +133,34 @@ int sc_main(int argc, char *argv[]) {
                "mov r12 r0\n");
 
     expectFail(success, "Too many inputs",
-               "Too many input directives. Max is 4",
+               "Too many input directives. Max is 3",
                "#vertexShader\n"
                "#input r0.xyzw\n"
                "#input r1.xyzw\n"
                "#input r2.xyzw\n"
                "#input r3.xyzw\n"
-               "#input r4.xyzw\n"
                "#output r12.xyzw\n"
                "mov r12 r0\n");
 
     expectFail(success, "Too many outputs",
-               "Too many output directives. Max is 4",
+               "Too many output directives. Max is 3",
                "#vertexShader\n"
                "#input r0.xyzw\n"
                "#output r12.xyzw\n"
                "#output r13.xyzw\n"
                "#output r14.xyzw\n"
                "#output r15.xyzw\n"
-               "#output r9.xyzw\n"
+               "mov r12 r0\n");
+
+    expectFail(success, "Too many uniforms",
+               "Too many uniform directives. Max is 3",
+               "#vertexShader\n"
+               "#input r0.xyzw\n"
+               "#output r12.xyzw\n"
+               "#uniform r5.x\n"
+               "#uniform r6.x\n"
+               "#uniform r7.x\n"
+               "#uniform r8.x\n"
                "mov r12 r0\n");
 
     expectFail(success, "Duplicate input",
@@ -165,16 +174,16 @@ int sc_main(int argc, char *argv[]) {
     expectFail(success, "Swizzled source",
                "",
                "#vertexShader\n"
-               "#input r0.xyzw"
-               "#output r12.xyzw"
-               "mov r12 r0.xyz");
+               "#input r0.xyzw\n"
+               "#output r12.xyzw\n"
+               "mov r12 r0.xyz\n");
 
     expectFail(success, "Non full swizzle",
                "",
                "#vertexShader\n"
-               "#input r0.xyzw"
-               "#output r12.xyzw"
-               "swizzle r12 r0.xyw");
+               "#input r0.xyzw\n"
+               "#output r12.xyzw\n"
+               "swizzle r12 r0.xyw\n");
 
     expectFail(success, "No shader type directive",
                "No program type specification",
@@ -194,14 +203,14 @@ int sc_main(int argc, char *argv[]) {
                "FragmentShader must use exactly one output register",
                "#fragmentShader\n"
                "#input r0.xyzw\n"
-               "mov r12 r0");
+               "mov r12 r0\n");
 
     expectFail(success, "Wrong output components FS",
                "FragmentShader must use a 4-component color vector as its only output",
                "#fragmentShader\n"
                "#input r0.xyzw\n"
                "#output r12.xyz\n"
-               "mov r12 r0");
+               "mov r12 r0\n");
 
     expectFail(success, "Too many outputs FS",
                "FragmentShader must use exactly one output register",
@@ -209,7 +218,7 @@ int sc_main(int argc, char *argv[]) {
                "#input r0.xyzw\n"
                "#output r12.xyzw\n"
                "#output r13.x\n"
-               "mov r12 r0");
+               "mov r12 r0\n");
 
     expectFail(success, "Multiple undefined regs directives",
                "Multiple undefined regs directives",
@@ -218,7 +227,7 @@ int sc_main(int argc, char *argv[]) {
                "#output r0.xyzw\n"
                "#undefinedRegs\n"
                "#undefinedRegs\n"
-               "mov r0 r0");
+               "mov r0 r0\n");
 
     return success ? 0 : 1;
 }

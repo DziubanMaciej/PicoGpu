@@ -17,7 +17,7 @@ constexpr inline size_t maxIsaSize = 1 << maxIsaSizeExponent;
 constexpr inline size_t generalPurposeRegistersCountExponent = 4;
 constexpr inline size_t generalPurposeRegistersCount = 1 << generalPurposeRegistersCountExponent;
 constexpr inline size_t maxInputOutputRegistersExponent = 2;
-constexpr inline size_t maxInputOutputRegisters = 1 << maxInputOutputRegistersExponent;
+constexpr inline size_t maxInputOutputRegisters = 3;
 constexpr inline size_t registerComponentsCountExponent = 2;
 constexpr inline size_t registerComponentsCount = 1 << 2;
 constexpr inline size_t commandSizeInDwords = 3;
@@ -59,8 +59,6 @@ namespace Command {
             RegisterIndex inputRegister1 : generalPurposeRegistersCountExponent;
             NonZeroCount inputSize2 : registerComponentsCountExponent;
             RegisterIndex inputRegister2 : generalPurposeRegistersCountExponent;
-            NonZeroCount inputSize3 : registerComponentsCountExponent;
-            RegisterIndex inputRegister3 : generalPurposeRegistersCountExponent;
 
             NonZeroCount outputsCount : maxInputOutputRegistersExponent;
             NonZeroCount outputSize0 : registerComponentsCountExponent;
@@ -69,8 +67,6 @@ namespace Command {
             RegisterIndex outputRegister1 : generalPurposeRegistersCountExponent;
             NonZeroCount outputSize2 : registerComponentsCountExponent;
             RegisterIndex outputRegister2 : generalPurposeRegistersCountExponent;
-            NonZeroCount outputSize3 : registerComponentsCountExponent;
-            RegisterIndex outputRegister3 : generalPurposeRegistersCountExponent;
 
             uint32_t uniformsCount : 3;
             NonZeroCount uniformSize0 : registerComponentsCountExponent;
@@ -79,8 +75,6 @@ namespace Command {
             RegisterIndex uniformRegister1 : generalPurposeRegistersCountExponent;
             NonZeroCount uniformSize2 : registerComponentsCountExponent;
             RegisterIndex uniformRegister2 : generalPurposeRegistersCountExponent;
-            NonZeroCount uniformSize3 : registerComponentsCountExponent;
-            RegisterIndex uniformRegister3 : generalPurposeRegistersCountExponent;
         };
         uint32_t raw[commandSizeInDwords];
     };

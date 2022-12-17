@@ -205,9 +205,6 @@ size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendReques
         if (attributesCount > 2) {
             perRequestInputs += nonZeroCountToInt(request.dword2.inputSize2);
         }
-        if (attributesCount > 3) {
-            perRequestInputs += nonZeroCountToInt(request.dword2.inputSize3);
-        }
         perRequestInputs *= 3; // Above inputs will be placed for each vertex in the triangle
     } else {
         if (attributesCount > 0) {
@@ -218,9 +215,6 @@ size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendReques
         }
         if (attributesCount > 2) {
             perThreadInputs += nonZeroCountToInt(request.dword2.inputSize2);
-        }
-        if (attributesCount > 3) {
-            perThreadInputs += nonZeroCountToInt(request.dword2.inputSize3);
         }
     }
 
@@ -234,9 +228,6 @@ size_t ShaderFrontendBase::calculateShaderInputsCount(const ShaderFrontendReques
     }
     if (uniformsCount > 2) {
         perRequestInputs += nonZeroCountToInt(request.dword2.uniformSize2);
-    }
-    if (uniformsCount > 3) {
-        perRequestInputs += nonZeroCountToInt(request.dword2.uniformSize3);
     }
 
     return perThreadInputs * nonZeroCountToInt(request.dword1.threadCount) + perRequestInputs;
@@ -254,9 +245,6 @@ size_t ShaderFrontendBase::calculateShaderOutputsCount(const ShaderFrontendReque
     }
     if (registersCount > 2) {
         components += nonZeroCountToInt(request.dword2.outputSize2);
-    }
-    if (registersCount > 3) {
-        components += nonZeroCountToInt(request.dword2.outputSize3);
     }
 
     components *= nonZeroCountToInt(request.dword1.threadCount);
@@ -278,9 +266,6 @@ void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, I
     if (inputsCount > 2) {
         FATAL_ERROR_IF(isaCommand.inputSize2 != request.dword2.inputSize2, "Invalid inputSize2");
     }
-    if (inputsCount > 3) {
-        FATAL_ERROR_IF(isaCommand.inputSize3 != request.dword2.inputSize3, "Invalid inputSize3");
-    }
 
     FATAL_ERROR_IF(isaCommand.outputsCount != request.dword2.outputsCount, "Invalid outputs count");
     const int outputsCount = nonZeroCountToInt(isaCommand.outputsCount);
@@ -290,9 +275,6 @@ void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, I
     }
     if (outputsCount > 2) {
         FATAL_ERROR_IF(isaCommand.outputSize2 != request.dword2.outputSize2, "Invalid outputSize2");
-    }
-    if (outputsCount > 3) {
-        FATAL_ERROR_IF(isaCommand.outputSize3 != request.dword2.outputSize3, "Invalid outputSize3");
     }
 
     FATAL_ERROR_IF(isaCommand.uniformsCount != request.dword2.uniformsCount, "Invalid uniforms count");
@@ -305,8 +287,5 @@ void ShaderFrontendBase::validateRequest(const ShaderFrontendRequest &request, I
     }
     if (uniformsCount > 2) {
         FATAL_ERROR_IF(isaCommand.uniformSize2 != request.dword2.uniformSize2, "Invalid uniformSize2");
-    }
-    if (uniformsCount > 3) {
-        FATAL_ERROR_IF(isaCommand.uniformSize3 != request.dword2.uniformSize3, "Invalid uniformSize3");
     }
 }

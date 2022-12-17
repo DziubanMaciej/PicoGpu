@@ -30,7 +30,6 @@ RegisterAllocator::MaskType RegisterAllocator::constructUsedRegistersMaskFromIsa
     ADD_TO_MASK(0);
     ADD_TO_MASK(1);
     ADD_TO_MASK(2);
-    ADD_TO_MASK(3);
 #undef ADD_TO_MASK
 
     return mask;
