@@ -22,7 +22,7 @@ void PicoGpuBinary::reset() {
     std::memset(&uniforms, 0, sizeof(uniforms));
 }
 
-void PicoGpuBinary::encodeDirectiveInputOutput(RegisterSelection reg, int mask, IoType ioType) {
+void PicoGpuBinary::encodeDirectiveInputOutput(RegisterIndex reg, int mask, IoType ioType) {
     InputOutputRegisters &io = getIoRegisters(ioType);
 
     // Validate component mask
@@ -300,7 +300,7 @@ void PicoGpuBinary::encodeNullary(Opcode opcode) {
     inst->opcode = opcode;
 }
 
-void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask) {
+void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterIndex dest, RegisterIndex src, uint32_t destMask) {
     auto inst = getSpace<InstructionLayouts::UnaryMath>();
     inst->opcode = opcode;
     inst->dest = dest;
@@ -308,7 +308,7 @@ void PicoGpuBinary::encodeUnaryMath(Opcode opcode, RegisterSelection dest, Regis
     inst->destMask = destMask;
 }
 
-void PicoGpuBinary::encodeBinaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, uint32_t destMask) {
+void PicoGpuBinary::encodeBinaryMath(Opcode opcode, RegisterIndex dest, RegisterIndex src1, RegisterIndex src2, uint32_t destMask) {
     auto inst = getSpace<InstructionLayouts::BinaryMath>();
     inst->opcode = opcode;
     inst->dest = dest;
@@ -317,7 +317,7 @@ void PicoGpuBinary::encodeBinaryMath(Opcode opcode, RegisterSelection dest, Regi
     inst->destMask = destMask;
 }
 
-void PicoGpuBinary::encodeTernaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, RegisterSelection src3, uint32_t destMask) {
+void PicoGpuBinary::encodeTernaryMath(Opcode opcode, RegisterIndex dest, RegisterIndex src1, RegisterIndex src2, RegisterIndex src3, uint32_t destMask) {
     auto inst = getSpace<InstructionLayouts::TernaryMath>();
     inst->opcode = opcode;
     inst->dest = dest;
@@ -327,7 +327,7 @@ void PicoGpuBinary::encodeTernaryMath(Opcode opcode, RegisterSelection dest, Reg
     inst->destMask = destMask;
 }
 
-void PicoGpuBinary::encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
+void PicoGpuBinary::encodeUnaryMathImm(Opcode opcode, RegisterIndex dest, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
     FATAL_ERROR_IF(immediateValues.empty(), "UnaryMathImm must have at least one immediate value");
     FATAL_ERROR_IF(immediateValues.size() > 4, "UnaryMathImm can have at most 4 immediate values");
 
@@ -341,7 +341,7 @@ void PicoGpuBinary::encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, ui
     }
 }
 
-void PicoGpuBinary::encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
+void PicoGpuBinary::encodeBinaryMathImm(Opcode opcode, RegisterIndex dest, RegisterIndex src, uint32_t destMask, const std::vector<int32_t> &immediateValues) {
     FATAL_ERROR_IF(immediateValues.empty(), "BinaryMathImm must have at least one immediate value");
     FATAL_ERROR_IF(immediateValues.size() > 4, "BinaryMathImm can have at most 4 immediate values");
 
@@ -356,7 +356,7 @@ void PicoGpuBinary::encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, R
     }
 }
 
-void PicoGpuBinary::encodeSwizzle(Opcode opcode, RegisterSelection dest, RegisterSelection src,
+void PicoGpuBinary::encodeSwizzle(Opcode opcode, RegisterIndex dest, RegisterIndex src,
                                   SwizzlePatternComponent x, SwizzlePatternComponent y, SwizzlePatternComponent z, SwizzlePatternComponent w) {
     auto inst = getSpace<InstructionLayouts::Swizzle>();
     inst->opcode = opcode;
@@ -405,39 +405,39 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     // Prepare register indices to operate on
     RegisterAllocator registerAllocator{inputs.usedRegsMask};
     size_t maxInputOutputRegisters = 3; // TODO remove it and make Isa::maxInputOutputRegisters=3
-    RegisterSelection regPerTriangleAttrib[verticesInPrimitive][maxInputOutputRegisters] = {};
+    RegisterIndex regPerTriangleAttrib[verticesInPrimitive][maxInputOutputRegisters] = {};
     for (int vertexIndex = 0; vertexIndex < verticesInPrimitive; vertexIndex++) {
         for (int inputIndex = 0; inputIndex < inputs.usedRegsCount; inputIndex++) {
             regPerTriangleAttrib[vertexIndex][inputIndex] = registerAllocator.allocate(); // this has to be in sync with how SU lays out these attributes
         }
     }
-    const RegisterSelection regPositionP = inputs.regs[0].index;
-    const RegisterSelection regPositionA = regPerTriangleAttrib[0][0];
-    const RegisterSelection regPositionB = regPerTriangleAttrib[1][0];
-    const RegisterSelection regPositionC = regPerTriangleAttrib[2][0];
+    const RegisterIndex regPositionP = inputs.regs[0].index;
+    const RegisterIndex regPositionA = regPerTriangleAttrib[0][0];
+    const RegisterIndex regPositionB = regPerTriangleAttrib[1][0];
+    const RegisterIndex regPositionC = regPerTriangleAttrib[2][0];
 
     // Calculate edges (2 component vectors). We may temporarily store them at the future
     // location of inputs  we're interpolating here.
-    const RegisterSelection regEdgeAB = inputs.usedRegsCount > 1 ? inputs.regs[1].index : registerAllocator.allocate();
-    const RegisterSelection regEdgeAC = inputs.usedRegsCount > 2 ? inputs.regs[2].index : registerAllocator.allocate();
-    const RegisterSelection regEdgeAP = inputs.usedRegsCount > 3 ? inputs.regs[3].index : registerAllocator.allocate();
+    const RegisterIndex regEdgeAB = inputs.usedRegsCount > 1 ? inputs.regs[1].index : registerAllocator.allocate();
+    const RegisterIndex regEdgeAC = inputs.usedRegsCount > 2 ? inputs.regs[2].index : registerAllocator.allocate();
+    const RegisterIndex regEdgeAP = inputs.usedRegsCount > 3 ? inputs.regs[3].index : registerAllocator.allocate();
     encodeBinaryMath(Isa::Opcode::fsub, regEdgeAB, regPositionB, regPositionA, 0b1100);
     encodeBinaryMath(Isa::Opcode::fsub, regEdgeAC, regPositionC, regPositionA, 0b1100);
     encodeBinaryMath(Isa::Opcode::fsub, regEdgeAP, regPositionP, regPositionA, 0b1100);
 
     // Calculate parallelogram areas (store 2D cross product result in all 4 components)
-    const RegisterSelection regAreaABP = registerAllocator.allocate();
-    const RegisterSelection regAreaACP = registerAllocator.allocate();
-    const RegisterSelection regAreaABC = registerAllocator.allocate();
+    const RegisterIndex regAreaABP = registerAllocator.allocate();
+    const RegisterIndex regAreaACP = registerAllocator.allocate();
+    const RegisterIndex regAreaABC = registerAllocator.allocate();
     encodeBinaryMath(Isa::Opcode::fcross2, regAreaABP, regEdgeAB, regEdgeAP, 0b1111);
     encodeBinaryMath(Isa::Opcode::fcross2, regAreaACP, regEdgeAP, regEdgeAC, 0b1111);
     encodeBinaryMath(Isa::Opcode::fcross2, regAreaABC, regEdgeAB, regEdgeAC, 0b1111);
 
     // Calculate barycentric coordinates - weights (store in all components).
     // We may reuse registers used for storing area, because they will not be used afterwards.
-    const RegisterSelection regWeightC = regAreaABP;
-    const RegisterSelection regWeightB = regAreaACP;
-    const RegisterSelection regWeightA = regAreaABC;
+    const RegisterIndex regWeightC = regAreaABP;
+    const RegisterIndex regWeightB = regAreaACP;
+    const RegisterIndex regWeightA = regAreaABC;
     const int32_t floatOne = Conversions::floatBytesToInt(1.0f);
     encodeBinaryMath(Isa::Opcode::fdiv, regWeightC, regAreaABP, regAreaABC, 0b1111);
     encodeBinaryMath(Isa::Opcode::fdiv, regWeightB, regAreaACP, regAreaABC, 0b1111);
@@ -456,7 +456,7 @@ void PicoGpuBinary::encodeAttributeInterpolationForFragmentShader() {
     }
 
     // Interpolate depth
-    const RegisterSelection regZ = regPositionA; // we may reuse this slot after interpolating depth
+    const RegisterIndex regZ = regPositionA; // we may reuse this slot after interpolating depth
     if (perspectiveAware) {
         encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightA, 0b0010);
         encodeBinaryMath(Isa::Opcode::fadd, regPositionP, regPositionP, regWeightB, 0b0010);

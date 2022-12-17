@@ -2,12 +2,12 @@
     #include "gpu/isa/assembler/pico_gpu_binary.h"
 
     struct DstRegister {
-        Isa::RegisterSelection reg;
+        Isa::RegisterIndex reg;
         uint32_t mask;
     };
 
     struct FullySwizzledRegister {
-        Isa::RegisterSelection reg;
+        Isa::RegisterIndex reg;
         Isa::SwizzlePatternComponent x;
         Isa::SwizzlePatternComponent y;
         Isa::SwizzlePatternComponent z;
@@ -31,7 +31,7 @@
     float f;
     DstRegister dstReg;
     FullySwizzledRegister fullySwizzledReg;
-    Isa::RegisterSelection reg;
+    Isa::RegisterIndex reg;
     Isa::SwizzlePatternComponent swizzleComponent;
     ImmediateArgs immediateArgs;
 }

@@ -22,7 +22,7 @@ constexpr inline size_t registerComponentsCountExponent = 2;
 constexpr inline size_t registerComponentsCount = 1 << 2;
 constexpr inline size_t commandSizeInDwords = 3;
 
-using RegisterSelection = uint32_t; // TODO rename to GeneralPurposeRegisterIndex
+using RegisterIndex = uint32_t;
 
 // Commands are macro-operations issued to the shader units in order to prepare and
 // execute shaders.
@@ -54,33 +54,33 @@ namespace Command {
 
             NonZeroCount inputsCount : maxInputOutputRegistersExponent;              // the number valid input registers from 1 to 4.
             NonZeroCount inputSize0 : registerComponentsCountExponent;               // the number of components of first input register that will have a meaningful value.
-            RegisterSelection inputRegister0 : generalPurposeRegistersCountExponent; // the register index of first input register
+            RegisterIndex inputRegister0 : generalPurposeRegistersCountExponent; // the register index of first input register
             NonZeroCount inputSize1 : registerComponentsCountExponent;
-            RegisterSelection inputRegister1 : generalPurposeRegistersCountExponent;
+            RegisterIndex inputRegister1 : generalPurposeRegistersCountExponent;
             NonZeroCount inputSize2 : registerComponentsCountExponent;
-            RegisterSelection inputRegister2 : generalPurposeRegistersCountExponent;
+            RegisterIndex inputRegister2 : generalPurposeRegistersCountExponent;
             NonZeroCount inputSize3 : registerComponentsCountExponent;
-            RegisterSelection inputRegister3 : generalPurposeRegistersCountExponent;
+            RegisterIndex inputRegister3 : generalPurposeRegistersCountExponent;
 
             NonZeroCount outputsCount : maxInputOutputRegistersExponent;
             NonZeroCount outputSize0 : registerComponentsCountExponent;
-            RegisterSelection outputRegister0 : generalPurposeRegistersCountExponent;
+            RegisterIndex outputRegister0 : generalPurposeRegistersCountExponent;
             NonZeroCount outputSize1 : registerComponentsCountExponent;
-            RegisterSelection outputRegister1 : generalPurposeRegistersCountExponent;
+            RegisterIndex outputRegister1 : generalPurposeRegistersCountExponent;
             NonZeroCount outputSize2 : registerComponentsCountExponent;
-            RegisterSelection outputRegister2 : generalPurposeRegistersCountExponent;
+            RegisterIndex outputRegister2 : generalPurposeRegistersCountExponent;
             NonZeroCount outputSize3 : registerComponentsCountExponent;
-            RegisterSelection outputRegister3 : generalPurposeRegistersCountExponent;
+            RegisterIndex outputRegister3 : generalPurposeRegistersCountExponent;
 
             uint32_t uniformsCount : 3;
             NonZeroCount uniformSize0 : registerComponentsCountExponent;
-            RegisterSelection uniformRegister0 : generalPurposeRegistersCountExponent;
+            RegisterIndex uniformRegister0 : generalPurposeRegistersCountExponent;
             NonZeroCount uniformSize1 : registerComponentsCountExponent;
-            RegisterSelection uniformRegister1 : generalPurposeRegistersCountExponent;
+            RegisterIndex uniformRegister1 : generalPurposeRegistersCountExponent;
             NonZeroCount uniformSize2 : registerComponentsCountExponent;
-            RegisterSelection uniformRegister2 : generalPurposeRegistersCountExponent;
+            RegisterIndex uniformRegister2 : generalPurposeRegistersCountExponent;
             NonZeroCount uniformSize3 : registerComponentsCountExponent;
-            RegisterSelection uniformRegister3 : generalPurposeRegistersCountExponent;
+            RegisterIndex uniformRegister3 : generalPurposeRegistersCountExponent;
         };
         uint32_t raw[commandSizeInDwords];
     };
@@ -175,8 +175,8 @@ namespace InstructionLayouts {
     // will be affected (1 bit per channel)
     struct UnaryMath {
         Opcode opcode : opcodeBitsize;
-        RegisterSelection dest : generalPurposeRegistersCountExponent;
-        RegisterSelection src : generalPurposeRegistersCountExponent;
+        RegisterIndex dest : generalPurposeRegistersCountExponent;
+        RegisterIndex src : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
     };
 
@@ -185,9 +185,9 @@ namespace InstructionLayouts {
     // will be affected (1 bit per channel)
     struct BinaryMath {
         Opcode opcode : opcodeBitsize;
-        RegisterSelection dest : generalPurposeRegistersCountExponent;
-        RegisterSelection src1 : generalPurposeRegistersCountExponent;
-        RegisterSelection src2 : generalPurposeRegistersCountExponent;
+        RegisterIndex dest : generalPurposeRegistersCountExponent;
+        RegisterIndex src1 : generalPurposeRegistersCountExponent;
+        RegisterIndex src2 : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
     };
 
@@ -196,10 +196,10 @@ namespace InstructionLayouts {
     // will be affected (1 bit per channel)
     struct TernaryMath {
         Opcode opcode : opcodeBitsize;
-        RegisterSelection dest : generalPurposeRegistersCountExponent;
-        RegisterSelection src1 : generalPurposeRegistersCountExponent;
-        RegisterSelection src2 : generalPurposeRegistersCountExponent;
-        RegisterSelection src3 : generalPurposeRegistersCountExponent;
+        RegisterIndex dest : generalPurposeRegistersCountExponent;
+        RegisterIndex src1 : generalPurposeRegistersCountExponent;
+        RegisterIndex src2 : generalPurposeRegistersCountExponent;
+        RegisterIndex src3 : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
     };
 
@@ -209,7 +209,7 @@ namespace InstructionLayouts {
     // can actually take more bytes if immediateValuesCount is greater than 1.
     struct UnaryMathImm {
         Opcode opcode : opcodeBitsize;
-        RegisterSelection dest : generalPurposeRegistersCountExponent;
+        RegisterIndex dest : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
         NonZeroCount immediateValuesCount : 2;
         uint32_t reserved : 16;
@@ -222,8 +222,8 @@ namespace InstructionLayouts {
     // can actually take more bytes if immediateValuesCount is greater than 1.
     struct BinaryMathImm {
         Opcode opcode : opcodeBitsize;
-        RegisterSelection dest : generalPurposeRegistersCountExponent;
-        RegisterSelection src : generalPurposeRegistersCountExponent;
+        RegisterIndex dest : generalPurposeRegistersCountExponent;
+        RegisterIndex src : generalPurposeRegistersCountExponent;
         uint32_t destMask : 4;
         NonZeroCount immediateValuesCount : 2;
         uint32_t reserved : 12;
@@ -234,8 +234,8 @@ namespace InstructionLayouts {
     // The swizzle pattern is 8 bit, 2 bits per component to select either x,y,z or w from src.
     struct Swizzle {
         Opcode opcode : opcodeBitsize;
-        RegisterSelection dest : generalPurposeRegistersCountExponent;
-        RegisterSelection src : generalPurposeRegistersCountExponent;
+        RegisterIndex dest : generalPurposeRegistersCountExponent;
+        RegisterIndex src : generalPurposeRegistersCountExponent;
         SwizzlePatternComponent patternX : 2;
         SwizzlePatternComponent patternY : 2;
         SwizzlePatternComponent patternZ : 2;

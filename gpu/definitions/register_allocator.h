@@ -10,11 +10,11 @@ public:
     RegisterAllocator(MaskType mask);
     RegisterAllocator(Isa::Command::CommandStoreIsa isaMetadata);
 
-    Isa::RegisterSelection allocate();
+    Isa::RegisterIndex allocate();
 
 private:
     static MaskType constructUsedRegistersMaskFromIsaMetadata(Isa::Command::CommandStoreIsa isaMetadata);
 
     MaskType usedRegistersMask;
-    Isa::RegisterSelection startRegisterToAllocate = 0; // cached to minimize number of loops through the bitmask
+    Isa::RegisterIndex startRegisterToAllocate = 0; // cached to minimize number of loops through the bitmask
 };

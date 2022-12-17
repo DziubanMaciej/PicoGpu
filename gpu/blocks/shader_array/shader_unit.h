@@ -51,8 +51,8 @@ private:
 
     NonZeroCount getInputOutputSize(bool input, uint32_t index) const;
     NonZeroCount getUniformSize(uint32_t index) const;
-    Isa::RegisterSelection getInputOutputRegisterIndex(bool input, uint32_t index) const;
-    Isa::RegisterSelection getUniformRegisterIndex(uint32_t index) const;
+    Isa::RegisterIndex getInputOutputRegisterIndex(bool input, uint32_t index) const;
+    Isa::RegisterIndex getUniformRegisterIndex(uint32_t index) const;
 
     using UnaryFunction = int32_t (*)(int32_t);
     using UnaryVectorScalarFunction = int32_t (*)(VectorRegister);

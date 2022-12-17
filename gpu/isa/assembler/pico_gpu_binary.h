@@ -23,18 +23,18 @@ public:
     PicoGpuBinary();
     void reset();
 
-    void encodeDirectiveInputOutput(RegisterSelection reg, int mask, IoType ioType);
+    void encodeDirectiveInputOutput(RegisterIndex reg, int mask, IoType ioType);
     void encodeDirectiveShaderType(Isa::Command::ProgramType programType);
     void encodeDirectiveUndefinedRegs();
     void finalizeDirectives();
 
     void encodeNullary(Opcode opcode);
-    void encodeUnaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask);
-    void encodeBinaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, uint32_t destMask);
-    void encodeTernaryMath(Opcode opcode, RegisterSelection dest, RegisterSelection src1, RegisterSelection src2, RegisterSelection src3, uint32_t destMask);
-    void encodeUnaryMathImm(Opcode opcode, RegisterSelection dest, uint32_t destMask, const std::vector<int32_t> &immediateValue);
-    void encodeBinaryMathImm(Opcode opcode, RegisterSelection dest, RegisterSelection src, uint32_t destMask, const std::vector<int32_t> &immediateValue);
-    void encodeSwizzle(Opcode opcode, RegisterSelection dest, RegisterSelection src, SwizzlePatternComponent x, SwizzlePatternComponent y, SwizzlePatternComponent z, SwizzlePatternComponent w);
+    void encodeUnaryMath(Opcode opcode, RegisterIndex dest, RegisterIndex src, uint32_t destMask);
+    void encodeBinaryMath(Opcode opcode, RegisterIndex dest, RegisterIndex src1, RegisterIndex src2, uint32_t destMask);
+    void encodeTernaryMath(Opcode opcode, RegisterIndex dest, RegisterIndex src1, RegisterIndex src2, RegisterIndex src3, uint32_t destMask);
+    void encodeUnaryMathImm(Opcode opcode, RegisterIndex dest, uint32_t destMask, const std::vector<int32_t> &immediateValue);
+    void encodeBinaryMathImm(Opcode opcode, RegisterIndex dest, RegisterIndex src, uint32_t destMask, const std::vector<int32_t> &immediateValue);
+    void encodeSwizzle(Opcode opcode, RegisterIndex dest, RegisterIndex src, SwizzlePatternComponent x, SwizzlePatternComponent y, SwizzlePatternComponent z, SwizzlePatternComponent w);
     void finalizeInstructions();
 
     void setHasNextCommand();
@@ -69,7 +69,7 @@ private:
         Internal, // not defined in a shader, added by the compiler
     };
     struct InputOutputRegister {
-        Isa::RegisterSelection index = 0;
+        Isa::RegisterIndex index = 0;
         InputOutputRegisterUsage usage = InputOutputRegisterUsage::Unknown;
         uint8_t mask = 0;            // mask of components used, e.g 0b1100 means xy
         uint8_t componentsCount = 0; // cached number of bits set in mask
