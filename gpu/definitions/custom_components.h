@@ -6,8 +6,11 @@
 #include <systemc.h>
 
 union CustomShaderComponents {
+    constexpr static inline size_t registersCountBits = 2;
+    constexpr static inline size_t structBits = registersCountBits + Isa::maxInputOutputRegisters * Isa::registerComponentsCountExponent;
+
     struct {
-        uint32_t registersCount : 3;
+        uint32_t registersCount : registersCountBits;
         NonZeroCount comp0 : Isa::registerComponentsCountExponent;
         NonZeroCount comp1 : Isa::registerComponentsCountExponent;
         NonZeroCount comp2 : Isa::registerComponentsCountExponent;
@@ -39,12 +42,4 @@ union CustomShaderComponents {
     }
 };
 static_assert(sizeof(CustomShaderComponents) == sizeof(uint32_t));
-constexpr inline size_t customShaderComponentsBits = 3 + 4 * Isa::registerComponentsCountExponent;
-using CustomShaderComponentsType = sc_uint<customShaderComponentsBits>;
-
-// TODO rethink memory layout of this. Currently it's made to fit the worst-case scenario, but:
-// - input VS components: there can be 1,2,3 or 4 vectors
-// - VS-PS components:    there can be 0,1,2 or 3 vectors
-//
-// So 2 bits will be sufficient for registersCount
-// We also don't need comp3 for VS-PS components
+using CustomShaderComponentsType = sc_uint<CustomShaderComponents::structBits>;
