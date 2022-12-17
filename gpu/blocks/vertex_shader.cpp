@@ -20,7 +20,7 @@ void VertexShader::main() {
 
         // Prepare some info about our input
         CustomShaderComponents inputComponentsInfo{this->inpCustomInputComponents.read().to_uint()};
-        const size_t totalInputComponents = verticesInPrimitive * inputComponentsInfo.getCustomComponentsCount();
+        const size_t totalInputComponents = verticesInPrimitive * inputComponentsInfo.getTotalCustomComponents();
         const size_t inputRegistersCount = inputComponentsInfo.registersCount;
 
         // Receive triangle data into our request data (per-thread inputs)
@@ -65,7 +65,7 @@ void VertexShader::main() {
         const size_t dwordsToSend = sizeof(ShaderFrontendRequest) / sizeof(uint32_t) + dataDwords;
         Transfer::sendArray(shaderFrontend.request.inpReceiving, shaderFrontend.request.outSending,
                             shaderFrontend.request.outData, reinterpret_cast<uint32_t *>(&request), dwordsToSend);
-        const size_t dwordsToReceive = sizeof(ShaderFrontendResponse) / sizeof(uint32_t) + (4 + customOutputComponents.getCustomComponentsCount()) * threadCount;
+        const size_t dwordsToReceive = sizeof(ShaderFrontendResponse) / sizeof(uint32_t) + (4 + customOutputComponents.getTotalCustomComponents()) * threadCount;
         Transfer::receiveArray(shaderFrontend.response.inpSending, shaderFrontend.response.inpData,
                                shaderFrontend.response.outReceiving, reinterpret_cast<uint32_t *>(&response), dwordsToReceive);
 

@@ -16,8 +16,7 @@ union CustomShaderComponents {
 
     CustomShaderComponents(uint32_t raw) : raw(raw) {}
 
-    // TOOD: rename to getTotalCustomComponents
-    uint32_t getCustomComponentsCount() const {
+    uint32_t getTotalCustomComponents() const {
         const uint32_t registersCount = this->registersCount;
         uint32_t result = 0;
         for (uint32_t registerIndex = 0; registerIndex < registersCount; registerIndex++) {

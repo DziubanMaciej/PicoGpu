@@ -18,7 +18,7 @@ void PrimitiveAssembler::assemble() {
         const uint32_t vertexBufferAddress = inpVerticesAddress.read().to_int();
         const auto primitiveCount = inpVerticesCount.read().to_int() / verticesInPrimitive;
         const CustomShaderComponents componentsInfo{this->inpCustomInputComponents.read().to_uint()};
-        const size_t componentsToTransfer = verticesInPrimitive * componentsInfo.getCustomComponentsCount();
+        const size_t componentsToTransfer = verticesInPrimitive * componentsInfo.getTotalCustomComponents();
 
         for (int triangleIndex = 0; triangleIndex < primitiveCount; triangleIndex++) {
             if (triangleIndex != 0) {

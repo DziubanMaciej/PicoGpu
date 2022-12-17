@@ -125,7 +125,7 @@ uint32_t FragmentShader::packRgbaToUint(float *rgba) {
 
 uint32_t FragmentShader::calculateTriangleAttributesCount(CustomShaderComponents customComponents) {
     const uint32_t fixedComponentsPerVertex = 3; // x,y,z
-    const uint32_t customComponentsPerVertex = customComponents.getCustomComponentsCount();
+    const uint32_t customComponentsPerVertex = customComponents.getTotalCustomComponents();
     const uint32_t componentsPerVertex = fixedComponentsPerVertex + customComponentsPerVertex;
     return componentsPerVertex * verticesInPrimitive;
 }
