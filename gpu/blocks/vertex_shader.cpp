@@ -49,29 +49,15 @@ void VertexShader::main() {
         request.header.dword1.clientToken++;
         request.header.dword1.threadCount = intToNonZeroCount(threadCount);
         request.header.dword2.inputsCount = intToNonZeroCount(inputComponentsInfo.registersCount);
-        if (inputRegistersCount > 0) { // TODO do I even need these conditions?
-            request.header.dword2.inputSize0 = inputComponentsInfo.comp0;
-        }
-        if (inputRegistersCount > 1) {
-            request.header.dword2.inputSize1 = inputComponentsInfo.comp1;
-        }
-        if (inputRegistersCount > 2) {
-            request.header.dword2.inputSize2 = inputComponentsInfo.comp2;
-        }
-        if (inputRegistersCount > 3) {
-            request.header.dword2.inputSize3 = inputComponentsInfo.comp3;
-        }
+        request.header.dword2.inputSize0 = inputComponentsInfo.comp0;
+        request.header.dword2.inputSize1 = inputComponentsInfo.comp1;
+        request.header.dword2.inputSize2 = inputComponentsInfo.comp2;
+        request.header.dword2.inputSize3 = inputComponentsInfo.comp3;
         request.header.dword2.outputsCount = NonZeroCount::One + intToNonZeroCount(customOutputRegistersCount);
         request.header.dword2.outputSize0 = NonZeroCount::Four;
-        if (customOutputRegistersCount > 0) {
-            request.header.dword2.outputSize1 = customOutputComponents.comp0;
-        }
-        if (customOutputRegistersCount > 1) {
-            request.header.dword2.outputSize2 = customOutputComponents.comp1;
-        }
-        if (customOutputRegistersCount > 2) {
-            request.header.dword2.outputSize3 = customOutputComponents.comp2;
-        }
+        request.header.dword2.outputSize1 = customOutputComponents.comp0;
+        request.header.dword2.outputSize2 = customOutputComponents.comp1;
+        request.header.dword2.outputSize3 = customOutputComponents.comp2;
         request.header.dword2.uniformsCount = uniformsInfo.registersCount;
         request.header.dword2.uniformSize0 = uniformsInfo.comp0;
         request.header.dword2.uniformSize1 = uniformsInfo.comp1;

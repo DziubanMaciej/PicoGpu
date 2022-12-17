@@ -89,15 +89,9 @@ void FragmentShader::perFragmentThread() {
         request.header.dword1.programType = Isa::Command::ProgramType::FragmentShader;
         request.header.dword2.inputsCount = NonZeroCount::One + intToNonZeroCount(customInputRegistersCount);
         request.header.dword2.inputSize0 = NonZeroCount::Two; // First input is always x,y position
-        if (customInputRegistersCount > 0) {
-            request.header.dword2.inputSize1 = customInputComponents.comp0;
-        }
-        if (customInputRegistersCount > 1) {
-            request.header.dword2.inputSize2 = customInputComponents.comp1;
-        }
-        if (customInputRegistersCount > 2) {
-            request.header.dword2.inputSize3 = customInputComponents.comp2;
-        }
+        request.header.dword2.inputSize1 = customInputComponents.comp0;
+        request.header.dword2.inputSize2 = customInputComponents.comp1;
+        request.header.dword2.inputSize3 = customInputComponents.comp2;
         request.header.dword2.outputsCount = NonZeroCount::Two;
         request.header.dword2.outputSize0 = NonZeroCount::Four; // color data r,g,b,a
         request.header.dword2.outputSize1 = NonZeroCount::One;  // interpolated z

@@ -10,7 +10,6 @@ void OutputMerger::main() {
         const float fragmentZ = Conversions::uintBytesToFloat(fragment.z);
 
         // Perform depth test
-        // TODO this can only handle 32-bit depth buffer
         if (depth.inpEnable) {
             const MemoryDataType depthAddress = depth.inpAddress.read() + (fragmentY * framebuffer.inpWidth.read() + fragmentX) * depthTypeByteSize;
 
